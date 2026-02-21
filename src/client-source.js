@@ -878,20 +878,29 @@
       }
       updateBadge(total);
 
-      // Restore markers for clicks on the current page
-      var currentUrl = window.location.href;
-      var clickIndex = 0;
-      for (var i = 0; i < store.sessions.length; i++) {
-        var clicks = store.sessions[i].clicks || [];
-        for (var j = 0; j < clicks.length; j++) {
-          clickIndex++;
-          if (clicks[j].url === currentUrl) {
-            markerNumber = clickIndex - 1;
-            addMarker(clicks[j]);
+      // Restore markers for clicks on the current page.
+      // Delay to allow SSR frameworks (SvelteKit, Nuxt) to hydrate the DOM.
+      var currentPath = window.location.pathname;
+      function restoreMarkers() {
+        var clickIndex = 0;
+        for (var i = 0; i < store.sessions.length; i++) {
+          var clicks = store.sessions[i].clicks || [];
+          for (var j = 0; j < clicks.length; j++) {
+            clickIndex++;
+            try {
+              var clickPath = new URL(clicks[j].url).pathname;
+            } catch (e) {
+              continue;
+            }
+            if (clickPath === currentPath) {
+              markerNumber = clickIndex - 1;
+              addMarker(clicks[j]);
+            }
           }
         }
+        markerNumber = total;
       }
-      markerNumber = total;
+      setTimeout(restoreMarkers, 300);
     })
     .catch(function () {});
 
