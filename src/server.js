@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { getClientScript } from "./client.js";
 
 const DEFAULTS = {
   maxEntries: 10,
@@ -100,6 +101,13 @@ export function createMiddleware(opts = {}) {
 
     if (!url.pathname.startsWith("/__see-my-clicks")) {
       return next?.();
+    }
+
+    // Serve the client script
+    if (req.method === "GET" && url.pathname === "/__see-my-clicks/client.js") {
+      res.writeHead(200, { "Content-Type": "application/javascript" });
+      res.end(getClientScript());
+      return;
     }
 
     if (req.method === "POST") {

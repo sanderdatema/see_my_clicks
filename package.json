@@ -1,7 +1,7 @@
 {
   "name": "see-my-clicks",
   "version": "1.0.0",
-  "description": "Vite plugin that lets you Alt+Click elements in the browser to capture their info for AI coding assistants",
+  "description": "Alt+Click any element in the browser to capture its info for AI coding assistants",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -21,6 +21,9 @@
   "keywords": [
     "vite",
     "vite-plugin",
+    "express",
+    "webpack",
+    "next",
     "claude-code",
     "codex",
     "cursor",
@@ -35,6 +38,11 @@
   "license": "MIT",
   "peerDependencies": {
     "vite": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   },
   "repository": {
     "type": "git",

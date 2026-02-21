@@ -1,6 +1,6 @@
 # see-my-clicks
 
-Vite plugin that lets you **Alt+Click** any element in the browser to capture its info for your AI coding assistant.
+**Alt+Click** any element in the browser to capture its info for your AI coding assistant.
 
 Click elements, optionally add a comment describing what's wrong, then tell your AI to "check my clicks".
 
@@ -14,6 +14,8 @@ npm install -D see-my-clicks
 
 ## Setup
 
+### Vite
+
 **1. Add the plugin to your Vite config:**
 
 ```js
@@ -25,7 +27,46 @@ export default defineConfig({
 })
 ```
 
-**2. Install the instruction file for your AI tool:**
+### Universal (any dev server)
+
+Works with Express, Webpack dev server, Next.js, or anything that supports connect-style middleware.
+
+**1. Add the middleware to your dev server:**
+
+```js
+// Express
+import express from 'express'
+import { createMiddleware } from 'see-my-clicks'
+
+const app = express()
+app.use(createMiddleware())
+```
+
+```js
+// Webpack devServer (webpack.config.js)
+const { createMiddleware } = require('see-my-clicks')
+
+module.exports = {
+  devServer: {
+    setupMiddlewares(middlewares, devServer) {
+      devServer.app.use(createMiddleware())
+      return middlewares
+    }
+  }
+}
+```
+
+**2. Add the script tag to your HTML:**
+
+```html
+<script src="/__see-my-clicks/client.js"></script>
+```
+
+The middleware serves the client script automatically at this URL — no bundler plugin needed.
+
+### AI tool instructions
+
+**Install the instruction file for your AI tool:**
 
 ```bash
 npx see-my-clicks init claude       # Claude Code
@@ -46,7 +87,7 @@ You can also pass multiple: `npx see-my-clicks init claude cursor`
 | Windsurf | Section appended to `.windsurfrules` |
 | GitHub Copilot | Section appended to `.github/copilot-instructions.md` |
 
-**3. (Optional) Choose what happens with your clicks:**
+### (Optional) Choose what happens with your clicks
 
 By default, your AI suggests code fixes. You can change this with `--action`:
 
@@ -64,7 +105,7 @@ npx see-my-clicks init all --action=github-issues
 
 You can also edit the generated instruction file directly — the action is in a clearly marked `<!-- action:start/end -->` section.
 
-**4. Use it:**
+## Use it
 
 - Run your dev server
 - **Alt+Click** any element in the browser — a comment modal appears showing which element you clicked
@@ -75,7 +116,7 @@ You can also edit the generated instruction file directly — the action is in a
 
 ## How it works
 
-- The plugin injects a small script into your page during development (`apply: "serve"`)
+- A small script is injected into your page during development (via Vite plugin or script tag)
 - **Hover with Alt held** to see a highlight with a tooltip showing the element tag and component name
 - Alt+Click captures the element's tag, selector, text, bounding box, attributes, and framework component info
 - Captured elements get numbered purple markers so you can see what you've annotated
