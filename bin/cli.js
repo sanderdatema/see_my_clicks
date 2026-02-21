@@ -158,12 +158,53 @@ function install(key, actionKey) {
   else installAppend(tool, actionKey);
 }
 
+// ── SSR framework patching ──────────────────────────────────────────
+
+const SCRIPT_TAG = '<script src="/__see-my-clicks/client.js"></script>';
+const SCRIPT_MARKER = "see-my-clicks/client.js";
+
+function detectSSRFramework() {
+  const pkgPath = path.resolve(process.cwd(), "package.json");
+  if (!fs.existsSync(pkgPath)) return null;
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+  const allDeps = {
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+  };
+  if (allDeps["@sveltejs/kit"]) return "sveltekit";
+  return null;
+}
+
+function patchSvelteKit() {
+  const appHtml = path.resolve(process.cwd(), "src/app.html");
+  if (!fs.existsSync(appHtml)) {
+    console.log(
+      "  SvelteKit detected but src/app.html not found — add the script tag manually.",
+    );
+    return;
+  }
+  const html = fs.readFileSync(appHtml, "utf-8");
+  if (html.includes(SCRIPT_MARKER)) {
+    console.log("  src/app.html already has the client script, skipping.");
+    return;
+  }
+  if (!html.includes("</body>")) {
+    console.log(
+      "  src/app.html has no </body> tag — add the script tag manually.",
+    );
+    return;
+  }
+  const patched = html.replace("</body>", `  ${SCRIPT_TAG}\n</body>`);
+  fs.writeFileSync(appHtml, patched);
+  console.log("  Patched src/app.html with client script tag (SvelteKit).");
+}
+
 // ── Main ────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
 
 if (args[0] !== "init") {
-  console.log(`see-my-clicks — Vite plugin for capturing element clicks
+  console.log(`see-my-clicks — Alt+Click elements to capture info for AI coding assistants
 
 Usage:
   npx see-my-clicks init [tools...] [--action=<preset>]
@@ -234,6 +275,13 @@ const keys = toolArgs.includes("all")
 console.log(`Installing see-my-clicks instructions (action: ${actionKey}):\n`);
 for (const key of keys) {
   install(key, actionKey);
+}
+
+// Auto-patch SSR frameworks that bypass transformIndexHtml
+const framework = detectSSRFramework();
+if (framework === "sveltekit") {
+  console.log();
+  patchSvelteKit();
 }
 
 console.log(

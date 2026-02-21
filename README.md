@@ -27,6 +27,18 @@ export default defineConfig({
 })
 ```
 
+### SvelteKit
+
+SvelteKit bypasses Vite's `transformIndexHtml` hook, so the plugin can't inject the client script automatically. The CLI handles this — just run `npx see-my-clicks init` and it will patch `src/app.html` with the script tag.
+
+If you prefer to do it manually, add to `src/app.html`:
+
+```html
+<script src="/__see-my-clicks/client.js"></script>
+```
+
+The Vite plugin is still needed for the middleware (`seeMyClicks()` in your Vite config).
+
 ### Universal (any dev server)
 
 Works with Express, Webpack dev server, Next.js, or anything that supports connect-style middleware.
