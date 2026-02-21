@@ -67,17 +67,29 @@ You can also edit the generated instruction file directly — the action is in a
 **4. Use it:**
 
 - Run your dev server
-- **Alt+Click** any element in the browser — a comment modal appears
+- **Alt+Click** any element in the browser — a comment modal appears showing which element you clicked
 - Add an optional comment describing what should change, or press Esc to skip
-- **Shift+Alt+Click** to clear previous clicks and start fresh
+- **Shift+Alt+Click** to start a new named session (you'll be prompted for a name)
+- A purple badge in the corner shows your capture count — click it to review, manage, or delete captures
 - Tell your AI to "check my clicks" (or run `/clicked` in Claude Code)
 
 ## How it works
 
 - The plugin injects a small script into your page during development (`apply: "serve"`)
+- **Hover with Alt held** to see a highlight with a tooltip showing the element tag and component name
 - Alt+Click captures the element's tag, selector, text, bounding box, attributes, and framework component info
-- Clicks are saved to `.see-my-clicks/clicked.json` via a local dev server endpoint
+- Captured elements get numbered purple markers so you can see what you've annotated
+- Clicks are saved to `.see-my-clicks/clicked.json` via a local dev server endpoint, grouped into sessions
 - Your AI reads that file from disk and clears it after processing
+
+## Sessions
+
+Clicks are organized into **sessions** — named groups of related captures.
+
+- Your first Alt+Click auto-creates a default session
+- **Shift+Alt+Click** prompts you for a session name and starts a new one (e.g. "Header fixes", "Mobile layout")
+- You can also start a new session from the review panel
+- When your AI processes clicks, it sees them grouped by session, making it easier to understand context
 
 ## Framework detection
 
@@ -93,7 +105,7 @@ Component name and source file are included in the capture when available.
 
 ```js
 seeMyClicks({
-  maxEntries: 10,                              // max clicks kept (default: 10)
+  maxEntries: 10,                              // max clicks per session (default: 10)
   expiryMinutes: 60,                           // auto-expire after N minutes (default: 60)
   outputFile: '.see-my-clicks/clicked.json',   // output path relative to cwd
 })
@@ -104,10 +116,19 @@ seeMyClicks({
 | Action | Shortcut |
 |---|---|
 | Capture element | **Alt+Click** |
-| Clear previous & capture | **Shift+Alt+Click** |
+| New session + capture | **Shift+Alt+Click** |
 | Save comment | **Enter** |
 | Skip comment | **Esc** |
 | Multiline comment | **Shift+Enter** |
+| Undo last click | **Ctrl+Alt+Z** (Cmd+Alt+Z on Mac) |
+
+## UI features
+
+- **Highlight tooltip** — when hovering with Alt held, shows the element tag and component name
+- **Click counter badge** — persistent purple badge showing capture count; click to expand the review panel
+- **Review panel** — lists all captures grouped by session, with delete buttons for each item
+- **Element markers** — numbered purple dots on captured elements so you can see what's been annotated
+- **Element info in modal** — the comment modal shows which element you clicked (tag, text, component)
 
 ## License
 

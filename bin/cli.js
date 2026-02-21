@@ -15,7 +15,7 @@ const ACTION_END = "<!-- action:end -->";
 // ── Action presets ──────────────────────────────────────────────────
 
 const ACTIONS = {
-  "suggest-fixes": `4. If comments are present, suggest concrete fixes based on the component, selector, and comment. Group related clicks (same component, same page, same concern) together.
+  "suggest-fixes": `4. If comments are present, suggest concrete fixes based on the component, selector, and comment. Group related clicks (same component, same page, same concern) together. Respect session boundaries — each session is a separate batch of feedback.
 
 5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
 
@@ -24,7 +24,7 @@ const ACTIONS = {
    - The component name and source file (if detected)
    - The page URL
    - The user's comment verbatim
-   Group related clicks (same component, same page, same concern) into a single task.
+   Group related clicks (same component, same page, same concern) into a single task. Respect session boundaries — each session is a separate batch of feedback.
 
 5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
 
@@ -33,11 +33,11 @@ const ACTIONS = {
    - The component name and source file (if detected)
    - The page URL
    - The user's comment verbatim
-   Group related clicks into a single issue where it makes sense.
+   Group related clicks into a single issue where it makes sense. Respect session boundaries — each session is a separate batch of feedback.
 
 5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
 
-  "just-report": `4. Present all captured click information clearly. Do not take any action — just report what was clicked and any comments the user left.`,
+  "just-report": `4. Present all captured click information clearly, grouped by session. Do not take any action — just report what was clicked and any comments the user left.`,
 };
 
 // ── Tool definitions ────────────────────────────────────────────────
@@ -105,6 +105,20 @@ function installCopy(tool, actionKey) {
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
   if (fs.existsSync(dest)) {
+    const existing = fs.readFileSync(dest, "utf-8");
+    if (existing.includes(ACTION_START)) {
+      // Update just the action section in an existing file
+      const re = new RegExp(
+        `${escapeRegex(ACTION_START)}[\\s\\S]*?${escapeRegex(ACTION_END)}`,
+      );
+      const content = readTemplate(tool, actionKey);
+      const actionMatch = content.match(re);
+      if (actionMatch) {
+        fs.writeFileSync(dest, existing.replace(re, actionMatch[0]));
+        console.log(`  Updated action in ${tool.dest}`);
+        return;
+      }
+    }
     console.log(`  ${tool.dest} already exists, skipping.`);
     return;
   }
@@ -200,7 +214,8 @@ if (toolArgs.length === 0) {
 if (!ACTIONS[actionKey]) {
   console.error(
     `Unknown action: ${actionKey}\n` +
-      "Available: " + Object.keys(ACTIONS).join(", "),
+      "Available: " +
+      Object.keys(ACTIONS).join(", "),
   );
   process.exit(1);
 }
@@ -216,9 +231,7 @@ const keys = toolArgs.includes("all")
   ? Object.keys(TOOLS)
   : toolArgs.filter((t) => TOOLS[t]);
 
-console.log(
-  `Installing see-my-clicks instructions (action: ${actionKey}):\n`,
-);
+console.log(`Installing see-my-clicks instructions (action: ${actionKey}):\n`);
 for (const key of keys) {
   install(key, actionKey);
 }
