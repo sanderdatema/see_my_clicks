@@ -864,45 +864,74 @@
 
   // ── Init ─────────────────────────────────────────────────────────
 
-  // Fetch initial state to show badge count
-  fetch("/__see-my-clicks?keep=true")
-    .then(function (r) {
-      return r.json();
-    })
-    .then(function (store) {
-      var total = 0;
-      if (store && store.sessions) {
-        for (var i = 0; i < store.sessions.length; i++) {
-          total += (store.sessions[i].clicks || []).length;
-        }
-      }
-      updateBadge(total);
+  // ── Marker restoration ─────────────────────────────────────────────
 
-      // Restore markers for clicks on the current page.
-      // Delay to allow SSR frameworks (SvelteKit, Nuxt) to hydrate the DOM.
-      var currentPath = window.location.pathname;
-      function restoreMarkers() {
-        var clickIndex = 0;
-        for (var i = 0; i < store.sessions.length; i++) {
-          var clicks = store.sessions[i].clicks || [];
-          for (var j = 0; j < clicks.length; j++) {
-            clickIndex++;
-            try {
-              var clickPath = new URL(clicks[j].url).pathname;
-            } catch (e) {
-              continue;
-            }
-            if (clickPath === currentPath) {
-              markerNumber = clickIndex - 1;
-              addMarker(clicks[j]);
+  function clearAllMarkers() {
+    var ids = Object.keys(markers);
+    for (var i = 0; i < ids.length; i++) {
+      removeMarker(ids[i]);
+    }
+  }
+
+  function restoreMarkers() {
+    clearAllMarkers();
+    fetch("/__see-my-clicks?keep=true")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (store) {
+        var total = 0;
+        var currentPath = window.location.pathname;
+        if (store && store.sessions) {
+          var clickIndex = 0;
+          for (var i = 0; i < store.sessions.length; i++) {
+            var clicks = store.sessions[i].clicks || [];
+            total += clicks.length;
+            for (var j = 0; j < clicks.length; j++) {
+              clickIndex++;
+              try {
+                var clickPath = new URL(clicks[j].url).pathname;
+              } catch (e) {
+                continue;
+              }
+              if (clickPath === currentPath) {
+                markerNumber = clickIndex - 1;
+                addMarker(clicks[j]);
+              }
             }
           }
+          markerNumber = total;
         }
-        markerNumber = total;
-      }
+        updateBadge(total);
+      })
+      .catch(function () {});
+  }
+
+  // Detect client-side navigation (SvelteKit, Next.js, etc.)
+  var lastPathname = window.location.pathname;
+  var origPushState = history.pushState;
+  var origReplaceState = history.replaceState;
+
+  function onNavigation() {
+    var newPath = window.location.pathname;
+    if (newPath !== lastPathname) {
+      lastPathname = newPath;
       setTimeout(restoreMarkers, 300);
-    })
-    .catch(function () {});
+    }
+  }
+
+  history.pushState = function () {
+    origPushState.apply(this, arguments);
+    onNavigation();
+  };
+  history.replaceState = function () {
+    origReplaceState.apply(this, arguments);
+    onNavigation();
+  };
+  window.addEventListener("popstate", onNavigation);
+
+  // Initial load
+  setTimeout(restoreMarkers, 300);
 
   flash(
     "See My Clicks ready \u2014 Alt+Click to capture, Shift+Alt+Click for new session",
