@@ -225,6 +225,43 @@ export function createMiddleware(opts = {}) {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: String(err) }));
       }
+    } else if (req.method === "PUT") {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk.toString()));
+      req.on("end", () => {
+        try {
+          const { clickId, comment } = JSON.parse(body);
+          if (!clickId) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "clickId required" }));
+            return;
+          }
+          const store = readData(outputFile);
+          let found = false;
+          for (const session of store.sessions) {
+            for (const click of session.clicks) {
+              if (click.clickId === clickId) {
+                click.comment = comment || null;
+                found = true;
+                break;
+              }
+            }
+            if (found) break;
+          }
+          if (!found) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Click not found" }));
+            return;
+          }
+          writeData(outputFile, store);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: true }));
+        } catch (err) {
+          console.error("[see-my-clicks] PUT error:", err);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: String(err) }));
+        }
+      });
     } else {
       res.writeHead(405);
       res.end();

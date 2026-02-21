@@ -293,13 +293,30 @@
     dot.style.cssText =
       "position:fixed;width:20px;height:20px;border-radius:50%;background:#8b5cf6;color:#fff;" +
       "font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;" +
-      "font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);";
+      "font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);" +
+      "pointer-events:auto;cursor:pointer;";
     dot.textContent = String(markerNumber);
     dot.style.left = Math.round(rect.right - 10) + "px";
     dot.style.top = Math.round(rect.top - 10) + "px";
 
+    dot.addEventListener(
+      "click",
+      function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        showEditModal(data, e.clientX, e.clientY);
+      },
+      true,
+    );
+
     markerContainer.appendChild(dot);
-    markers[data.clickId] = { el: dot, target: target, number: markerNumber };
+    markers[data.clickId] = {
+      el: dot,
+      target: target,
+      number: markerNumber,
+      data: data,
+    };
   }
 
   function removeMarker(clickId) {
@@ -442,18 +459,85 @@
     }, 50);
   }
 
+  var editingClickId = null;
+
   function submitComment(skip) {
     if (!pendingClick || !modal) return;
     var inp = modal.querySelector("#__smc-input");
     var comment = skip ? "" : (inp.value || "").trim();
-    pendingClick.comment = comment || null;
-    save(pendingClick, pendingNewSession, pendingSessionName);
+
+    if (editingClickId) {
+      // Update existing click
+      fetch("/__see-my-clicks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clickId: editingClickId,
+          comment: comment || null,
+        }),
+      })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function () {
+          // Update the stored data on the marker
+          if (markers[editingClickId]) {
+            markers[editingClickId].data.comment = comment || null;
+          }
+          flash(comment ? "Comment updated" : "Comment removed");
+        })
+        .catch(function (err) {
+          flash("Error: " + err.message, 3000);
+        });
+      editingClickId = null;
+    } else {
+      // New click
+      pendingClick.comment = comment || null;
+      save(pendingClick, pendingNewSession, pendingSessionName);
+    }
+
     modal.style.display = "none";
     pendingClick = null;
     pendingNewSession = false;
     pendingSessionName = null;
     if (previousFocus && previousFocus.focus) previousFocus.focus();
     previousFocus = null;
+  }
+
+  function showEditModal(data, x, y) {
+    if (!modal) modal = createModal();
+    editingClickId = data.clickId;
+    pendingClick = data;
+    previousFocus = document.activeElement;
+
+    var inp = modal.querySelector("#__smc-input");
+    inp.value = data.comment || "";
+
+    var headerText = modal.querySelector("#__smc-header-text");
+    var label = "<" + data.tagName + ">";
+    var dispText = data.textContent;
+    if (dispText && dispText.length > 30)
+      dispText = dispText.slice(0, 30) + "...";
+    var comp =
+      data.component && data.component.name
+        ? " \u2014 " + data.component.name
+        : "";
+    headerText.textContent =
+      label + (dispText ? ' "' + dispText + '"' : "") + comp;
+
+    modal.style.left = "-9999px";
+    modal.style.top = "-9999px";
+    modal.style.display = "block";
+
+    var rect = modal.getBoundingClientRect();
+    var left = Math.min(x + 12, window.innerWidth - rect.width - 16);
+    var top = Math.min(y + 12, window.innerHeight - rect.height - 16);
+    modal.style.left = Math.max(16, left) + "px";
+    modal.style.top = Math.max(16, top) + "px";
+
+    setTimeout(function () {
+      inp.focus();
+    }, 50);
   }
 
   function isModalOpen() {
