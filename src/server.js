@@ -99,12 +99,17 @@ export function createMiddleware(opts = {}) {
   return function seeMyClicksMiddleware(req, res, next) {
     const url = new URL(req.url, "http://localhost");
 
-    if (!url.pathname.startsWith("/__see-my-clicks")) {
+    // Support both mounted (prefix stripped) and unmounted (full path) usage
+    const pathname = url.pathname.startsWith("/__see-my-clicks")
+      ? url.pathname.replace("/__see-my-clicks", "") || "/"
+      : url.pathname;
+
+    if (pathname !== "/" && pathname !== "/client.js") {
       return next?.();
     }
 
     // Serve the client script
-    if (req.method === "GET" && url.pathname === "/__see-my-clicks/client.js") {
+    if (req.method === "GET" && pathname === "/client.js") {
       res.writeHead(200, { "Content-Type": "application/javascript" });
       res.end(getClientScript());
       return;
