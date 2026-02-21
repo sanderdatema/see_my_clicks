@@ -1,3 +1,5 @@
 # Publishing
 
-Whenever you push to GitHub, also bump the version number in package.json in a way that is appropriate (patch for fixes/tweaks, minor for new features, major for breaking changes). Include the version bump in the same push.
+We use alpha versioning during development: `1.2.0-alpha.N`. Whenever you push to GitHub, increment the alpha build number (e.g. `alpha.1` -> `alpha.2`). Include the version bump in the same push.
+
+When the user explicitly asks to publish a stable release, drop the alpha suffix and bump appropriately (patch/minor/major).
