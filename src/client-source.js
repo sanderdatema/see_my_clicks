@@ -876,8 +876,22 @@
           total += (store.sessions[i].clicks || []).length;
         }
       }
-      markerNumber = total;
       updateBadge(total);
+
+      // Restore markers for clicks on the current page
+      var currentUrl = window.location.href;
+      var clickIndex = 0;
+      for (var i = 0; i < store.sessions.length; i++) {
+        var clicks = store.sessions[i].clicks || [];
+        for (var j = 0; j < clicks.length; j++) {
+          clickIndex++;
+          if (clicks[j].url === currentUrl) {
+            markerNumber = clickIndex - 1;
+            addMarker(clicks[j]);
+          }
+        }
+      }
+      markerNumber = total;
     })
     .catch(function () {});
 
