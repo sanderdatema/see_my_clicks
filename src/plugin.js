@@ -20,6 +20,7 @@ export function seeMyClicks(opts = {}) {
 
     configureServer(server) {
       server.middlewares.use("/__see-my-clicks", middleware);
+      server.watcher.unwatch(".see-my-clicks");
     },
 
     transformIndexHtml() {
