@@ -1,0 +1,228 @@
+#!/usr/bin/env node
+
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const INSTRUCTIONS_DIR = path.resolve(__dirname, "..", "instructions");
+
+const START_MARKER = "<!-- see-my-clicks:start -->";
+const END_MARKER = "<!-- see-my-clicks:end -->";
+const ACTION_START = "<!-- action:start -->";
+const ACTION_END = "<!-- action:end -->";
+
+// ── Action presets ──────────────────────────────────────────────────
+
+const ACTIONS = {
+  "suggest-fixes": `4. If comments are present, suggest concrete fixes based on the component, selector, and comment. Group related clicks (same component, same page, same concern) together.
+
+5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
+
+  taskmaster: `4. For each captured click that has a comment, create a Task Master task using the add_task MCP tool. Include in the task description:
+   - The element selector and tag
+   - The component name and source file (if detected)
+   - The page URL
+   - The user's comment verbatim
+   Group related clicks (same component, same page, same concern) into a single task.
+
+5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
+
+  "github-issues": `4. For each captured click that has a comment, create a GitHub issue using \`gh issue create\`. Set the title from the comment and include in the body:
+   - The element selector and tag
+   - The component name and source file (if detected)
+   - The page URL
+   - The user's comment verbatim
+   Group related clicks into a single issue where it makes sense.
+
+5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
+
+  "just-report": `4. Present all captured click information clearly. Do not take any action — just report what was clicked and any comments the user left.`,
+};
+
+// ── Tool definitions ────────────────────────────────────────────────
+
+const TOOLS = {
+  claude: {
+    label: "Claude Code",
+    src: "claude.md",
+    dest: ".claude/commands/clicked.md",
+    mode: "copy",
+  },
+  codex: {
+    label: "Codex CLI",
+    src: "codex.md",
+    dest: "AGENTS.md",
+    mode: "append",
+  },
+  cursor: {
+    label: "Cursor",
+    src: "cursor.md",
+    dest: ".cursor/rules/see-my-clicks.mdc",
+    mode: "copy",
+  },
+  windsurf: {
+    label: "Windsurf",
+    src: "windsurf.md",
+    dest: ".windsurfrules",
+    mode: "append",
+  },
+  copilot: {
+    label: "GitHub Copilot",
+    src: "copilot.md",
+    dest: ".github/copilot-instructions.md",
+    mode: "append",
+  },
+};
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function readTemplate(tool, actionKey) {
+  const src = path.join(INSTRUCTIONS_DIR, tool.src);
+  let content = fs.readFileSync(src, "utf-8");
+
+  if (actionKey && ACTIONS[actionKey]) {
+    const re = new RegExp(
+      `${escapeRegex(ACTION_START)}[\\s\\S]*?${escapeRegex(ACTION_END)}`,
+    );
+    content = content.replace(
+      re,
+      `${ACTION_START}\n${ACTIONS[actionKey]}\n${ACTION_END}`,
+    );
+  }
+
+  return content;
+}
+
+function installCopy(tool, actionKey) {
+  const dest = path.resolve(process.cwd(), tool.dest);
+  const destDir = path.dirname(dest);
+
+  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+  if (fs.existsSync(dest)) {
+    console.log(`  ${tool.dest} already exists, skipping.`);
+    return;
+  }
+
+  fs.writeFileSync(dest, readTemplate(tool, actionKey));
+  console.log(`  Created ${tool.dest}`);
+}
+
+function installAppend(tool, actionKey) {
+  const content = readTemplate(tool, actionKey);
+  const dest = path.resolve(process.cwd(), tool.dest);
+  const destDir = path.dirname(dest);
+
+  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+  if (fs.existsSync(dest)) {
+    const existing = fs.readFileSync(dest, "utf-8");
+    if (existing.includes(START_MARKER)) {
+      const re = new RegExp(
+        `${escapeRegex(START_MARKER)}[\\s\\S]*?${escapeRegex(END_MARKER)}`,
+      );
+      fs.writeFileSync(dest, existing.replace(re, content.trim()));
+      console.log(`  Updated see-my-clicks section in ${tool.dest}`);
+      return;
+    }
+    fs.appendFileSync(dest, "\n\n" + content.trim() + "\n");
+    console.log(`  Appended to ${tool.dest}`);
+  } else {
+    fs.writeFileSync(dest, content.trim() + "\n");
+    console.log(`  Created ${tool.dest}`);
+  }
+}
+
+function install(key, actionKey) {
+  const tool = TOOLS[key];
+  if (tool.mode === "copy") installCopy(tool, actionKey);
+  else installAppend(tool, actionKey);
+}
+
+// ── Main ────────────────────────────────────────────────────────────
+
+const args = process.argv.slice(2);
+
+if (args[0] !== "init") {
+  console.log(`see-my-clicks — Vite plugin for capturing element clicks
+
+Usage:
+  npx see-my-clicks init [tools...] [--action=<preset>]
+
+Tools:
+  claude      Claude Code (.claude/commands/clicked.md)
+  codex       Codex CLI (appends to AGENTS.md)
+  cursor      Cursor (.cursor/rules/see-my-clicks.mdc)
+  windsurf    Windsurf (appends to .windsurfrules)
+  copilot     GitHub Copilot (appends to .github/copilot-instructions.md)
+  all         All of the above
+
+Actions:
+  --action=suggest-fixes    Suggest code fixes (default)
+  --action=taskmaster       Create Task Master tasks
+  --action=github-issues    Create GitHub issues
+  --action=just-report      Just report clicks, no action
+
+Examples:
+  npx see-my-clicks init claude
+  npx see-my-clicks init claude cursor --action=taskmaster
+  npx see-my-clicks init all --action=github-issues
+
+Setup:
+  1. npm install -D see-my-clicks
+  2. Add to vite.config:
+     import { seeMyClicks } from 'see-my-clicks'
+     export default defineConfig({ plugins: [seeMyClicks()] })
+  3. npx see-my-clicks init claude   (or whichever tool you use)
+  4. Alt+Click elements in the browser, then say "check my clicks"
+`);
+  process.exit(0);
+}
+
+// Parse --action flag
+const actionArg = args.find((a) => a.startsWith("--action="));
+const actionKey = actionArg ? actionArg.split("=")[1] : "suggest-fixes";
+const toolArgs = args.slice(1).filter((a) => !a.startsWith("--"));
+
+if (toolArgs.length === 0) {
+  console.error(
+    "Specify which tools to install for, e.g.: npx see-my-clicks init claude\n" +
+      "Run `npx see-my-clicks` for the full list.",
+  );
+  process.exit(1);
+}
+
+if (!ACTIONS[actionKey]) {
+  console.error(
+    `Unknown action: ${actionKey}\n` +
+      "Available: " + Object.keys(ACTIONS).join(", "),
+  );
+  process.exit(1);
+}
+
+const invalid = toolArgs.filter((t) => t !== "all" && !TOOLS[t]);
+if (invalid.length) {
+  console.error(`Unknown tool(s): ${invalid.join(", ")}\n`);
+  console.error("Available: " + Object.keys(TOOLS).join(", ") + ", all");
+  process.exit(1);
+}
+
+const keys = toolArgs.includes("all")
+  ? Object.keys(TOOLS)
+  : toolArgs.filter((t) => TOOLS[t]);
+
+console.log(
+  `Installing see-my-clicks instructions (action: ${actionKey}):\n`,
+);
+for (const key of keys) {
+  install(key, actionKey);
+}
+
+console.log(
+  '\nDone! Alt+Click elements in the browser, then say "check my clicks".',
+);
