@@ -337,7 +337,7 @@
     m.style.cssText =
       "position:fixed;z-index:1000000;background:#1e1e2e;border:1px solid #8b5cf6;" +
       "border-radius:10px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);" +
-      "font-family:system-ui,-apple-system,sans-serif;display:none;width:280px;" +
+      "font-family:system-ui,-apple-system,sans-serif;display:none;width:360px;" +
       "max-height:calc(100vh - 32px);overflow-y:auto;";
     m.innerHTML =
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
