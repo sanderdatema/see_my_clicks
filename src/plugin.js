@@ -18,9 +18,22 @@ export function seeMyClicks(opts = {}) {
     name: "see-my-clicks",
     apply: "serve",
 
+    config(config) {
+      config.server ??= {};
+      config.server.watch ??= {};
+      const ignored = config.server.watch.ignored;
+      const entry = "**/.see-my-clicks/**";
+      if (Array.isArray(ignored)) {
+        ignored.push(entry);
+      } else if (typeof ignored === "string") {
+        config.server.watch.ignored = [ignored, entry];
+      } else {
+        config.server.watch.ignored = [entry];
+      }
+    },
+
     configureServer(server) {
       server.middlewares.use("/__see-my-clicks", middleware);
-      server.watcher.unwatch(".see-my-clicks");
     },
 
     transformIndexHtml() {
