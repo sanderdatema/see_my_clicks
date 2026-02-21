@@ -129,16 +129,22 @@
     }
   }
 
-  badge.addEventListener("click", function (e) {
-    e.stopPropagation();
-    panelOpen = !panelOpen;
-    if (panelOpen) {
-      refreshPanel();
-      panel.style.display = "block";
-    } else {
-      panel.style.display = "none";
-    }
-  });
+  badge.addEventListener(
+    "click",
+    function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      panelOpen = !panelOpen;
+      if (panelOpen) {
+        refreshPanel();
+        panel.style.display = "block";
+      } else {
+        panel.style.display = "none";
+      }
+    },
+    true,
+  );
 
   // ── Panel ────────────────────────────────────────────────────────
 
