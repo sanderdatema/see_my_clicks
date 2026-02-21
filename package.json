@@ -1,6 +1,6 @@
 {
   "name": "see-my-clicks",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Alt+Click any element in the browser to capture its info for AI coding assistants",
   "type": "module",
   "main": "src/index.js",
@@ -46,6 +46,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sandervanhooff/see-my-clicks"
+    "url": "https://github.com/sanderdatema/see_my_clicks"
   }
 }
