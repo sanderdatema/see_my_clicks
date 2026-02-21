@@ -7,7 +7,7 @@ import { getClientScript } from "./client.js";
  * @param {Object} [opts]
  * @param {number} [opts.maxEntries=10]      Max clicks kept in the JSON file
  * @param {number} [opts.expiryMinutes=60]   Auto-expire entries older than this
- * @param {string} [opts.outputFile=".claude/clicked.json"]  Path relative to cwd
+ * @param {string} [opts.outputFile=".see-my-clicks/clicked.json"]  Path relative to cwd
  * @returns {import('vite').Plugin}
  */
 export function seeMyClicks(opts = {}) {
