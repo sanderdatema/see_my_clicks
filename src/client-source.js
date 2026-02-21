@@ -876,6 +876,7 @@
           total += (store.sessions[i].clicks || []).length;
         }
       }
+      markerNumber = total;
       updateBadge(total);
     })
     .catch(function () {});
