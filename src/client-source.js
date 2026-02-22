@@ -125,9 +125,8 @@
     ms = ms || 2000;
     if (flashTimer) clearTimeout(flashTimer);
     status.textContent = msg;
-    var badgeVisible = badge.style.display === "flex";
-    status.style.bottom = badgeVisible ? "68px" : "20px";
-    status.style.right = badgeVisible ? "64px" : "20px";
+    status.style.bottom = "68px";
+    status.style.right = "20px";
     status.style.display = "block";
     flashTimer = setTimeout(function () {
       status.style.display = "none";
