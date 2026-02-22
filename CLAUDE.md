@@ -1,6 +1,6 @@
 # Publishing
 
-We use alpha versioning during development: `1.2.3-alpha.N`. Whenever you push to GitHub, increment the alpha build number (e.g. `alpha.1` -> `alpha.2`). Include the version bump in the same push.
+We use alpha versioning during development. Check the current version in `package.json` and pick the next unreleased version (patch, minor, or major depending on scope) with an `-alpha.N` suffix. Increment the alpha build number on each push (e.g. `alpha.1` -> `alpha.2`). Include the version bump in the same push.
 
 When the user confirms a fix or feature works (e.g. "it works", "the fix works", "tested and it works"), immediately publish a stable release: drop the alpha suffix, commit, tag, and push. Also publish stable when the user explicitly asks for a release.
 
