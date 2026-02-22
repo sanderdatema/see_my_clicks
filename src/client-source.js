@@ -276,14 +276,44 @@
 
   // ── Markers ──────────────────────────────────────────────────────
 
+  function findElement(data) {
+    // Try full selector first
+    try {
+      var el = document.querySelector(data.selector);
+      if (el) return el;
+    } catch (e) {}
+
+    // Fallback: match by data-* attributes
+    if (data.attributes) {
+      var dataAttrs = Object.keys(data.attributes).filter(function (k) {
+        return k.startsWith("data-") && k !== "data-component";
+      });
+      for (var i = 0; i < dataAttrs.length; i++) {
+        var attr = dataAttrs[i];
+        var val = data.attributes[attr];
+        try {
+          var found = document.querySelector(
+            data.tagName + "[" + attr + "=" + JSON.stringify(val) + "]",
+          );
+          if (found) return found;
+        } catch (e) {}
+      }
+    }
+
+    // Fallback: match by ID
+    if (data.elementId) {
+      try {
+        var byId = document.getElementById(data.elementId);
+        if (byId) return byId;
+      } catch (e) {}
+    }
+
+    return null;
+  }
+
   function addMarker(data) {
     markerNumber++;
-    var target = null;
-    try {
-      target = document.querySelector(data.selector);
-    } catch (e) {
-      /* invalid selector */
-    }
+    var target = findElement(data);
     if (!target) return;
 
     var rect = target.getBoundingClientRect();
@@ -990,12 +1020,6 @@
         updateBadge(total);
 
         // Retry placing markers until elements are in the DOM
-        if (pendingClicks.length === 0 && total > 0) {
-          console.log(
-            "[see-my-clicks] No markers match current route:",
-            currentRoute,
-          );
-        }
         if (pendingClicks.length > 0) {
           var attempts = 0;
           var maxAttempts = 10;
@@ -1003,10 +1027,7 @@
             var remaining = [];
             for (var k = 0; k < pendingClicks.length; k++) {
               var pc = pendingClicks[k];
-              var el = null;
-              try {
-                el = document.querySelector(pc.data.selector);
-              } catch (e) {}
+              var el = findElement(pc.data);
               if (el) {
                 markerNumber = pc.index - 1;
                 addMarker(pc.data);
