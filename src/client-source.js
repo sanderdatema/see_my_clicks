@@ -164,6 +164,13 @@
     true,
   );
 
+  document.addEventListener("click", function (e) {
+    if (panelOpen && !panel.contains(e.target) && e.target !== badge) {
+      panelOpen = false;
+      panel.style.display = "none";
+    }
+  });
+
   // ── Panel ────────────────────────────────────────────────────────
 
   var panelClickData = {};
