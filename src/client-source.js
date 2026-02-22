@@ -240,8 +240,7 @@
               if (data) {
                 panel.style.display = "none";
                 panelOpen = false;
-                var rect = row.getBoundingClientRect();
-                showEditModal(data, rect.left, rect.bottom);
+                showEditModal(data, e.clientX, e.clientY);
               }
             });
             row.addEventListener("mouseenter", function () {
@@ -508,7 +507,10 @@
       ' style="width:100%;box-sizing:border-box;background:#313244;border:1px solid #45475a;' +
       "border-radius:6px;color:#cdd6f4;font-family:system-ui,-apple-system,sans-serif;" +
       'font-size:13px;padding:8px;resize:vertical;outline:none;"></textarea>' +
-      '<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">' +
+      '<div style="display:flex;gap:6px;margin-top:8px;align-items:center;">' +
+      '<button id="__smc-delete" style="background:none;border:1px solid #f38ba8;' +
+      'border-radius:6px;color:#f38ba8;font-size:12px;padding:4px 12px;cursor:pointer;display:none;" title="Delete capture">Delete</button>' +
+      '<span style="flex:1;"></span>' +
       '<button id="__smc-skip" style="background:transparent;border:1px solid #45475a;' +
       'border-radius:6px;color:#6c7086;font-size:12px;padding:4px 12px;cursor:pointer;">Skip</button>' +
       '<button id="__smc-save" style="background:#8b5cf6;border:none;border-radius:6px;' +
@@ -521,6 +523,14 @@
     });
     m.querySelector("#__smc-skip").addEventListener("click", function () {
       submitComment(true);
+    });
+    m.querySelector("#__smc-delete").addEventListener("click", function () {
+      if (editingClickId) {
+        var id = editingClickId;
+        cancelModal();
+        deleteClick(id);
+        flash("Capture deleted");
+      }
     });
     m.querySelector("#__smc-input").addEventListener("keydown", function (e) {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -559,6 +569,7 @@
     pendingClick = data;
     previousFocus = document.activeElement;
 
+    modal.querySelector("#__smc-delete").style.display = "none";
     var inp = modal.querySelector("#__smc-input");
     inp.value = "";
 
@@ -655,6 +666,8 @@
     editingClickId = data.clickId;
     pendingClick = data;
     previousFocus = document.activeElement;
+
+    modal.querySelector("#__smc-delete").style.display = "inline-block";
 
     var inp = modal.querySelector("#__smc-input");
     inp.value = data.comment || "";
