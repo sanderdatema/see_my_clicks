@@ -247,6 +247,7 @@
               row.style.background = "#313244";
               var m = markers[clickId];
               if (m) {
+                m.el.style.opacity = "1";
                 m.el.style.transform = "scale(1.5)";
                 m.el.style.boxShadow = "0 0 12px rgba(139,92,246,.8)";
               }
@@ -255,6 +256,7 @@
               row.style.background = "none";
               var m = markers[clickId];
               if (m) {
+                m.el.style.opacity = "0.4";
                 m.el.style.transform = "";
                 m.el.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
               }
@@ -419,7 +421,7 @@
       "position:fixed;width:20px;height:20px;border-radius:50%;background:#8b5cf6;color:#fff;" +
       "font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;" +
       "font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);" +
-      "pointer-events:auto;cursor:pointer;";
+      "pointer-events:auto;cursor:pointer;opacity:0.4;transition:opacity .15s ease;";
     dot.textContent = String(markerNumber);
     dot.style.left = Math.round(rect.right - 10) + "px";
     dot.style.top = Math.round(rect.top - 10) + "px";
@@ -434,6 +436,12 @@
       },
       true,
     );
+    dot.addEventListener("mouseenter", function () {
+      dot.style.opacity = "1";
+    });
+    dot.addEventListener("mouseleave", function () {
+      dot.style.opacity = "0.4";
+    });
 
     markerContainer.appendChild(dot);
     markers[data.clickId] = {
