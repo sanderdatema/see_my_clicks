@@ -227,19 +227,35 @@
           })(delBtns[j]);
         }
 
-        // Attach edit handlers
+        // Attach edit and hover handlers
         var editRows = panel.querySelectorAll("[data-smc-edit]");
         for (var j = 0; j < editRows.length; j++) {
           (function (row) {
+            var clickId = row.getAttribute("data-smc-edit");
             row.addEventListener("click", function (e) {
               e.stopPropagation();
-              var clickId = row.getAttribute("data-smc-edit");
               var data = panelClickData[clickId];
               if (data) {
                 panel.style.display = "none";
                 panelOpen = false;
                 var rect = row.getBoundingClientRect();
                 showEditModal(data, rect.left, rect.bottom);
+              }
+            });
+            row.addEventListener("mouseenter", function () {
+              row.style.background = "#313244";
+              var m = markers[clickId];
+              if (m) {
+                m.el.style.transform = "scale(1.5)";
+                m.el.style.boxShadow = "0 0 12px rgba(139,92,246,.8)";
+              }
+            });
+            row.addEventListener("mouseleave", function () {
+              row.style.background = "none";
+              var m = markers[clickId];
+              if (m) {
+                m.el.style.transform = "";
+                m.el.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
               }
             });
           })(editRows[j]);
@@ -290,13 +306,20 @@
         : "";
       panelClickData[c.clickId] = c;
       var num = clickNumbers[c.clickId] || j + 1;
+      var onPage = routeMatches(c.url);
+      var textColor = onPage ? "color:#cdd6f4;" : "color:#6c7086;";
+      var numColor = onPage ? "color:#8b5cf6;" : "color:#45475a;";
       html +=
         '<div data-smc-edit="' +
         escapeHtml(c.clickId) +
-        '" style="display:flex;align-items:center;gap:6px;padding:4px 0;color:#cdd6f4;font-size:12px;' +
-        'cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#313244\'" onmouseout="this.style.background=\'none\'">';
+        '" style="display:flex;align-items:center;gap:6px;padding:4px 0;' +
+        textColor +
+        "font-size:12px;" +
+        'cursor:pointer;border-radius:4px;">';
       html +=
-        '<span style="color:#6c7086;font-size:11px;min-width:16px;">' +
+        '<span style="' +
+        numColor +
+        'font-size:11px;min-width:16px;">' +
         num +
         "</span>";
       html +=
