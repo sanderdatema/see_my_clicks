@@ -16,6 +16,24 @@
     return d.innerHTML;
   }
 
+  function hexToRgba(hex, alpha) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
+
+  var SESSION_COLORS = [
+    "#8b5cf6",
+    "#f38ba8",
+    "#fab387",
+    "#f9e2af",
+    "#a6e3a1",
+    "#89dceb",
+    "#74c7ec",
+    "#cba6f7",
+  ];
+
   function isSmcElement(el) {
     var cur = el;
     while (cur) {
@@ -103,6 +121,9 @@
   var currentRoute = null;
   var allClickData = [];
   var syncScheduled = false;
+  var hiddenSessions = {};
+  var colorPickerEl = null;
+  var colorPickerSessionId = null;
 
   // ── URL matching ─────────────────────────────────────────────────
 
@@ -136,15 +157,14 @@
   // ── Badge ────────────────────────────────────────────────────────
 
   function updateBadge(count) {
+    badge.style.display = "flex";
     if (count > 0) {
-      badge.style.display = "flex";
       badge.textContent = count > 99 ? "99+" : String(count);
     } else {
-      badge.style.display = "none";
-      if (panelOpen) {
-        panelOpen = false;
-        panel.style.display = "none";
-      }
+      badge.innerHTML =
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">' +
+        '<path d="M4 0l16 12.279-6.951 1.17 4.325 8.817-3.596 1.734-4.35-8.879-5.428 4.702z"/>' +
+        "</svg>";
     }
   }
 
@@ -249,7 +269,7 @@
               if (m) {
                 m.el.style.opacity = "1";
                 m.el.style.transform = "scale(1.5)";
-                m.el.style.boxShadow = "0 0 12px rgba(139,92,246,.8)";
+                m.el.style.boxShadow = "0 0 12px " + hexToRgba(m.color, 0.8);
               }
             });
             row.addEventListener("mouseleave", function () {
@@ -262,6 +282,28 @@
               }
             });
           })(editRows[j]);
+        }
+
+        // Attach color dot handlers
+        var colorDots = panel.querySelectorAll("[data-smc-color]");
+        for (var j = 0; j < colorDots.length; j++) {
+          (function (dot) {
+            dot.addEventListener("click", function (e) {
+              e.stopPropagation();
+              showColorPicker(dot.getAttribute("data-smc-color"), dot);
+            });
+          })(colorDots[j]);
+        }
+
+        // Attach visibility toggle handlers
+        var toggleBtns = panel.querySelectorAll("[data-smc-toggle]");
+        for (var j = 0; j < toggleBtns.length; j++) {
+          (function (btn) {
+            btn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              toggleSessionVisibility(btn.getAttribute("data-smc-toggle"));
+            });
+          })(toggleBtns[j]);
         }
 
         // Attach new session handler
@@ -287,13 +329,44 @@
 
   function renderSessionHtml(session, clickNumbers) {
     var clicks = session.clicks || [];
-    var html = '<div style="border-top:1px solid #313244;padding:8px 0;">';
+    var sessionColor = session.color || "#8b5cf6";
+    var isHidden = hiddenSessions[session.id];
+    var rowOpacity = isHidden ? "opacity:0.4;" : "";
+    var eyeSvg = isHidden
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45475a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>' +
+        '<line x1="1" y1="1" x2="23" y2="23"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cdd6f4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>' +
+        '<circle cx="12" cy="12" r="3"/></svg>';
+    var html =
+      '<div style="border-top:1px solid #313244;padding:8px 0;' +
+      rowOpacity +
+      '">';
     html +=
-      '<div style="color:#8b5cf6;font-size:11px;font-weight:600;">' +
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+      '<div data-smc-color="' +
+      escapeHtml(session.id) +
+      '" style="width:12px;height:12px;border-radius:50%;background:' +
+      escapeHtml(sessionColor) +
+      ";cursor:pointer;flex-shrink:0;" +
+      'border:2px solid rgba(255,255,255,.15);" title="Change color"></div>' +
+      '<span style="color:' +
+      escapeHtml(sessionColor) +
+      ';font-size:11px;font-weight:600;flex:1;">' +
       escapeHtml(session.name || "Unnamed") +
       " (" +
       clicks.length +
-      ")</div>";
+      ")</span>" +
+      '<button data-smc-toggle="' +
+      escapeHtml(session.id) +
+      '" style="background:none;border:none;cursor:pointer;padding:0 2px;' +
+      'line-height:1;display:flex;align-items:center;" title="' +
+      (isHidden ? "Show" : "Hide") +
+      ' markers">' +
+      eyeSvg +
+      "</button>" +
+      "</div>";
     for (var j = 0; j < clicks.length; j++) {
       var c = clicks[j];
       var label = "&lt;" + escapeHtml(c.tagName) + "&gt;";
@@ -311,7 +384,9 @@
       var num = clickNumbers[c.clickId] || j + 1;
       var onPage = routeMatches(c.url);
       var textColor = onPage ? "color:#cdd6f4;" : "color:#6c7086;";
-      var numColor = onPage ? "color:#8b5cf6;" : "color:#45475a;";
+      var numColor = onPage
+        ? "color:" + escapeHtml(sessionColor) + ";"
+        : "color:#45475a;";
       html +=
         '<div data-smc-edit="' +
         escapeHtml(c.clickId) +
@@ -358,6 +433,114 @@
         updateBadge(res.totalClicks || 0);
         if (panelOpen) refreshPanel();
       });
+  }
+
+  // ── Color picker ─────────────────────────────────────────────────
+
+  function closeColorPicker() {
+    if (colorPickerEl) {
+      colorPickerEl.remove();
+      colorPickerEl = null;
+      colorPickerSessionId = null;
+      document.removeEventListener("click", closeColorPickerOutside);
+    }
+  }
+
+  function closeColorPickerOutside(e) {
+    if (colorPickerEl && !colorPickerEl.contains(e.target)) {
+      closeColorPicker();
+    }
+  }
+
+  function showColorPicker(sessionId, anchorEl) {
+    closeColorPicker();
+    colorPickerSessionId = sessionId;
+
+    var picker = document.createElement("div");
+    picker.id = "__smc-color-picker";
+    picker.style.cssText =
+      "position:fixed;background:#1e1e2e;border:1px solid #45475a;border-radius:8px;" +
+      "padding:6px;z-index:1000001;display:flex;gap:4px;" +
+      "box-shadow:0 4px 12px rgba(0,0,0,.4);";
+
+    for (var i = 0; i < SESSION_COLORS.length; i++) {
+      (function (color) {
+        var swatch = document.createElement("div");
+        swatch.style.cssText =
+          "width:18px;height:18px;border-radius:50%;cursor:pointer;" +
+          "border:2px solid transparent;transition:transform .1s ease;";
+        swatch.style.background = color;
+        swatch.addEventListener("click", function (e) {
+          e.stopPropagation();
+          updateSessionColor(colorPickerSessionId, color);
+          closeColorPicker();
+        });
+        swatch.addEventListener("mouseenter", function () {
+          swatch.style.transform = "scale(1.2)";
+        });
+        swatch.addEventListener("mouseleave", function () {
+          swatch.style.transform = "";
+        });
+        picker.appendChild(swatch);
+      })(SESSION_COLORS[i]);
+    }
+
+    var rect = anchorEl.getBoundingClientRect();
+    picker.style.left = rect.left + "px";
+    picker.style.top = rect.bottom + 4 + "px";
+
+    document.body.appendChild(picker);
+    colorPickerEl = picker;
+
+    setTimeout(function () {
+      document.addEventListener("click", closeColorPickerOutside);
+    }, 0);
+  }
+
+  function updateSessionColor(sessionId, color) {
+    fetch("/__see-my-clicks", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: sessionId, color: color }),
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function () {
+        for (var i = 0; i < allClickData.length; i++) {
+          if (allClickData[i].sessionId === sessionId) {
+            allClickData[i].sessionColor = color;
+          }
+        }
+        // Update existing markers
+        var ids = Object.keys(markers);
+        for (var i = 0; i < ids.length; i++) {
+          var cd = null;
+          for (var j = 0; j < allClickData.length; j++) {
+            if (allClickData[j].clickId === ids[i]) {
+              cd = allClickData[j];
+              break;
+            }
+          }
+          if (cd && cd.sessionId === sessionId) {
+            markers[ids[i]].el.style.background = color;
+            markers[ids[i]].color = color;
+          }
+        }
+        if (panelOpen) refreshPanel();
+      });
+  }
+
+  // ── Session visibility ──────────────────────────────────────────
+
+  function toggleSessionVisibility(sessionId) {
+    if (hiddenSessions[sessionId]) {
+      delete hiddenSessions[sessionId];
+    } else {
+      hiddenSessions[sessionId] = true;
+    }
+    syncMarkersForCurrentRoute();
+    if (panelOpen) refreshPanel();
   }
 
   // ── Markers ──────────────────────────────────────────────────────
@@ -407,8 +590,9 @@
     return null;
   }
 
-  function addMarker(data) {
+  function addMarker(data, color) {
     markerNumber++;
+    var markerColor = color || "#8b5cf6";
     var target = findElement(data);
     if (!target) return false;
 
@@ -418,7 +602,9 @@
     dot.className = "__smc-marker";
     dot.setAttribute("data-click-id", data.clickId);
     dot.style.cssText =
-      "position:fixed;width:20px;height:20px;border-radius:50%;background:#8b5cf6;color:#fff;" +
+      "position:fixed;width:20px;height:20px;border-radius:50%;background:" +
+      markerColor +
+      ";color:#fff;" +
       "font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;" +
       "font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);" +
       "pointer-events:auto;cursor:pointer;opacity:0.4;transition:opacity .15s ease;";
@@ -449,6 +635,7 @@
       target: target,
       number: markerNumber,
       data: data,
+      color: markerColor,
     };
     return true;
   }
@@ -1001,12 +1188,15 @@
         flash("Clicked: " + name + sessionLabel);
         updateBadge(res.totalClicks || 0);
         // Track in allClickData so syncMarkers knows about it
+        var sColor = res.sessionColor || "#8b5cf6";
         allClickData.push({
           data: data,
           index: allClickData.length + 1,
           clickId: data.clickId,
+          sessionId: res.sessionId,
+          sessionColor: sColor,
         });
-        addMarker(data);
+        addMarker(data, sColor);
         lastClickId = data.clickId;
       })
       .catch(function (err) {
@@ -1139,9 +1329,11 @@
       var cd = allClickData[i];
       var existing = markers[cd.clickId];
       var onThisRoute = routeMatches(cd.data.url);
+      var isHidden = cd.sessionId && hiddenSessions[cd.sessionId];
 
       if (existing) {
         if (
+          isHidden ||
           !onThisRoute ||
           !isTargetVisible(existing.target) ||
           !verifyElement(existing.target, cd.data)
@@ -1149,9 +1341,9 @@
           existing.el.remove();
           delete markers[cd.clickId];
         }
-      } else if (onThisRoute) {
+      } else if (onThisRoute && !isHidden) {
         markerNumber = cd.index - 1;
-        addMarker(cd.data);
+        addMarker(cd.data, cd.sessionColor);
       }
     }
     markerNumber = allClickData.length;
@@ -1176,13 +1368,17 @@
         var clickIndex = 0;
         if (store && store.sessions) {
           for (var i = 0; i < store.sessions.length; i++) {
-            var clicks = store.sessions[i].clicks || [];
+            var session = store.sessions[i];
+            var sessionColor = session.color || "#8b5cf6";
+            var clicks = session.clicks || [];
             for (var j = 0; j < clicks.length; j++) {
               clickIndex++;
               allClickData.push({
                 data: clicks[j],
                 index: clickIndex,
                 clickId: clicks[j].clickId,
+                sessionId: session.id,
+                sessionColor: sessionColor,
               });
             }
           }

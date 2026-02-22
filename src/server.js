@@ -2,6 +2,17 @@ import fs from "fs";
 import path from "path";
 import { getClientScript } from "./client.js";
 
+const COLOR_PALETTE = [
+  "#8b5cf6",
+  "#f38ba8",
+  "#fab387",
+  "#f9e2af",
+  "#a6e3a1",
+  "#89dceb",
+  "#74c7ec",
+  "#cba6f7",
+];
+
 const DEFAULTS = {
   maxEntries: 10,
   expiryMinutes: 60,
@@ -141,6 +152,8 @@ export function createMiddleware(opts = {}) {
             store.sessions.push({
               id: generateId(),
               name: name,
+              color:
+                COLOR_PALETTE[store.sessions.length % COLOR_PALETTE.length],
               startedAt: new Date().toISOString(),
               clicks: [data],
             });
@@ -166,6 +179,7 @@ export function createMiddleware(opts = {}) {
               success: true,
               sessionId: active.id,
               sessionName: active.name,
+              sessionColor: active.color || COLOR_PALETTE[0],
               clickCount: active.clicks.length,
               totalClicks: countTotalClicks(store),
             }),
@@ -230,7 +244,31 @@ export function createMiddleware(opts = {}) {
       req.on("data", (chunk) => (body += chunk.toString()));
       req.on("end", () => {
         try {
-          const { clickId, comment } = JSON.parse(body);
+          const parsed = JSON.parse(body);
+
+          if (parsed.sessionId && parsed.color && !parsed.clickId) {
+            // Update session color
+            const store = readData(outputFile);
+            let found = false;
+            for (const session of store.sessions) {
+              if (session.id === parsed.sessionId) {
+                session.color = parsed.color;
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              res.writeHead(404, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "Session not found" }));
+              return;
+            }
+            writeData(outputFile, store);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true }));
+            return;
+          }
+
+          const { clickId, comment } = parsed;
           if (!clickId) {
             res.writeHead(400, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ error: "clickId required" }));
