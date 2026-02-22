@@ -269,6 +269,10 @@
       })
       .then(function (res) {
         removeMarker(clickId);
+        // Remove from allClickData so syncMarkers won't re-create it
+        allClickData = allClickData.filter(function (cd) {
+          return cd.clickId !== clickId;
+        });
         updateBadge(res.totalClicks || 0);
         if (panelOpen) refreshPanel();
       });
@@ -308,11 +312,6 @@
       } catch (e) {}
     }
 
-    console.log(
-      "[smc] findElement:",
-      data.selector.slice(0, 60) + "...",
-      "→ NOT FOUND",
-    );
     return null;
   }
 
@@ -861,6 +860,12 @@
         var sessionLabel = res.sessionName ? " [" + res.sessionName + "]" : "";
         flash("Clicked: " + name + sessionLabel);
         updateBadge(res.totalClicks || 0);
+        // Track in allClickData so syncMarkers knows about it
+        allClickData.push({
+          data: data,
+          index: allClickData.length + 1,
+          clickId: data.clickId,
+        });
         addMarker(data);
         lastClickId = data.clickId;
       })
@@ -985,124 +990,95 @@
 
   // ── Init ─────────────────────────────────────────────────────────
 
-  // ── Marker restoration ─────────────────────────────────────────────
+  // ── Marker sync (DOM-driven) ───────────────────────────────────────
+  //
+  // Instead of matching markers by URL route, we let the DOM decide:
+  // try to place ALL stored markers — if the target element exists in the
+  // current DOM, show the marker; if not, hide/skip it.  A MutationObserver
+  // re-syncs whenever the DOM changes, so sub-view navigation within the
+  // same route (e.g. Journal → NPCs → Maps at /#/play/847) just works.
 
-  function clearAllMarkers() {
-    var ids = Object.keys(markers);
-    console.log("[smc] clearAllMarkers:", ids.length, "removed");
-    for (var i = 0; i < ids.length; i++) {
-      removeMarker(ids[i]);
+  var allClickData = []; // all clicks from server, kept in memory
+  var syncScheduled = false;
+
+  function syncMarkers() {
+    // For each stored click: show marker if element is in the DOM, remove if not
+    for (var i = 0; i < allClickData.length; i++) {
+      var cd = allClickData[i];
+      var existing = markers[cd.clickId];
+
+      if (existing) {
+        // Marker already shown — check if target is still in the DOM
+        if (!document.body.contains(existing.target)) {
+          existing.el.remove();
+          delete markers[cd.clickId];
+        }
+      } else {
+        // Marker not shown — try to place it
+        markerNumber = cd.index - 1;
+        addMarker(cd.data);
+      }
     }
+    // Restore markerNumber to total so new clicks get the right number
+    markerNumber = allClickData.length;
   }
 
-  function restoreMarkers() {
-    clearAllMarkers();
+  function scheduleSyncMarkers() {
+    if (syncScheduled) return;
+    syncScheduled = true;
+    // Small delay to batch rapid DOM mutations
+    setTimeout(function () {
+      syncScheduled = false;
+      syncMarkers();
+    }, 200);
+  }
+
+  function loadAndSync() {
     fetch("/__see-my-clicks?keep=true")
       .then(function (r) {
         return r.json();
       })
       .then(function (store) {
-        var total = 0;
-        var currentRoute = window.location.pathname + window.location.hash;
-        var pendingClicks = [];
+        allClickData = [];
+        var clickIndex = 0;
         if (store && store.sessions) {
-          var clickIndex = 0;
           for (var i = 0; i < store.sessions.length; i++) {
             var clicks = store.sessions[i].clicks || [];
-            total += clicks.length;
             for (var j = 0; j < clicks.length; j++) {
               clickIndex++;
-              try {
-                var parsed = new URL(clicks[j].url);
-                var clickRoute = parsed.pathname + parsed.hash;
-              } catch (e) {
-                continue;
-              }
-              if (clickRoute === currentRoute) {
-                pendingClicks.push({ data: clicks[j], index: clickIndex });
-              }
+              allClickData.push({
+                data: clicks[j],
+                index: clickIndex,
+                clickId: clicks[j].clickId,
+              });
             }
           }
-          markerNumber = total;
         }
-        console.log(
-          "[smc] restoreMarkers: route=",
-          currentRoute,
-          "total=",
-          total,
-          "matching=",
-          pendingClicks.length,
-        );
-        updateBadge(total);
-
-        // Retry placing markers until elements are in the DOM
-        if (pendingClicks.length > 0) {
-          var attempts = 0;
-          var maxAttempts = 10;
-          function tryPlace() {
-            var remaining = [];
-            for (var k = 0; k < pendingClicks.length; k++) {
-              var pc = pendingClicks[k];
-              markerNumber = pc.index - 1;
-              var placed = addMarker(pc.data);
-              if (placed !== false) {
-                // marker placed successfully
-              } else {
-                remaining.push(pc);
-              }
-            }
-            pendingClicks = remaining;
-            markerNumber = total;
-            attempts++;
-            console.log(
-              "[smc] tryPlace: attempt",
-              attempts,
-              "remaining=",
-              remaining.length,
-            );
-            if (pendingClicks.length > 0 && attempts < maxAttempts) {
-              setTimeout(tryPlace, 300);
-            }
-          }
-          tryPlace();
-        }
+        markerNumber = allClickData.length;
+        updateBadge(allClickData.length);
+        syncMarkers();
       })
       .catch(function () {});
   }
 
-  // Detect client-side navigation (SvelteKit, Next.js, hash-based routers, etc.)
-  function currentRoute() {
-    return window.location.pathname + window.location.hash;
-  }
-  var lastRoute = currentRoute();
-  var origPushState = history.pushState;
-  var origReplaceState = history.replaceState;
-
-  function onNavigation() {
-    var newRoute = currentRoute();
-    if (newRoute !== lastRoute) {
-      console.log("[smc] onNavigation:", lastRoute, "→", newRoute);
-      lastRoute = newRoute;
-      setTimeout(restoreMarkers, 300);
+  // MutationObserver: re-sync markers when DOM changes
+  // Ignore mutations within our own elements to avoid infinite loops
+  var observer = new MutationObserver(function (mutations) {
+    for (var i = 0; i < mutations.length; i++) {
+      var target = mutations[i].target;
+      if (!isSmcElement(target)) {
+        scheduleSyncMarkers();
+        return;
+      }
     }
-  }
-
-  history.pushState = function () {
-    origPushState.apply(this, arguments);
-    onNavigation();
-  };
-  history.replaceState = function () {
-    origReplaceState.apply(this, arguments);
-    onNavigation();
-  };
-  window.addEventListener("popstate", onNavigation);
-  window.addEventListener("hashchange", onNavigation);
-
-  // Polling fallback — some routers don't trigger any interceptable event
-  setInterval(onNavigation, 500);
+  });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 
   // Initial load
-  setTimeout(restoreMarkers, 300);
+  setTimeout(loadAndSync, 300);
 
   flash(
     "See My Clicks ready \u2014 Alt+Click to capture, Shift+Alt+Click for new session",
