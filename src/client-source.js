@@ -1048,6 +1048,9 @@
   window.addEventListener("popstate", onNavigation);
   window.addEventListener("hashchange", onNavigation);
 
+  // Polling fallback — some routers don't trigger any interceptable event
+  setInterval(onNavigation, 500);
+
   // Initial load
   setTimeout(restoreMarkers, 300);
 
