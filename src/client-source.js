@@ -290,7 +290,11 @@
           (function (dot) {
             dot.addEventListener("click", function (e) {
               e.stopPropagation();
-              showColorPicker(dot.getAttribute("data-smc-color"), dot);
+              showColorPicker(
+                dot.getAttribute("data-smc-color"),
+                dot.getAttribute("data-smc-current-color") || "#8b5cf6",
+                dot,
+              );
             });
           })(colorDots[j]);
         }
@@ -347,6 +351,8 @@
       '<div style="display:flex;align-items:center;gap:6px;">' +
       '<div data-smc-color="' +
       escapeHtml(session.id) +
+      '" data-smc-current-color="' +
+      escapeHtml(sessionColor) +
       '" style="width:12px;height:12px;border-radius:50%;background:' +
       escapeHtml(sessionColor) +
       ";cursor:pointer;flex-shrink:0;" +
@@ -452,7 +458,7 @@
     }
   }
 
-  function showColorPicker(sessionId, anchorEl) {
+  function showColorPicker(sessionId, currentColor, anchorEl) {
     closeColorPicker();
     colorPickerSessionId = sessionId;
 
@@ -465,10 +471,13 @@
 
     for (var i = 0; i < SESSION_COLORS.length; i++) {
       (function (color) {
+        var isActive = color === currentColor;
         var swatch = document.createElement("div");
         swatch.style.cssText =
           "width:18px;height:18px;border-radius:50%;cursor:pointer;" +
-          "border:2px solid transparent;transition:transform .1s ease;";
+          "border:2px solid " +
+          (isActive ? "#fff" : "transparent") +
+          ";transition:transform .1s ease;";
         swatch.style.background = color;
         swatch.addEventListener("click", function (e) {
           e.stopPropagation();
@@ -498,37 +507,36 @@
   }
 
   function updateSessionColor(sessionId, color) {
+    // Optimistic: update local state and DOM immediately
+    for (var i = 0; i < allClickData.length; i++) {
+      if (allClickData[i].sessionId === sessionId) {
+        allClickData[i].sessionColor = color;
+      }
+    }
+    var ids = Object.keys(markers);
+    for (var i = 0; i < ids.length; i++) {
+      var cd = null;
+      for (var j = 0; j < allClickData.length; j++) {
+        if (allClickData[j].clickId === ids[i]) {
+          cd = allClickData[j];
+          break;
+        }
+      }
+      if (cd && cd.sessionId === sessionId) {
+        markers[ids[i]].el.style.background = color;
+        markers[ids[i]].color = color;
+      }
+    }
+    if (panelOpen) refreshPanel();
+
+    // Persist to server
     fetch("/__see-my-clicks", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId: sessionId, color: color }),
-    })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function () {
-        for (var i = 0; i < allClickData.length; i++) {
-          if (allClickData[i].sessionId === sessionId) {
-            allClickData[i].sessionColor = color;
-          }
-        }
-        // Update existing markers
-        var ids = Object.keys(markers);
-        for (var i = 0; i < ids.length; i++) {
-          var cd = null;
-          for (var j = 0; j < allClickData.length; j++) {
-            if (allClickData[j].clickId === ids[i]) {
-              cd = allClickData[j];
-              break;
-            }
-          }
-          if (cd && cd.sessionId === sessionId) {
-            markers[ids[i]].el.style.background = color;
-            markers[ids[i]].color = color;
-          }
-        }
-        if (panelOpen) refreshPanel();
-      });
+    }).catch(function (err) {
+      console.error("[see-my-clicks] color update error:", err);
+    });
   }
 
   // ── Session visibility ──────────────────────────────────────────
