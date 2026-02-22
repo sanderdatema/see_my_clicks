@@ -1,8 +1,17 @@
 # Publishing
 
-We use alpha versioning during development. Check the current version in `package.json` and pick the next unreleased version (patch, minor, or major depending on scope) with an `-alpha.N` suffix. Increment the alpha build number on each push (e.g. `alpha.1` -> `alpha.2`). Include the version bump in the same push.
+We use alpha versioning during development. Check the current version in `package.json` and pick the next unreleased version with an `-alpha.N` suffix. Increment the alpha build number on each push (e.g. `alpha.1` -> `alpha.2`). Include the version bump in the same push.
 
-When the user confirms a fix or feature works (e.g. "it works", "the fix works", "tested and it works"), immediately publish a stable release: drop the alpha suffix, commit, tag, and push. Also publish stable when the user explicitly asks for a release.
+Follow semver strictly when choosing the version:
+- **Patch** (1.2.x): bug fixes only — no new features, no UI changes
+- **Minor** (1.x.0): new features, UI improvements, behavior changes
+- **Major** (x.0.0): breaking changes to the plugin API or config
+
+If the alpha series started as a patch but new features were added, bump to the next minor for the stable release. Semver ordering handles this fine (e.g. `1.2.4-alpha.5 < 1.3.0`).
+
+**Do not push or publish unless the user explicitly asks.** Commit locally, but wait for the user to say "push", "release", or similar before running `git push`.
+
+When the user asks for a stable release, drop the alpha suffix, commit, tag, and push.
 
 Publishing happens via GitHub Actions (`.github/workflows/publish.yml`):
 - **Alpha**: Every push to `main` automatically publishes with `--tag alpha` dist-tag. Can also be triggered manually via Actions > "Publish to npm" > "Run workflow".
