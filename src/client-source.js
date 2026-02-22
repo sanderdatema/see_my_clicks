@@ -319,9 +319,10 @@
   function addMarker(data) {
     markerNumber++;
     var target = findElement(data);
-    if (!target) return;
+    if (!target) return false;
 
     var rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
     var dot = document.createElement("div");
     dot.className = "__smc-marker";
     dot.setAttribute("data-click-id", data.clickId);
@@ -352,6 +353,7 @@
       number: markerNumber,
       data: data,
     };
+    return true;
   }
 
   function removeMarker(clickId) {
@@ -1041,10 +1043,10 @@
             var remaining = [];
             for (var k = 0; k < pendingClicks.length; k++) {
               var pc = pendingClicks[k];
-              var el = findElement(pc.data);
-              if (el) {
-                markerNumber = pc.index - 1;
-                addMarker(pc.data);
+              markerNumber = pc.index - 1;
+              var placed = addMarker(pc.data);
+              if (placed !== false) {
+                // marker placed successfully
               } else {
                 remaining.push(pc);
               }
