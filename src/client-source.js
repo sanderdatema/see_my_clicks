@@ -166,6 +166,8 @@
 
   // ── Panel ────────────────────────────────────────────────────────
 
+  var panelClickData = {};
+
   function refreshPanel() {
     fetch("/__see-my-clicks?keep=true")
       .then(function (r) {
@@ -173,6 +175,7 @@
       })
       .then(function (store) {
         var sessions = (store && store.sessions) || [];
+        panelClickData = {};
         var html = '<div style="padding:12px;">';
         html +=
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
@@ -206,6 +209,24 @@
               deleteClick(btn.getAttribute("data-smc-delete"));
             });
           })(delBtns[j]);
+        }
+
+        // Attach edit handlers
+        var editRows = panel.querySelectorAll("[data-smc-edit]");
+        for (var j = 0; j < editRows.length; j++) {
+          (function (row) {
+            row.addEventListener("click", function (e) {
+              e.stopPropagation();
+              var clickId = row.getAttribute("data-smc-edit");
+              var data = panelClickData[clickId];
+              if (data) {
+                panel.style.display = "none";
+                panelOpen = false;
+                var rect = row.getBoundingClientRect();
+                showEditModal(data, rect.left, rect.bottom);
+              }
+            });
+          })(editRows[j]);
         }
 
         // Attach new session handler
@@ -254,8 +275,12 @@
                 : c.comment,
             )
           : "";
+        panelClickData[c.clickId] = c;
         html +=
-          '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;color:#cdd6f4;font-size:12px;">';
+          '<div data-smc-edit="' +
+          escapeHtml(c.clickId) +
+          '" style="display:flex;align-items:center;gap:6px;padding:4px 0;color:#cdd6f4;font-size:12px;' +
+          'cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#313244\'" onmouseout="this.style.background=\'none\'">';
         html +=
           '<span style="color:#6c7086;font-size:11px;min-width:16px;">' +
           (j + 1) +
