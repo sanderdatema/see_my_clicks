@@ -21,4 +21,4 @@ When the user asks you to check their clicks (e.g. "check my clicks", "what did 
 4. If comments are present, suggest concrete fixes. Group related clicks together. Respect session boundaries — each session is a separate batch of feedback.
 5. If no comments, present the element info and ask what to do.
 <!-- action:end -->
-6. After processing, clear the file by writing `{"sessions":[]}` to `.see-my-clicks/clicked.json`.
+6. After processing, reset the file using a shell command (e.g. `printf '{"sessions":[]}' > .see-my-clicks/clicked.json`), not a file-write tool, to avoid showing a large diff of the old contents.

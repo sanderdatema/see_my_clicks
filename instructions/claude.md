@@ -18,4 +18,4 @@ Steps:
 5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.
 <!-- action:end -->
 
-6. After processing, reset the file by writing `{"sessions":[]}` to `.see-my-clicks/clicked.json`. This is critical — without clearing, the same clicks will show up again next time.
+6. After processing, reset the file using a shell command (e.g. `printf '{"sessions":[]}' > .see-my-clicks/clicked.json`), NOT the Write/Edit tool, to avoid showing a large diff of the old contents. This is critical — without clearing, the same clicks will show up again next time.
