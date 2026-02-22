@@ -164,39 +164,79 @@ const SCRIPT_TAG = '<script src="/__see-my-clicks/client.js"></script>';
 const SCRIPT_MARKER = "see-my-clicks/client.js";
 
 function detectSSRFramework() {
-  const pkgPath = path.resolve(process.cwd(), "package.json");
-  if (!fs.existsSync(pkgPath)) return null;
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-  const allDeps = {
-    ...pkg.dependencies,
-    ...pkg.devDependencies,
-  };
-  if (allDeps["@sveltejs/kit"]) return "sveltekit";
+  // Check cwd and common subdirectories for SvelteKit
+  const candidates = [
+    "package.json",
+    "frontend/package.json",
+    "client/package.json",
+    "web/package.json",
+    "app/package.json",
+  ];
+  for (const rel of candidates) {
+    const pkgPath = path.resolve(process.cwd(), rel);
+    if (!fs.existsSync(pkgPath)) continue;
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (allDeps["@sveltejs/kit"]) return "sveltekit";
+    } catch (e) {}
+  }
+  return null;
+}
+
+function findAppHtml() {
+  // Check cwd first, then common subdirectories
+  const candidates = [
+    "src/app.html",
+    "frontend/src/app.html",
+    "client/src/app.html",
+    "web/src/app.html",
+    "app/src/app.html",
+  ];
+  for (const rel of candidates) {
+    const abs = path.resolve(process.cwd(), rel);
+    if (fs.existsSync(abs)) return { abs, rel };
+  }
   return null;
 }
 
 function patchSvelteKit() {
-  const appHtml = path.resolve(process.cwd(), "src/app.html");
-  if (!fs.existsSync(appHtml)) {
-    console.log(
-      "  SvelteKit detected but src/app.html not found — add the script tag manually.",
+  const found = findAppHtml();
+  if (!found) {
+    console.warn(
+      "  \u26a0 SvelteKit detected but src/app.html not found.\n" +
+        "  Add this to your app.html manually:\n" +
+        `  ${SCRIPT_TAG}`,
     );
     return;
   }
-  const html = fs.readFileSync(appHtml, "utf-8");
+  const { abs, rel } = found;
+  const html = fs.readFileSync(abs, "utf-8");
   if (html.includes(SCRIPT_MARKER)) {
-    console.log("  src/app.html already has the client script, skipping.");
+    console.log(`  ${rel} already has the client script, skipping.`);
     return;
   }
   if (!html.includes("</body>")) {
-    console.log(
-      "  src/app.html has no </body> tag — add the script tag manually.",
+    console.warn(
+      `  \u26a0 ${rel} has no </body> tag — add the script tag manually:\n` +
+        `  ${SCRIPT_TAG}`,
     );
     return;
   }
   const patched = html.replace("</body>", `  ${SCRIPT_TAG}\n</body>`);
-  fs.writeFileSync(appHtml, patched);
-  console.log("  Patched src/app.html with client script tag (SvelteKit).");
+  fs.writeFileSync(abs, patched);
+
+  // Verify the write succeeded
+  const verify = fs.readFileSync(abs, "utf-8");
+  if (verify.includes(SCRIPT_MARKER)) {
+    console.log(`  Patched ${rel} with client script tag (SvelteKit).`);
+  } else {
+    console.warn(
+      `  \u26a0 Wrote to ${rel} but the script tag was not found after writing.\n` +
+        `  Add it manually:\n` +
+        `  ${SCRIPT_TAG}`,
+    );
+  }
 }
 
 // ── Main ────────────────────────────────────────────────────────────

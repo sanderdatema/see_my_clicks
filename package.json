@@ -1,6 +1,6 @@
 {
   "name": "see-my-clicks",
-  "version": "1.2.2",
+  "version": "1.2.3-alpha.1",
   "description": "Alt+Click any element in the browser to capture its info for AI coding assistants",
   "type": "module",
   "main": "src/index.js",
