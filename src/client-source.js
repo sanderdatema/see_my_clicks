@@ -990,6 +990,12 @@
         updateBadge(total);
 
         // Retry placing markers until elements are in the DOM
+        if (pendingClicks.length === 0 && total > 0) {
+          console.log(
+            "[see-my-clicks] No markers match current route:",
+            currentRoute,
+          );
+        }
         if (pendingClicks.length > 0) {
           var attempts = 0;
           var maxAttempts = 10;
