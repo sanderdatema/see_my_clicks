@@ -280,11 +280,21 @@
 
   // ── Markers ──────────────────────────────────────────────────────
 
+  function verifyElement(el, data) {
+    // If we have stored textContent, verify the candidate matches.
+    // This prevents false positives when a selector matches a different
+    // element on a different sub-view (same URL, different DOM content).
+    if (!data.textContent) return true;
+    var current = truncateText(el.innerText || el.textContent || "", 100);
+    if (!current) return true;
+    return current === data.textContent;
+  }
+
   function findElement(data) {
     // Try full selector first
     try {
       var el = document.querySelector(data.selector);
-      if (el) return el;
+      if (el && verifyElement(el, data)) return el;
     } catch (e) {}
 
     // Fallback: match by data-* attributes
@@ -299,7 +309,7 @@
           var found = document.querySelector(
             data.tagName + "[" + attr + "=" + JSON.stringify(val) + "]",
           );
-          if (found) return found;
+          if (found && verifyElement(found, data)) return found;
         } catch (e) {}
       }
     }
@@ -308,7 +318,7 @@
     if (data.elementId) {
       try {
         var byId = document.getElementById(data.elementId);
-        if (byId) return byId;
+        if (byId && verifyElement(byId, data)) return byId;
       } catch (e) {}
     }
 
