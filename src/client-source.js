@@ -239,6 +239,7 @@
               if (data) {
                 panel.style.display = "none";
                 panelOpen = false;
+                openedFromPanel = true;
                 showEditModal(data, e.clientX, e.clientY);
               }
             });
@@ -605,6 +606,7 @@
   }
 
   var editingClickId = null;
+  var openedFromPanel = false;
 
   function submitComment(skip) {
     if (!pendingClick || !modal) return;
@@ -642,6 +644,7 @@
     }
 
     modal.style.display = "none";
+    openedFromPanel = false;
     pendingClick = null;
     pendingNewSession = false;
     pendingSessionName = null;
@@ -652,12 +655,19 @@
   function cancelModal() {
     if (!modal) return;
     modal.style.display = "none";
+    var wasFromPanel = openedFromPanel;
     editingClickId = null;
+    openedFromPanel = false;
     pendingClick = null;
     pendingNewSession = false;
     pendingSessionName = null;
     if (previousFocus && previousFocus.focus) previousFocus.focus();
     previousFocus = null;
+    if (wasFromPanel) {
+      panelOpen = true;
+      refreshPanel();
+      panel.style.display = "block";
+    }
   }
 
   function showEditModal(data, x, y) {
