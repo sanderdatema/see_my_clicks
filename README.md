@@ -180,7 +180,7 @@ seeMyClicks({
 - **Highlight tooltip** — when hovering with Alt held, shows the element tag and component name
 - **Click counter badge** — persistent purple badge showing capture count; click to expand the review panel
 - **Review panel** — lists all captures grouped by session, with delete buttons for each item
-- **Element markers** — numbered purple dots on captured elements so you can see what's been annotated
+- **Element markers** — numbered purple dots on captured elements so you can see what's been annotated; click a marker to edit its comment
 - **Element info in modal** — the comment modal shows which element you clicked (tag, text, component)
 
 ## License

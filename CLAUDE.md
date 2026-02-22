@@ -1,8 +1,8 @@
 # Publishing
 
-We use alpha versioning during development: `1.2.0-alpha.N`. Whenever you push to GitHub, increment the alpha build number (e.g. `alpha.1` -> `alpha.2`). Include the version bump in the same push.
+We use alpha versioning during development: `1.2.2-alpha.N`. Whenever you push to GitHub, increment the alpha build number (e.g. `alpha.1` -> `alpha.2`). Include the version bump in the same push.
 
-When the user explicitly asks to publish a stable release, drop the alpha suffix and bump appropriately (patch/minor/major).
+When the user confirms a fix or feature works (e.g. "it works", "the fix works", "tested and it works"), immediately publish a stable release: drop the alpha suffix, commit, tag, and push. Also publish stable when the user explicitly asks for a release.
 
 Publishing happens via GitHub Actions (`.github/workflows/publish.yml`):
 - **Alpha**: Every push to `main` automatically publishes with `--tag alpha` dist-tag. Can also be triggered manually via Actions > "Publish to npm" > "Run workflow".
