@@ -464,7 +464,7 @@
       '<div style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;flex-shrink:0;"></div>' +
       '<span id="__smc-header-text" style="color:#cdd6f4;font-size:12px;font-weight:600;' +
       'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">Add a comment</span>' +
-      '<span style="color:#6c7086;font-size:11px;flex-shrink:0;">Esc = skip</span>' +
+      '<span style="color:#6c7086;font-size:11px;flex-shrink:0;">Esc = cancel</span>' +
       "</div>" +
       '<textarea id="__smc-input" rows="3" placeholder="What\'s wrong? What should change?"' +
       ' style="width:100%;box-sizing:border-box;background:#313244;border:1px solid #45475a;' +
@@ -490,7 +490,7 @@
         submitComment(false);
       } else if (e.key === "Escape") {
         e.preventDefault();
-        submitComment(true);
+        cancelModal();
       }
     });
 
@@ -594,6 +594,17 @@
     }
 
     modal.style.display = "none";
+    pendingClick = null;
+    pendingNewSession = false;
+    pendingSessionName = null;
+    if (previousFocus && previousFocus.focus) previousFocus.focus();
+    previousFocus = null;
+  }
+
+  function cancelModal() {
+    if (!modal) return;
+    modal.style.display = "none";
+    editingClickId = null;
     pendingClick = null;
     pendingNewSession = false;
     pendingSessionName = null;
@@ -944,7 +955,7 @@
       // Handle clicks while modal is open
       if (isModalOpen()) {
         if (modal && !modal.contains(e.target)) {
-          submitComment(true);
+          cancelModal();
           if (!e.altKey) return;
         } else {
           return;

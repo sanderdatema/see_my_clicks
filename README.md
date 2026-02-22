@@ -171,7 +171,7 @@ seeMyClicks({
 | Capture element | **Alt+Click** |
 | New session + capture | **Shift+Alt+Click** |
 | Save comment | **Enter** |
-| Skip comment | **Esc** |
+| Cancel capture | **Esc** |
 | Multiline comment | **Shift+Enter** |
 | Undo last click | **Ctrl+Alt+Z** (Cmd+Alt+Z on Mac) |
 
