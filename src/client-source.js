@@ -965,7 +965,7 @@
       })
       .then(function (store) {
         var total = 0;
-        var currentPath = window.location.pathname;
+        var currentRoute = window.location.pathname + window.location.hash;
         if (store && store.sessions) {
           var clickIndex = 0;
           for (var i = 0; i < store.sessions.length; i++) {
@@ -974,11 +974,12 @@
             for (var j = 0; j < clicks.length; j++) {
               clickIndex++;
               try {
-                var clickPath = new URL(clicks[j].url).pathname;
+                var parsed = new URL(clicks[j].url);
+                var clickRoute = parsed.pathname + parsed.hash;
               } catch (e) {
                 continue;
               }
-              if (clickPath === currentPath) {
+              if (clickRoute === currentRoute) {
                 markerNumber = clickIndex - 1;
                 addMarker(clicks[j]);
               }
@@ -991,15 +992,18 @@
       .catch(function () {});
   }
 
-  // Detect client-side navigation (SvelteKit, Next.js, etc.)
-  var lastPathname = window.location.pathname;
+  // Detect client-side navigation (SvelteKit, Next.js, hash-based routers, etc.)
+  function currentRoute() {
+    return window.location.pathname + window.location.hash;
+  }
+  var lastRoute = currentRoute();
   var origPushState = history.pushState;
   var origReplaceState = history.replaceState;
 
   function onNavigation() {
-    var newPath = window.location.pathname;
-    if (newPath !== lastPathname) {
-      lastPathname = newPath;
+    var newRoute = currentRoute();
+    if (newRoute !== lastRoute) {
+      lastRoute = newRoute;
       setTimeout(restoreMarkers, 300);
     }
   }
@@ -1013,6 +1017,7 @@
     onNavigation();
   };
   window.addEventListener("popstate", onNavigation);
+  window.addEventListener("hashchange", onNavigation);
 
   // Initial load
   setTimeout(restoreMarkers, 300);
