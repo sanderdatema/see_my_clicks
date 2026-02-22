@@ -980,16 +980,6 @@
 
       var data = captureElement(e.target);
 
-      // Shift+Alt+Click: prompt for new session name
-      if (e.shiftKey) {
-        showSessionPrompt(function (name) {
-          pendingNewSession = true;
-          pendingSessionName = name;
-          showModal(data, e.clientX, e.clientY);
-        });
-        return;
-      }
-
       // Check if "New Session" was triggered from the panel
       if (forceNewSession) {
         pendingNewSession = true;
@@ -1187,9 +1177,7 @@
   currentRoute = getRoute();
   setTimeout(loadAndSync, 300);
 
-  flash(
-    "See My Clicks ready \u2014 Alt+Click to capture, Shift+Alt+Click for new session",
-  );
+  flash("See My Clicks ready \u2014 Alt+Click to capture");
   console.log(
     "[see-my-clicks] Initialized. Alt+Click any element to capture it.",
   );

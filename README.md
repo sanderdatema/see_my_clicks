@@ -121,9 +121,9 @@ You can also edit the generated instruction file directly — the action is in a
 
 - Run your dev server
 - **Alt+Click** any element in the browser — a comment modal appears showing which element you clicked
-- Add an optional comment describing what should change, or press Esc to skip
-- **Shift+Alt+Click** to start a new named session (you'll be prompted for a name)
+- Add an optional comment describing what should change, or press Esc to cancel
 - A purple badge in the corner shows your capture count — click it to review, manage, or delete captures
+- Use the **+ New Session** button in the review panel to start a named session
 - Tell your AI to "check my clicks" (or run `/clicked` in Claude Code)
 
 ## How it works
@@ -140,8 +140,7 @@ You can also edit the generated instruction file directly — the action is in a
 Clicks are organized into **sessions** — named groups of related captures.
 
 - Your first Alt+Click auto-creates a default session
-- **Shift+Alt+Click** prompts you for a session name and starts a new one (e.g. "Header fixes", "Mobile layout")
-- You can also start a new session from the review panel
+- Use the **+ New Session** button in the review panel to start a named session (e.g. "Header fixes", "Mobile layout")
 - When your AI processes clicks, it sees them grouped by session, making it easier to understand context
 
 ## Framework detection
@@ -169,7 +168,6 @@ seeMyClicks({
 | Action | Shortcut |
 |---|---|
 | Capture element | **Alt+Click** |
-| New session + capture | **Shift+Alt+Click** |
 | Save comment | **Enter** |
 | Cancel capture | **Esc** |
 | Multiline comment | **Shift+Enter** |
