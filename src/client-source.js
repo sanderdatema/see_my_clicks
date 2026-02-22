@@ -966,6 +966,7 @@
       .then(function (store) {
         var total = 0;
         var currentRoute = window.location.pathname + window.location.hash;
+        var pendingClicks = [];
         if (store && store.sessions) {
           var clickIndex = 0;
           for (var i = 0; i < store.sessions.length; i++) {
@@ -980,14 +981,42 @@
                 continue;
               }
               if (clickRoute === currentRoute) {
-                markerNumber = clickIndex - 1;
-                addMarker(clicks[j]);
+                pendingClicks.push({ data: clicks[j], index: clickIndex });
               }
             }
           }
           markerNumber = total;
         }
         updateBadge(total);
+
+        // Retry placing markers until elements are in the DOM
+        if (pendingClicks.length > 0) {
+          var attempts = 0;
+          var maxAttempts = 10;
+          function tryPlace() {
+            var remaining = [];
+            for (var k = 0; k < pendingClicks.length; k++) {
+              var pc = pendingClicks[k];
+              var el = null;
+              try {
+                el = document.querySelector(pc.data.selector);
+              } catch (e) {}
+              if (el) {
+                markerNumber = pc.index - 1;
+                addMarker(pc.data);
+              } else {
+                remaining.push(pc);
+              }
+            }
+            pendingClicks = remaining;
+            markerNumber = total;
+            attempts++;
+            if (pendingClicks.length > 0 && attempts < maxAttempts) {
+              setTimeout(tryPlace, 300);
+            }
+          }
+          tryPlace();
+        }
       })
       .catch(function () {});
   }
