@@ -181,6 +181,18 @@ seeMyClicks({
 - **Element markers** — numbered purple dots on captured elements so you can see what's been annotated; click a marker to edit its comment
 - **Element info in modal** — the comment modal shows which element you clicked (tag, text, component)
 
+## Regression test
+
+There is a Playwright regression for the modal resize-close bug:
+
+```bash
+npm run test:regression
+```
+
+It verifies both behaviors:
+- resizing/drag-like interaction that starts inside the modal must not close it
+- a normal outside click should still close it
+
 ## License
 
 MIT

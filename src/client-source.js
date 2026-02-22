@@ -1216,11 +1216,25 @@
   // ── Event listeners ──────────────────────────────────────────────
 
   document.addEventListener(
+    "mousedown",
+    function (e) {
+      if (!isModalOpen() || !modal) return;
+      modal.__smcMouseDownInside = modal.contains(e.target);
+    },
+    true,
+  );
+
+  document.addEventListener(
     "click",
     function (e) {
       // Handle clicks while modal is open
+      var startedInsideModal = modal && modal.__smcMouseDownInside;
+      if (modal) modal.__smcMouseDownInside = false;
+
       if (isModalOpen()) {
         if (modal && !modal.contains(e.target)) {
+          // Ignore outside clicks created by drags/resizes that started inside.
+          if (startedInsideModal) return;
           cancelModal();
           if (!e.altKey) return;
         } else {
