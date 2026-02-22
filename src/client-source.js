@@ -1011,15 +1011,33 @@
   var allClickData = []; // all clicks from server, kept in memory
   var syncScheduled = false;
 
+  function isTargetVisible(el) {
+    if (!document.body.contains(el)) return false;
+    var rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    // Check if element or an ancestor is hidden
+    var style = window.getComputedStyle(el);
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      style.opacity === "0"
+    )
+      return false;
+    return true;
+  }
+
   function syncMarkers() {
-    // For each stored click: show marker if element is in the DOM, remove if not
+    // For each stored click: show marker if element is visible and valid, remove if not
     for (var i = 0; i < allClickData.length; i++) {
       var cd = allClickData[i];
       var existing = markers[cd.clickId];
 
       if (existing) {
-        // Marker already shown — check if target is still in the DOM
-        if (!document.body.contains(existing.target)) {
+        // Marker already shown — check if target is still visible and matches
+        if (
+          !isTargetVisible(existing.target) ||
+          !verifyElement(existing.target, cd.data)
+        ) {
           existing.el.remove();
           delete markers[cd.clickId];
         }
