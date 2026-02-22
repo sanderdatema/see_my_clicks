@@ -100,6 +100,24 @@
   var rafId = null;
   var latestMouseEvent = null;
   var updateMarkersRaf = null;
+  var currentRoute = null;
+  var allClickData = [];
+  var syncScheduled = false;
+
+  // ── URL matching ─────────────────────────────────────────────────
+
+  function getRoute() {
+    return window.location.pathname + window.location.hash;
+  }
+
+  function routeMatches(storedUrl) {
+    try {
+      var parsed = new URL(storedUrl);
+      return parsed.pathname + parsed.hash === getRoute();
+    } catch (e) {
+      return false;
+    }
+  }
 
   // ── Flash messages ───────────────────────────────────────────────
 
@@ -370,6 +388,14 @@
     if (m) {
       m.el.remove();
       delete markers[clickId];
+    }
+  }
+
+  function removeAllMarkers() {
+    var ids = Object.keys(markers);
+    for (var i = 0; i < ids.length; i++) {
+      markers[ids[i]].el.remove();
+      delete markers[ids[i]];
     }
   }
 
@@ -998,24 +1024,12 @@
     }
   });
 
-  // ── Init ─────────────────────────────────────────────────────────
-
-  // ── Marker sync (DOM-driven) ───────────────────────────────────────
-  //
-  // Instead of matching markers by URL route, we let the DOM decide:
-  // try to place ALL stored markers — if the target element exists in the
-  // current DOM, show the marker; if not, hide/skip it.  A MutationObserver
-  // re-syncs whenever the DOM changes, so sub-view navigation within the
-  // same route (e.g. Journal → NPCs → Maps at /#/play/847) just works.
-
-  var allClickData = []; // all clicks from server, kept in memory
-  var syncScheduled = false;
+  // ── Marker sync ────────────────────────────────────────────────────
 
   function isTargetVisible(el) {
     if (!document.body.contains(el)) return false;
     var rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return false;
-    // Check if element or an ancestor is hidden
     var style = window.getComputedStyle(el);
     if (
       style.display === "none" ||
@@ -1026,38 +1040,35 @@
     return true;
   }
 
-  function syncMarkers() {
-    // For each stored click: show marker if element is visible and valid, remove if not
+  function syncMarkersForCurrentRoute() {
     for (var i = 0; i < allClickData.length; i++) {
       var cd = allClickData[i];
       var existing = markers[cd.clickId];
+      var onThisRoute = routeMatches(cd.data.url);
 
       if (existing) {
-        // Marker already shown — check if target is still visible and matches
         if (
+          !onThisRoute ||
           !isTargetVisible(existing.target) ||
           !verifyElement(existing.target, cd.data)
         ) {
           existing.el.remove();
           delete markers[cd.clickId];
         }
-      } else {
-        // Marker not shown — try to place it
+      } else if (onThisRoute) {
         markerNumber = cd.index - 1;
         addMarker(cd.data);
       }
     }
-    // Restore markerNumber to total so new clicks get the right number
     markerNumber = allClickData.length;
   }
 
   function scheduleSyncMarkers() {
     if (syncScheduled) return;
     syncScheduled = true;
-    // Small delay to batch rapid DOM mutations
     setTimeout(function () {
       syncScheduled = false;
-      syncMarkers();
+      syncMarkersForCurrentRoute();
     }, 200);
   }
 
@@ -1084,13 +1095,36 @@
         }
         markerNumber = allClickData.length;
         updateBadge(allClickData.length);
-        syncMarkers();
+        syncMarkersForCurrentRoute();
       })
       .catch(function () {});
   }
 
-  // MutationObserver: re-sync markers when DOM changes
-  // Ignore mutations within our own elements to avoid infinite loops
+  // ── Navigation detection ───────────────────────────────────────────
+
+  function onNavigate() {
+    currentRoute = getRoute();
+    removeAllMarkers();
+    setTimeout(syncMarkersForCurrentRoute, 100);
+  }
+
+  var origPushState = history.pushState;
+  history.pushState = function () {
+    origPushState.apply(this, arguments);
+    onNavigate();
+  };
+
+  var origReplaceState = history.replaceState;
+  history.replaceState = function () {
+    origReplaceState.apply(this, arguments);
+    onNavigate();
+  };
+
+  window.addEventListener("popstate", onNavigate);
+  window.addEventListener("hashchange", onNavigate);
+
+  // ── MutationObserver ───────────────────────────────────────────────
+
   var observer = new MutationObserver(function (mutations) {
     for (var i = 0; i < mutations.length; i++) {
       var target = mutations[i].target;
@@ -1105,7 +1139,9 @@
     subtree: true,
   });
 
-  // Initial load
+  // ── Init ─────────────────────────────────────────────────────────
+
+  currentRoute = getRoute();
   setTimeout(loadAndSync, 300);
 
   flash(
