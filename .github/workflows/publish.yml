@@ -1,0 +1,34 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions: {}
+
+jobs:
+  publish:
+    if: github.repository == 'sanderdatema/see_my_clicks'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - run: npm install -g npm@latest
+
+      - name: Publish
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            npm publish --provenance --tag alpha
+          else
+            npm publish --provenance
+          fi
