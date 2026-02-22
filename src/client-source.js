@@ -308,6 +308,11 @@
       } catch (e) {}
     }
 
+    console.log(
+      "[smc] findElement:",
+      data.selector.slice(0, 60) + "...",
+      "→ NOT FOUND",
+    );
     return null;
   }
 
@@ -982,6 +987,7 @@
 
   function clearAllMarkers() {
     var ids = Object.keys(markers);
+    console.log("[smc] clearAllMarkers:", ids.length, "removed");
     for (var i = 0; i < ids.length; i++) {
       removeMarker(ids[i]);
     }
@@ -1017,6 +1023,14 @@
           }
           markerNumber = total;
         }
+        console.log(
+          "[smc] restoreMarkers: route=",
+          currentRoute,
+          "total=",
+          total,
+          "matching=",
+          pendingClicks.length,
+        );
         updateBadge(total);
 
         // Retry placing markers until elements are in the DOM
@@ -1038,6 +1052,12 @@
             pendingClicks = remaining;
             markerNumber = total;
             attempts++;
+            console.log(
+              "[smc] tryPlace: attempt",
+              attempts,
+              "remaining=",
+              remaining.length,
+            );
             if (pendingClicks.length > 0 && attempts < maxAttempts) {
               setTimeout(tryPlace, 300);
             }
@@ -1059,6 +1079,7 @@
   function onNavigation() {
     var newRoute = currentRoute();
     if (newRoute !== lastRoute) {
+      console.log("[smc] onNavigation:", lastRoute, "→", newRoute);
       lastRoute = newRoute;
       setTimeout(restoreMarkers, 300);
     }
