@@ -3,6 +3,8 @@ name: Publish to npm
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -27,8 +29,8 @@ jobs:
 
       - name: Publish
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            npm publish --provenance --tag alpha
-          else
+          if [ "${{ github.ref_type }}" = "tag" ]; then
             npm publish --provenance
+          else
+            npm publish --provenance --tag alpha
           fi
