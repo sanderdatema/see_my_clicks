@@ -48,37 +48,13 @@ export type SeeMyClicksMiddleware = (
   next?: () => void,
 ) => void;
 
-export interface ViteLikeWatchConfig {
-  ignored?: string | string[];
-}
-
-export interface ViteLikeServerConfig {
-  watch?: ViteLikeWatchConfig;
-}
-
-export interface ViteLikeConfig {
-  server?: ViteLikeServerConfig;
-}
-
-export interface ViteLikeDevServer {
-  middlewares: {
-    use(path: string, handler: SeeMyClicksMiddleware): void;
-  };
-}
-
-export interface HtmlTagDescriptor {
-  tag: string;
-  children?: string;
-  injectTo?: "head" | "body" | "head-prepend" | "body-prepend";
-  [key: string]: unknown;
-}
-
 export interface SeeMyClicksPlugin {
   name: "see-my-clicks";
-  apply: "serve";
-  config(config: ViteLikeConfig): void;
-  configureServer(server: ViteLikeDevServer): void;
-  transformIndexHtml(): HtmlTagDescriptor[];
+  apply?: "serve" | "build" | ((...args: any[]) => boolean);
+  config?: (...args: any[]) => any;
+  configureServer?: (...args: any[]) => any;
+  transformIndexHtml?: (...args: any[]) => any;
+  [key: string]: unknown;
 }
 
 export function seeMyClicks(opts?: SeeMyClicksOptions): SeeMyClicksPlugin;
