@@ -198,10 +198,19 @@
             '<div style="color:#6c7086;font-size:12px;padding:8px 0;">No captures yet. Alt+Click an element.</div>';
         }
 
+        // Build global click numbering (oldest session first)
+        var globalNumber = 0;
+        var clickNumbers = {};
+        for (var i = 0; i < sessions.length; i++) {
+          var clicks = sessions[i].clicks || [];
+          for (var j = 0; j < clicks.length; j++) {
+            globalNumber++;
+            clickNumbers[clicks[j].clickId] = globalNumber;
+          }
+        }
+
         for (var i = sessions.length - 1; i >= 0; i--) {
-          var s = sessions[i];
-          var isActive = i === sessions.length - 1;
-          html += renderSessionHtml(s, isActive);
+          html += renderSessionHtml(sessions[i], clickNumbers);
         }
 
         html += "</div>";
@@ -257,7 +266,7 @@
       });
   }
 
-  function renderSessionHtml(session, expanded) {
+  function renderSessionHtml(session, clickNumbers) {
     var clicks = session.clicks || [];
     var html = '<div style="border-top:1px solid #313244;padding:8px 0;">';
     html +=
@@ -266,45 +275,42 @@
       " (" +
       clicks.length +
       ")</div>";
-    if (expanded) {
-      for (var j = 0; j < clicks.length; j++) {
-        var c = clicks[j];
-        var label = "&lt;" + escapeHtml(c.tagName) + "&gt;";
-        var comp =
-          c.component && c.component.name
-            ? " " + escapeHtml(c.component.name)
-            : "";
-        var comment = c.comment
-          ? " \u2014 " +
-            escapeHtml(
-              c.comment.length > 40
-                ? c.comment.slice(0, 40) + "..."
-                : c.comment,
-            )
+    for (var j = 0; j < clicks.length; j++) {
+      var c = clicks[j];
+      var label = "&lt;" + escapeHtml(c.tagName) + "&gt;";
+      var comp =
+        c.component && c.component.name
+          ? " " + escapeHtml(c.component.name)
           : "";
-        panelClickData[c.clickId] = c;
-        html +=
-          '<div data-smc-edit="' +
-          escapeHtml(c.clickId) +
-          '" style="display:flex;align-items:center;gap:6px;padding:4px 0;color:#cdd6f4;font-size:12px;' +
-          'cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#313244\'" onmouseout="this.style.background=\'none\'">';
-        html +=
-          '<span style="color:#6c7086;font-size:11px;min-width:16px;">' +
-          (j + 1) +
-          "</span>";
-        html +=
-          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
-          label +
-          comp +
-          comment +
-          "</span>";
-        html +=
-          '<button data-smc-delete="' +
-          escapeHtml(c.clickId) +
-          '" style="background:none;border:none;' +
-          'color:#f38ba8;cursor:pointer;font-size:14px;padding:0 4px;line-height:1;" title="Delete">\u00d7</button>';
-        html += "</div>";
-      }
+      var comment = c.comment
+        ? " \u2014 " +
+          escapeHtml(
+            c.comment.length > 40 ? c.comment.slice(0, 40) + "..." : c.comment,
+          )
+        : "";
+      panelClickData[c.clickId] = c;
+      var num = clickNumbers[c.clickId] || j + 1;
+      html +=
+        '<div data-smc-edit="' +
+        escapeHtml(c.clickId) +
+        '" style="display:flex;align-items:center;gap:6px;padding:4px 0;color:#cdd6f4;font-size:12px;' +
+        'cursor:pointer;border-radius:4px;" onmouseover="this.style.background=\'#313244\'" onmouseout="this.style.background=\'none\'">';
+      html +=
+        '<span style="color:#6c7086;font-size:11px;min-width:16px;">' +
+        num +
+        "</span>";
+      html +=
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+        label +
+        comp +
+        comment +
+        "</span>";
+      html +=
+        '<button data-smc-delete="' +
+        escapeHtml(c.clickId) +
+        '" style="background:none;border:none;' +
+        'color:#f38ba8;cursor:pointer;font-size:14px;padding:0 4px;line-height:1;" title="Delete">\u00d7</button>';
+      html += "</div>";
     }
     html += "</div>";
     return html;
