@@ -10,7 +10,7 @@ function installFetchStub() {
     const url = String(input || "");
     const method = (init && init.method) || "GET";
 
-    if (url.includes("/__see-my-clicks?keep=true")) {
+    if (url.includes("/__see-my-clicks")) {
       return { ok: true, json: async () => emptyStore };
     }
 

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { getClientScript } from "./client.js";
 
+// Keep in sync with SESSION_COLORS in src/client-source.js
 const COLOR_PALETTE = [
   "#8b5cf6",
   "#f38ba8",
@@ -23,6 +24,7 @@ function resolveOptions(opts = {}) {
   return { ...DEFAULTS, ...opts };
 }
 
+// Keep in sync with ID generation in src/client-source.js (captureElement)
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -107,6 +109,182 @@ export function createMiddleware(opts = {}) {
 
   ensureOutputFile(outputFile);
 
+  // Serialize all read-modify-write file operations to prevent concurrent
+  // requests from clobbering each other (e.g. two rapid Alt+Clicks).
+  let writeQueue = Promise.resolve();
+
+  function sendJson(res, status, body) {
+    res.writeHead(status, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(body));
+  }
+
+  function collectBody(req, cb) {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("end", () => {
+      writeQueue = writeQueue.then(() => cb(body));
+    });
+  }
+
+  function handlePost(req, res) {
+    collectBody(req, (body) => {
+      try {
+        const { data, newSession, sessionName } = JSON.parse(body);
+
+        if (!validateClickData(data)) {
+          sendJson(res, 400, {
+            error: "Invalid click data: clickId and tagName required",
+          });
+          return;
+        }
+
+        const store = filterExpiredSessions(readData(outputFile), expiryMs);
+
+        if (newSession || store.sessions.length === 0) {
+          const name = sessionName || "Session " + (store.sessions.length + 1);
+          store.sessions.push({
+            id: generateId(),
+            name: name,
+            color: COLOR_PALETTE[store.sessions.length % COLOR_PALETTE.length],
+            startedAt: new Date().toISOString(),
+            clicks: [data],
+          });
+        } else {
+          const active = store.sessions[store.sessions.length - 1];
+          active.clicks.push(data);
+          if (active.clicks.length > maxEntries) {
+            active.clicks = active.clicks.slice(-maxEntries);
+          }
+        }
+
+        writeData(outputFile, store);
+
+        const active = store.sessions[store.sessions.length - 1];
+        console.log(
+          `[see-my-clicks] ${newSession ? "New session" : "Added"}: <${data.tagName}> in "${active.name}" (${active.clicks.length} clicks, ${countTotalClicks(store)} total)`,
+        );
+
+        sendJson(res, 200, {
+          success: true,
+          sessionId: active.id,
+          sessionName: active.name,
+          sessionColor: active.color || COLOR_PALETTE[0],
+          totalClicks: countTotalClicks(store),
+        });
+      } catch (err) {
+        console.error("[see-my-clicks] POST error:", err);
+        sendJson(res, 500, { error: String(err) });
+      }
+    });
+  }
+
+  function handleGet(res, url) {
+    writeQueue = writeQueue.then(() => {
+      try {
+        const store = filterExpiredSessions(readData(outputFile), expiryMs);
+        const clear = url.searchParams.get("clear") === "true";
+
+        // Persist filtered result; only clear data when explicitly requested
+        writeData(outputFile, clear ? { sessions: [] } : store);
+
+        sendJson(res, 200, store);
+      } catch (err) {
+        console.error("[see-my-clicks] GET error:", err);
+        sendJson(res, 500, { error: String(err) });
+      }
+    });
+  }
+
+  function handleDelete(res, url) {
+    writeQueue = writeQueue.then(() => {
+      try {
+        const clickId = url.searchParams.get("clickId");
+        const store = filterExpiredSessions(readData(outputFile), expiryMs);
+
+        if (clickId) {
+          for (const session of store.sessions) {
+            session.clicks = session.clicks.filter(
+              (c) => c.clickId !== clickId,
+            );
+          }
+          store.sessions = store.sessions.filter((s) => s.clicks.length > 0);
+          writeData(outputFile, store);
+          sendJson(res, 200, {
+            success: true,
+            totalClicks: countTotalClicks(store),
+            sessions: store.sessions,
+          });
+        } else {
+          writeData(outputFile, { sessions: [] });
+          sendJson(res, 200, { success: true, totalClicks: 0 });
+        }
+      } catch (err) {
+        console.error("[see-my-clicks] DELETE error:", err);
+        sendJson(res, 500, { error: String(err) });
+      }
+    });
+  }
+
+  function updateSessionColor(res, parsed) {
+    const store = readData(outputFile);
+    let found = false;
+    for (const session of store.sessions) {
+      if (session.id === parsed.sessionId) {
+        session.color = parsed.color;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      sendJson(res, 404, { error: "Session not found" });
+      return;
+    }
+    writeData(outputFile, store);
+    sendJson(res, 200, { success: true });
+  }
+
+  function updateClickComment(res, parsed) {
+    const { clickId, comment } = parsed;
+    if (!clickId) {
+      sendJson(res, 400, { error: "clickId required" });
+      return;
+    }
+    const store = readData(outputFile);
+    let found = false;
+    for (const session of store.sessions) {
+      for (const click of session.clicks) {
+        if (click.clickId === clickId) {
+          click.comment = comment || null;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) {
+      sendJson(res, 404, { error: "Click not found" });
+      return;
+    }
+    writeData(outputFile, store);
+    sendJson(res, 200, { success: true });
+  }
+
+  function handlePut(req, res) {
+    collectBody(req, (body) => {
+      try {
+        const parsed = JSON.parse(body);
+        if (parsed.sessionId && parsed.color && !parsed.clickId) {
+          updateSessionColor(res, parsed);
+        } else {
+          updateClickComment(res, parsed);
+        }
+      } catch (err) {
+        console.error("[see-my-clicks] PUT error:", err);
+        sendJson(res, 500, { error: String(err) });
+      }
+    });
+  }
+
   return function seeMyClicksMiddleware(req, res, next) {
     const url = new URL(req.url, "http://localhost");
 
@@ -119,188 +297,17 @@ export function createMiddleware(opts = {}) {
       return next?.();
     }
 
-    // Serve the client script
     if (req.method === "GET" && pathname === "/client.js") {
       res.writeHead(200, { "Content-Type": "application/javascript" });
       res.end(getClientScript());
       return;
     }
 
-    if (req.method === "POST") {
-      let body = "";
-      req.on("data", (chunk) => (body += chunk.toString()));
-      req.on("end", () => {
-        try {
-          const { data, newSession, sessionName } = JSON.parse(body);
-
-          if (!validateClickData(data)) {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                error: "Invalid click data: clickId and tagName required",
-              }),
-            );
-            return;
-          }
-
-          const store = filterExpiredSessions(readData(outputFile), expiryMs);
-
-          if (newSession || store.sessions.length === 0) {
-            // Create a new session
-            const name =
-              sessionName || "Session " + (store.sessions.length + 1);
-            store.sessions.push({
-              id: generateId(),
-              name: name,
-              color:
-                COLOR_PALETTE[store.sessions.length % COLOR_PALETTE.length],
-              startedAt: new Date().toISOString(),
-              clicks: [data],
-            });
-          } else {
-            // Add to the active (last) session
-            const active = store.sessions[store.sessions.length - 1];
-            active.clicks.push(data);
-            if (active.clicks.length > maxEntries) {
-              active.clicks = active.clicks.slice(-maxEntries);
-            }
-          }
-
-          writeData(outputFile, store);
-
-          const active = store.sessions[store.sessions.length - 1];
-          console.log(
-            `[see-my-clicks] ${newSession ? "New session" : "Added"}: <${data.tagName}> in "${active.name}" (${active.clicks.length} clicks, ${countTotalClicks(store)} total)`,
-          );
-
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify({
-              success: true,
-              sessionId: active.id,
-              sessionName: active.name,
-              sessionColor: active.color || COLOR_PALETTE[0],
-              clickCount: active.clicks.length,
-              totalClicks: countTotalClicks(store),
-            }),
-          );
-        } catch (err) {
-          console.error("[see-my-clicks] POST error:", err);
-          res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: String(err) }));
-        }
-      });
-    } else if (req.method === "GET") {
-      try {
-        const store = filterExpiredSessions(readData(outputFile), expiryMs);
-        const keep = url.searchParams.get("keep") === "true";
-
-        // Always persist the filtered result to prune expired entries
-        writeData(outputFile, keep ? store : { sessions: [] });
-
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(store));
-      } catch (err) {
-        console.error("[see-my-clicks] GET error:", err);
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
-      }
-    } else if (req.method === "DELETE") {
-      try {
-        const clickId = url.searchParams.get("clickId");
-        const store = filterExpiredSessions(readData(outputFile), expiryMs);
-
-        if (clickId) {
-          // Remove a specific click
-          for (const session of store.sessions) {
-            session.clicks = session.clicks.filter(
-              (c) => c.clickId !== clickId,
-            );
-          }
-          // Remove empty sessions
-          store.sessions = store.sessions.filter((s) => s.clicks.length > 0);
-          writeData(outputFile, store);
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify({
-              success: true,
-              totalClicks: countTotalClicks(store),
-              sessions: store.sessions,
-            }),
-          );
-        } else {
-          // Clear everything
-          writeData(outputFile, { sessions: [] });
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ success: true, totalClicks: 0 }));
-        }
-      } catch (err) {
-        console.error("[see-my-clicks] DELETE error:", err);
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
-      }
-    } else if (req.method === "PUT") {
-      let body = "";
-      req.on("data", (chunk) => (body += chunk.toString()));
-      req.on("end", () => {
-        try {
-          const parsed = JSON.parse(body);
-
-          if (parsed.sessionId && parsed.color && !parsed.clickId) {
-            // Update session color
-            const store = readData(outputFile);
-            let found = false;
-            for (const session of store.sessions) {
-              if (session.id === parsed.sessionId) {
-                session.color = parsed.color;
-                found = true;
-                break;
-              }
-            }
-            if (!found) {
-              res.writeHead(404, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ error: "Session not found" }));
-              return;
-            }
-            writeData(outputFile, store);
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: true }));
-            return;
-          }
-
-          const { clickId, comment } = parsed;
-          if (!clickId) {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: "clickId required" }));
-            return;
-          }
-          const store = readData(outputFile);
-          let found = false;
-          for (const session of store.sessions) {
-            for (const click of session.clicks) {
-              if (click.clickId === clickId) {
-                click.comment = comment || null;
-                found = true;
-                break;
-              }
-            }
-            if (found) break;
-          }
-          if (!found) {
-            res.writeHead(404, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: "Click not found" }));
-            return;
-          }
-          writeData(outputFile, store);
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ success: true }));
-        } catch (err) {
-          console.error("[see-my-clicks] PUT error:", err);
-          res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: String(err) }));
-        }
-      });
-    } else {
+    if (req.method === "POST") handlePost(req, res);
+    else if (req.method === "GET") handleGet(res, url);
+    else if (req.method === "DELETE") handleDelete(res, url);
+    else if (req.method === "PUT") handlePut(req, res);
+    else {
       res.writeHead(405);
       res.end();
     }

@@ -1,0 +1,157 @@
+{
+	"meta": {
+		"generatedAt": "2026-02-23T17:19:20.576Z",
+		"tasksAnalyzed": 18,
+		"totalTasks": 18,
+		"analysisCount": 18,
+		"thresholdScore": 5,
+		"projectName": "Task Master",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Fix race condition in concurrent POST requests",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the race condition fix into: (1) analyze current async POST handler pattern in server.js:129-191, (2) design and implement a promise queue or write buffer mechanism to serialize writeData calls, (3) add concurrency test that fires rapid Alt+Clicks to verify fix, (4) document the serialization approach in code comments",
+			"reasoning": "This is a classic concurrency bug requiring careful design. The POST handler uses req.on('end', ...) callbacks that can interleave. Solution requires implementing a write queue (15-25 lines) to serialize file writes. Moderate complexity due to async patterns and need for proper testing. The existing codebase has no queue infrastructure, so this must be built from scratch."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Handle RegExp and function values in Vite plugin watch.ignored",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Split into: (1) add type checks for RegExp and function in plugin.js:24-32 else branch, (2) implement wrapping logic to preserve user patterns alongside new entry, (3) add unit tests covering Array/string/RegExp/function cases for watch.ignored handling",
+			"reasoning": "Straightforward type handling in plugin.js config() hook. Current code only handles Array/string (lines 26-29). Need to add 2 more cases: wrap RegExp in array, compose or wrap functions. ~10 lines of code. Low-medium complexity since it's localized to one function with clear requirement. Main challenge is testing different input types."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Prevent accidental data loss on plain GET to /__see-my-clicks",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break into: (1) decide approach: require ?clear=true param vs DELETE-only clearing vs prominent docs (recommend option 1), (2) modify GET handler in server.js:193-207 to check for explicit clear param, (3) update client-source.js fetch calls if needed and add tests for new behavior",
+			"reasoning": "The GET handler at lines 193-207 currently clears data when ?keep is not true. This is a dangerous default. Changing to require ?clear=true is ~5 line modification but requires careful client-side coordination. Need to verify no client code relies on consume-on-GET. Medium complexity due to API contract change and potential client impact."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Add cross-reference comments for duplicate color palette",
+			"complexityScore": 1,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Trivial documentation task. COLOR_PALETTE is at server.js:5-13, SESSION_COLORS at client-source.js:26-35. Just add 2 comments (one in each file) referencing the other. 2-minute task with zero complexity."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Extract shared helpers from showModal and showEditModal",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break into: (1) extract positionModal(modal, x, y) helper that handles off-screen positioning, measurement, and viewport constraint logic from lines 792-804 and 899-907, (2) extract setModalHeader(modal, data) helper for header text construction from lines 781-790 and 888-897, (3) update both showModal and showEditModal to call helpers and verify regression tests pass",
+			"reasoning": "Classic refactoring task. Duplication spans ~17 lines across two functions (showModal:780-808, showEditModal:887-911). Need to extract 2 helpers and ensure both functions call them correctly. Medium complexity because modal positioning logic is delicate and must preserve exact behavior. Existing regression test provides safety net."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Eliminate O(n*m) loop in updateSessionColor",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Split into: (1) modify addMarker function to attach sessionId to marker object when creating marker, (2) simplify updateSessionColor function at lines 516-529 to remove inner loop scanning allClickData by using stored sessionId directly from markers object",
+			"reasoning": "Performance optimization with simple fix. Current code at lines 516-529 has nested loop: for each marker ID, scan all allClickData. Since markers already store data object, just attach sessionId during marker creation. ~5 line change total across 2 functions. Low complexity, mainly requires understanding marker data structure."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Cache client script in server.js middleware",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Simple caching optimization. getClientScript() does fs.readFileSync on every GET at server.js:125. Plugin.js already caches at line 15. Just add module-level cache variable in createMiddleware or move caching into client.js. ~3-5 lines. Very low complexity."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Remove unused currentRoute state variable",
+			"complexityScore": 1,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Dead code removal. currentRoute declared at line 121, set at 1456, updated at 1418, never read. Delete 3 lines. Zero complexity, just grep to confirm no references then delete."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Fix package.json test script to run existing tests",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Simple package.json update. Test script at line 24 says 'No tests yet' but tests/regression/modal-resize.spec.mjs exists. Change script to 'playwright test tests/' or point to test:regression. 1 line change. Very low complexity."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Remove or document unused clickCount field in POST response",
+			"complexityScore": 2,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Split into: (1) verify client-source.js never reads clickCount from POST response, (2) either remove clickCount from server.js:183 or add to index.d.ts if intended as public API",
+			"reasoning": "Simple cleanup decision. Server sends clickCount at line 183, need to verify no client usage. Either delete 1 line or add to TypeScript definitions. Low complexity, mainly requires confirming no external consumers."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Fix wrong GitHub username in 4 instruction files",
+			"complexityScore": 1,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Trivial find-replace. Update URL in codex.md:4, copilot.md:4, cursor.md:9, windsurf.md:4 from sandervanhooff to sanderdatema. 4 identical edits. Zero complexity."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Add cross-reference comments for duplicate ID generation",
+			"complexityScore": 2,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break into: (1) add cross-reference comments at server.js:27 (generateId) and client-source.js:1157 (inline in captureElement), (2) document whether client/server ID collision is possible and if the current approach is safe",
+			"reasoning": "Documentation task with analysis component. Same Date.now().toString(36) + Math.random() expression in both locations. Add comments plus consider collision potential. Slightly more complex than task 4 because requires understanding ID generation safety. Still very low complexity."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Add comment explaining single-letter vars in getVueComponent",
+			"complexityScore": 1,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Trivial documentation. Add explanatory comment at lines 1091-1097 explaining why n/f are used instead of name/file (to avoid hoisting conflict with Vue3 branch). 3 lines of comment. Zero complexity."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Add knip.json to silence false positive for client-source.js",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Simple config file creation. knip reports src/client-source.js as unused (loaded via fs.readFileSync not import). Create knip.json with ignore pattern. ~5 lines of JSON. Very low complexity, just needs correct config format."
+		},
+		{
+			"taskId": 15,
+			"taskTitle": "Extract HTTP verb handlers from server.js middleware",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break into: (1) extract sendJson(res, status, body) helper for response handling, (2) extract handlePost, handleGet, handleDelete, handlePut functions from middleware, (3) replace cascading if/else at lines 129-307 with dispatch table or function calls, (4) verify all endpoints still work with existing tests",
+			"reasoning": "Significant refactoring. Middleware is 200 lines (110-307) with 4-way if/else and duplicated error handling. Need to extract 4 handler functions + helper, reorganize control flow. Medium-high complexity due to size and need to preserve exact behavior across all HTTP methods."
+		},
+		{
+			"taskId": 16,
+			"taskTitle": "Split PUT handler into separate session and click operations",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Split into: (1) design approach: separate routes (PUT /session, PUT /click) vs named helpers, (2) extract updateSessionColor function from lines 249-268, (3) extract updateClickComment function from lines 271-296, (4) update client-source.js fetch calls at lines 533 and 821 if routes change, verify with tests",
+			"reasoning": "API refactoring with client impact. PUT handler at lines 242-302 conflates session color update and click comment update. Separating requires either new routes (breaks client) or extracting helpers (better). If routing changes, must update 2 client fetch calls. Medium-high complexity due to API contract considerations and client coordination."
+		},
+		{
+			"taskId": 17,
+			"taskTitle": "Group client-source.js state declarations by concern",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Simple reorganization. 24 variables at lines 103-126 need grouping with comment banners (session state, UI state, marker state, modal state). No logic change, just add 4 comment headers and reorder declarations. Very low complexity, purely cosmetic improvement."
+		},
+		{
+			"taskId": 18,
+			"taskTitle": "Add playwright.config.js for test auto-discovery",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break into: (1) create playwright.config.js with testDir: 'tests', browser settings, retries, and reporter config using Playwright best practices, (2) update package.json test script to use 'playwright test' for auto-discovery instead of hardcoded file path",
+			"reasoning": "Standard test infrastructure setup. No playwright.config.js exists, test:regression runs single file directly. Need to create config with standard settings (~15-20 lines) and update package.json script. Low-medium complexity, mainly boilerplate with some decision-making on retry/reporter settings."
+		}
+	]
+}

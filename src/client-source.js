@@ -23,6 +23,7 @@
     return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
   }
 
+  // Keep in sync with COLOR_PALETTE in src/server.js
   var SESSION_COLORS = [
     "#8b5cf6",
     "#f38ba8",
@@ -100,30 +101,34 @@
     "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999997;";
   document.body.appendChild(markerContainer);
 
-  // ── State ────────────────────────────────────────────────────────
+  // ── State: session ──────────────────────────────────────────────
+  var forceNewSession = false;
+  var forceSessionName = null;
+  var allClickData = [];
+  var hiddenSessions = {};
 
-  var flashTimer = null;
-  var panelOpen = false;
+  // ── State: markers ─────────────────────────────────────────────
   var markers = {};
   var markerNumber = 0;
   var lastClickId = null;
-  var forceNewSession = false;
-  var forceSessionName = null;
+  var syncScheduled = false;
+  var updateMarkersRaf = null;
+
+  // ── State: UI ──────────────────────────────────────────────────
+  var flashTimer = null;
+  var panelOpen = false;
+  var rafId = null;
+  var latestMouseEvent = null;
+  var colorPickerEl = null;
+  var colorPickerSessionId = null;
+
+  // ── State: modal ───────────────────────────────────────────────
   var modal = null;
   var pendingClick = null;
   var pendingNewSession = false;
   var pendingSessionName = null;
   var previousFocus = null;
   var sessionPrompt = null;
-  var rafId = null;
-  var latestMouseEvent = null;
-  var updateMarkersRaf = null;
-  var currentRoute = null;
-  var allClickData = [];
-  var syncScheduled = false;
-  var hiddenSessions = {};
-  var colorPickerEl = null;
-  var colorPickerSessionId = null;
 
   // ── URL matching ─────────────────────────────────────────────────
 
@@ -197,7 +202,7 @@
   var panelClickData = {};
 
   function refreshPanel() {
-    fetch("/__see-my-clicks?keep=true")
+    fetch("/__see-my-clicks")
       .then(function (r) {
         return r.json();
       })
@@ -515,16 +520,10 @@
     }
     var ids = Object.keys(markers);
     for (var i = 0; i < ids.length; i++) {
-      var cd = null;
-      for (var j = 0; j < allClickData.length; j++) {
-        if (allClickData[j].clickId === ids[i]) {
-          cd = allClickData[j];
-          break;
-        }
-      }
-      if (cd && cd.sessionId === sessionId) {
-        markers[ids[i]].el.style.background = color;
-        markers[ids[i]].color = color;
+      var m = markers[ids[i]];
+      if (m.data && m.data.sessionId === sessionId) {
+        m.el.style.background = color;
+        m.color = color;
       }
     }
     if (panelOpen) refreshPanel();
@@ -767,16 +766,7 @@
     return m;
   }
 
-  function showModal(data, x, y) {
-    if (!modal) modal = createModal();
-    pendingClick = data;
-    previousFocus = document.activeElement;
-
-    modal.querySelector("#__smc-delete").style.display = "none";
-    var inp = modal.querySelector("#__smc-input");
-    inp.value = "";
-
-    // Update header with element info
+  function setModalHeader(data) {
     var headerText = modal.querySelector("#__smc-header-text");
     var label = "<" + data.tagName + ">";
     var dispText = data.textContent;
@@ -788,20 +778,30 @@
         : "";
     headerText.textContent =
       label + (dispText ? ' "' + dispText + '"' : "") + comp;
+  }
 
-    // Position off-screen to measure
+  function positionModal(x, y) {
     modal.style.left = "-9999px";
     modal.style.top = "-9999px";
     modal.style.display = "block";
-
     var rect = modal.getBoundingClientRect();
-    var mw = rect.width;
-    var mh = rect.height;
-
-    var left = Math.min(x + 12, window.innerWidth - mw - 16);
-    var top = Math.min(y + 12, window.innerHeight - mh - 16);
+    var left = Math.min(x + 12, window.innerWidth - rect.width - 16);
+    var top = Math.min(y + 12, window.innerHeight - rect.height - 16);
     modal.style.left = Math.max(16, left) + "px";
     modal.style.top = Math.max(16, top) + "px";
+  }
+
+  function showModal(data, x, y) {
+    if (!modal) modal = createModal();
+    pendingClick = data;
+    previousFocus = document.activeElement;
+
+    modal.querySelector("#__smc-delete").style.display = "none";
+    var inp = modal.querySelector("#__smc-input");
+    inp.value = "";
+
+    setModalHeader(data);
+    positionModal(x, y);
 
     setTimeout(function () {
       inp.focus();
@@ -884,27 +884,8 @@
     var inp = modal.querySelector("#__smc-input");
     inp.value = data.comment || "";
 
-    var headerText = modal.querySelector("#__smc-header-text");
-    var label = "<" + data.tagName + ">";
-    var dispText = data.textContent;
-    if (dispText && dispText.length > 30)
-      dispText = dispText.slice(0, 30) + "...";
-    var comp =
-      data.component && data.component.name
-        ? " \u2014 " + data.component.name
-        : "";
-    headerText.textContent =
-      label + (dispText ? ' "' + dispText + '"' : "") + comp;
-
-    modal.style.left = "-9999px";
-    modal.style.top = "-9999px";
-    modal.style.display = "block";
-
-    var rect = modal.getBoundingClientRect();
-    var left = Math.min(x + 12, window.innerWidth - rect.width - 16);
-    var top = Math.min(y + 12, window.innerHeight - rect.height - 16);
-    modal.style.left = Math.max(16, left) + "px";
-    modal.style.top = Math.max(16, top) + "px";
+    setModalHeader(data);
+    positionModal(x, y);
 
     setTimeout(function () {
       inp.focus();
@@ -1090,6 +1071,9 @@
     }
     var vue2 = el.__vue__;
     if (vue2) {
+      // Use n/f instead of name/file to avoid conflict with hoisted var
+      // declarations from the Vue 3 branch (file avoids let/const for
+      // transpilation-free delivery).
       var n =
         (vue2.$options &&
           (vue2.$options.name || vue2.$options._componentTag)) ||
@@ -1154,6 +1138,7 @@
   function captureElement(el) {
     var rect = el.getBoundingClientRect();
     return {
+      // Keep in sync with generateId() in src/server.js
       clickId: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       timestamp: new Date().toISOString(),
       tagName: el.tagName.toLowerCase(),
@@ -1381,7 +1366,7 @@
   }
 
   function loadAndSync() {
-    fetch("/__see-my-clicks?keep=true")
+    fetch("/__see-my-clicks")
       .then(function (r) {
         return r.json();
       })
@@ -1415,7 +1400,6 @@
   // ── Navigation detection ───────────────────────────────────────────
 
   function onNavigate() {
-    currentRoute = getRoute();
     removeAllMarkers();
     setTimeout(syncMarkersForCurrentRoute, 100);
   }
@@ -1453,7 +1437,6 @@
 
   // ── Init ─────────────────────────────────────────────────────────
 
-  currentRoute = getRoute();
   setTimeout(loadAndSync, 300);
 
   flash("See My Clicks ready \u2014 Alt+Click to capture");

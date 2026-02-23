@@ -25,7 +25,10 @@ export function seeMyClicks(opts = {}) {
       const entry = "**/.see-my-clicks/**";
       if (Array.isArray(ignored)) {
         ignored.push(entry);
-      } else if (typeof ignored === "string") {
+      } else if (typeof ignored === "string" || ignored instanceof RegExp) {
+        config.server.watch.ignored = [ignored, entry];
+      } else if (ignored) {
+        // Preserve function or other truthy values alongside our entry
         config.server.watch.ignored = [ignored, entry];
       } else {
         config.server.watch.ignored = [entry];

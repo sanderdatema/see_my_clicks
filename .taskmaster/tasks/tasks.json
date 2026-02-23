@@ -2,208 +2,1095 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Fix race condition in concurrent POST requests",
         "description": "Concurrent POST requests to /__see-my-clicks can silently lose clicks. Both callbacks can execute readData before either calls writeData, causing the second write to clobber the first.",
         "details": "In src/server.js:129-191, the POST handler reads the request body asynchronously via req.on(\"end\", ...). If two Alt+Clicks fire in rapid succession, both callbacks can read clicked.json before either writes, so the second write overwrites the first. Fix by serializing writes with a simple promise queue, or accumulate pending writes and flush at end of turn.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Analyze current async POST handler race condition",
+            "description": "Examine the POST handler in src/server.js:129-191 to understand how req.on('end', ...) callbacks can interleave, causing readData/writeData race conditions that lose click data.",
+            "dependencies": [],
+            "details": "Read server.js:129-191 to map out the async flow: req.on('data', ...) accumulates body chunks, req.on('end', ...) parses JSON and calls readData, then writeData. Document the race: two concurrent requests can both readData before either writeData, causing the second write to clobber the first. Identify all writeData call sites in the POST handler to determine scope of serialization needed.",
+            "status": "pending",
+            "testStrategy": "Review code flow and create a diagram or comment block explaining the race condition scenario with timeline of two concurrent requests.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Design and implement promise queue for write serialization",
+            "description": "Create a simple promise queue mechanism to serialize all writeData calls in the POST handler, ensuring writes happen sequentially without interleaving.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement a lightweight promise queue (15-25 lines) at the top of server.js. Pattern: maintain a promise chain (let writeQueue = Promise.resolve()), and wrap each writeData call in writeQueue = writeQueue.then(() => writeData(...)). This ensures all writes execute in order. Alternative: use a pending writes buffer that accumulates clicks and flushes at end of event loop turn. Choose the simpler approach (promise queue recommended).",
+            "status": "pending",
+            "testStrategy": "Unit test the queue mechanism in isolation by queueing multiple writes with delays and verifying execution order.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add concurrency test for rapid Alt+Clicks",
+            "description": "Create a Playwright or integration test that fires multiple concurrent POST requests to /__see-my-clicks to verify the race condition is fixed and no clicks are lost.",
+            "dependencies": [
+              2
+            ],
+            "details": "Write a test (possibly in tests/ directory alongside existing regression test) that simulates rapid Alt+Clicks by sending 5-10 concurrent POST requests with unique click coordinates. After all requests complete, GET the data and verify all clicks are present (no data loss). Use Promise.all to fire requests in parallel. Test should fail before the fix and pass after.",
+            "status": "pending",
+            "testStrategy": "Integration test using fetch or Playwright to send concurrent POST requests, then verify count and uniqueness of stored clicks in clicked.json or via GET response.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Document serialization approach in code comments",
+            "description": "Add clear inline comments in server.js explaining the promise queue pattern and why write serialization is necessary to prevent race conditions.",
+            "dependencies": [
+              2
+            ],
+            "details": "Add a block comment above the writeQueue declaration explaining the race condition (two concurrent POSTs can interleave readData/writeData) and the solution (promise queue ensures sequential writes). Add inline comments at each writeQueue usage point to clarify the serialization. Keep comments concise but sufficient for future maintainers to understand the pattern without re-deriving the problem.",
+            "status": "pending",
+            "testStrategy": "Code review to ensure comments are clear, accurate, and sufficient for understanding the concurrency fix.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down the race condition fix into: (1) analyze current async POST handler pattern in server.js:129-191, (2) design and implement a promise queue or write buffer mechanism to serialize writeData calls, (3) add concurrency test that fires rapid Alt+Clicks to verify fix, (4) document the serialization approach in code comments",
+        "updatedAt": "2026-02-23T17:36:41.992Z"
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Handle RegExp and function values in Vite plugin watch.ignored",
         "description": "The Vite plugin's config() hook only handles Array and string for server.watch.ignored. RegExp or function values fall into the else branch and are silently replaced, discarding the user's existing ignored pattern.",
         "details": "In src/plugin.js:24-32, the else branch replaces the entire ignored value with [\"**/.see-my-clicks/**\"]. Fix by handling RegExp and function cases explicitly — wrap them in an array alongside the new entry. Example: if ignored is a RegExp, convert to [ignored, entry]. If it's a function, wrap both in an array or compose them.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add type checks for RegExp and function in plugin.js",
+            "description": "Add explicit type checking logic in the plugin.js config() hook else branch (lines 24-32) to detect when server.watch.ignored is a RegExp or function value, replacing the current catch-all else that silently discards user patterns.",
+            "dependencies": [],
+            "details": "In src/plugin.js:24-32, add instanceof RegExp check and typeof === 'function' check before the current else branch. This will identify the two additional types that need special handling beyond Array and string. The checks should be placed as else-if conditions before the final else to maintain the existing logic flow.",
+            "status": "pending",
+            "testStrategy": "Unit tests will verify that RegExp and function inputs are correctly identified and enter the appropriate code path rather than the fallback else branch.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement wrapping logic to preserve user patterns",
+            "description": "Implement the logic to wrap RegExp and function values in arrays alongside the new '**/.see-my-clicks/**' entry, preserving the user's existing ignored patterns instead of replacing them.",
+            "dependencies": [
+              1
+            ],
+            "details": "For RegExp: convert to array format [ignored, '**/.see-my-clicks/**']. For function: wrap both the original function and the new entry in an array, or compose the functions if Vite supports it. Update the else branch in src/plugin.js:24-32 to use this wrapping logic. The implementation should mirror the Array case (line 26) which uses spread operator to preserve existing entries.",
+            "status": "pending",
+            "testStrategy": "Unit tests will validate that RegExp patterns are preserved in an array with the new entry, and function values are wrapped or composed correctly without losing the original ignore behavior.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add unit tests for all watch.ignored input types",
+            "description": "Create comprehensive unit tests covering all four input types (Array, string, RegExp, function) for the server.watch.ignored handling in the Vite plugin config() hook.",
+            "dependencies": [
+              2
+            ],
+            "details": "Write test cases that verify: (1) Array inputs preserve all existing entries plus new entry, (2) string inputs are converted to array with both entries, (3) RegExp inputs are wrapped in array preserving the pattern, (4) function inputs are wrapped/composed correctly. Tests should assert the final config.server.watch.ignored value matches expected output for each input type. Consider edge cases like undefined/null inputs.",
+            "status": "pending",
+            "testStrategy": "Use a testing framework (e.g., Vitest) to mock the plugin config() hook and assert the output config.server.watch.ignored structure for each input type. Verify both that user patterns are preserved and that '**/.see-my-clicks/**' is added in all cases.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Split into: (1) add type checks for RegExp and function in plugin.js:24-32 else branch, (2) implement wrapping logic to preserve user patterns alongside new entry, (3) add unit tests covering Array/string/RegExp/function cases for watch.ignored handling",
+        "updatedAt": "2026-02-23T17:37:34.067Z"
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Prevent accidental data loss on plain GET to /__see-my-clicks",
         "description": "A plain GET /__see-my-clicks (no query param) writes { sessions: [] } to disk and returns the data, permanently clearing all click data. Any browser, curl, or proxy that fetches the endpoint directly will destroy all stored sessions silently.",
         "details": "In src/server.js:193-207, the consume-and-clear semantic is invisible and undocumented. Fix options: (1) require an explicit ?clear=true param to clear data, (2) remove the consume behavior from GET entirely and use DELETE for clearing, or (3) document it prominently. Option 1 or 2 preferred.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Decide on API safety approach and document decision",
+            "description": "Choose between requiring explicit ?clear=true param, using DELETE for clearing, or prominent documentation. Recommend option 1 (require ?clear=true) to prevent accidental data loss while maintaining backward compatibility with ?keep param.",
+            "dependencies": [],
+            "details": "Analyze the current GET handler behavior at server.js:193-207. The current logic clears data unless ?keep is present, which is dangerous. Option 1 (require ?clear=true) is preferred because it makes the destructive action explicit while preserving the ?keep parameter for read-only access. Document the decision and rationale for the implementation in subsequent subtasks.",
+            "status": "pending",
+            "testStrategy": "No testing required for decision phase. Document the chosen approach and rationale.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Modify GET handler to require explicit ?clear=true param",
+            "description": "Update the GET /__see-my-clicks endpoint handler in server.js:193-207 to only clear data when ?clear=true is explicitly present. Default behavior (no query params) should be read-only.",
+            "dependencies": [
+              1
+            ],
+            "details": "Change the conditional logic from 'clear unless ?keep is present' to 'clear only if ?clear=true is present'. The new behavior: (1) ?clear=true → consume and clear data, (2) ?keep or no params → read-only, return data without clearing. This requires modifying the query parameter check and ensuring the writeData call only executes when clear=true. Approximately 5-10 lines of code change in the GET handler block.",
+            "status": "pending",
+            "testStrategy": "Add tests for three scenarios: (1) GET with no params returns data without clearing, (2) GET with ?clear=true returns data and clears storage, (3) GET with ?keep returns data without clearing (backward compatibility).",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update client-source.js and verify no breaking changes",
+            "description": "Review client-source.js for any fetch calls to /__see-my-clicks endpoint and update them if they rely on consume-on-GET behavior. Verify no other client code depends on the old default clearing behavior.",
+            "dependencies": [
+              2
+            ],
+            "details": "Search client-source.js for fetch calls to the endpoint. Check if any code expects data to be cleared on a plain GET request. If found, update those calls to include ?clear=true. Also verify that the ?keep parameter usage is still functional. Run the test suite to ensure no existing functionality breaks. If no client code relies on consume-on-GET, this subtask mainly involves verification and testing the new behavior end-to-end.",
+            "status": "pending",
+            "testStrategy": "Run existing tests and add integration tests that verify: (1) client can read data without clearing it, (2) client can explicitly clear data with ?clear=true, (3) ?keep parameter still works as expected. Test with browser automation to ensure real-world usage patterns work correctly.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break into: (1) decide approach: require ?clear=true param vs DELETE-only clearing vs prominent docs (recommend option 1), (2) modify GET handler in server.js:193-207 to check for explicit clear param, (3) update client-source.js fetch calls if needed and add tests for new behavior",
+        "updatedAt": "2026-02-23T17:37:34.069Z"
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Add cross-reference comments for duplicate color palette",
         "description": "COLOR_PALETTE in server.js:5-13 and SESSION_COLORS in client-source.js:26-35 are byte-for-byte identical 8-element arrays. Changes to one must be mirrored in the other.",
         "details": "Since client-source.js is a self-contained browser IIFE that cannot import from Node modules, the duplication is structural. Add explicit comments in both files: \"// Keep in sync with COLOR_PALETTE in src/server.js\" and \"// Keep in sync with SESSION_COLORS in src/client-source.js\".",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Verify COLOR_PALETTE and SESSION_COLORS are byte-for-byte identical",
+            "description": "Read both arrays completely and confirm they contain the exact same 8 hex color values in the same order before adding cross-reference comments.",
+            "dependencies": [],
+            "details": "Read server.js:5-13 (COLOR_PALETTE) and client-source.js:26-35 (SESSION_COLORS) to verify they match exactly. This ensures the cross-reference comments will be accurate and prevents adding misleading documentation.",
+            "status": "pending",
+            "testStrategy": "Visual inspection comparing the 8 hex values in both arrays line-by-line",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add cross-reference comment in server.js above COLOR_PALETTE",
+            "description": "Insert a comment above the COLOR_PALETTE declaration in server.js:5 that references SESSION_COLORS in client-source.js.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add the comment '// Keep in sync with SESSION_COLORS in src/client-source.js' on line 4 (just before the COLOR_PALETTE declaration at line 5). This makes it clear that changes to COLOR_PALETTE must be mirrored in the client.",
+            "status": "pending",
+            "testStrategy": "Read server.js to confirm comment is present and correctly positioned above COLOR_PALETTE array",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add cross-reference comment in client-source.js above SESSION_COLORS",
+            "description": "Insert a comment above the SESSION_COLORS declaration in client-source.js:26 that references COLOR_PALETTE in server.js.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add the comment '// Keep in sync with COLOR_PALETTE in src/server.js' on line 25 (just before the SESSION_COLORS declaration at line 26). This alerts developers working on the client code that changes must be mirrored in the server.",
+            "status": "pending",
+            "testStrategy": "Read client-source.js to confirm comment is present and correctly positioned above SESSION_COLORS array",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Add architectural justification comment explaining why duplication exists",
+            "description": "Add a brief explanatory comment in client-source.js explaining why SESSION_COLORS cannot import from server.js (IIFE constraint).",
+            "dependencies": [
+              3
+            ],
+            "details": "Extend the comment in client-source.js to explain the architectural reason: '// Keep in sync with COLOR_PALETTE in src/server.js\\n// Duplicated because this file is a self-contained browser IIFE that cannot import Node modules'. This documents the decision and prevents future refactoring attempts that would break the architecture.",
+            "status": "pending",
+            "testStrategy": "Read client-source.js comment to verify it explains both the sync requirement and the architectural constraint",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Verify comments are complete and file syntax is valid",
+            "description": "Read both modified files to confirm comments are present, accurate, and JavaScript syntax remains valid.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Use Read tool on both server.js and client-source.js to verify: (1) both cross-reference comments are present, (2) the architectural justification is clear, (3) no syntax errors were introduced, (4) line numbers in comments are accurate. Optionally run a quick syntax check with Node.js if available.",
+            "status": "pending",
+            "testStrategy": "Read both files and optionally run 'node --check src/server.js' and verify client-source.js loads without syntax errors",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 1,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:37:34.070Z"
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Extract shared helpers from showModal and showEditModal",
         "description": "showModal (client-source.js:780-808) and showEditModal (client-source.js:887-911) duplicate a 9-line header-building block and an 8-line modal positioning block.",
         "details": "Extract a positionModal(modal, x, y) helper that positions the modal off-screen, measures it, then constrains to viewport. Extract a setModalHeader(modal, data) helper for the header text construction. Both functions should call these shared helpers instead of duplicating the logic.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extract positionModal(modal, x, y) helper function",
+            "description": "Extract the modal positioning logic that handles off-screen positioning, measurement, and viewport constraint from both showModal and showEditModal into a reusable helper function.",
+            "dependencies": [],
+            "details": "Create a positionModal(modal, x, y) helper that: (1) positions modal off-screen at (-9999, -9999), (2) measures modal dimensions using getBoundingClientRect(), (3) constrains final position to viewport bounds (Math.max/Math.min with window.innerWidth/Height), (4) sets modal.style.left and modal.style.top. Extract from showModal lines 792-804 and showEditModal lines 899-907. Place helper near other modal utility functions in client-source.js.",
+            "status": "pending",
+            "testStrategy": "Run existing regression test (test_pipeline) to verify modal positioning behavior is preserved. Manually test showModal and showEditModal at various viewport sizes and cursor positions to ensure modals stay within viewport bounds.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Extract setModalHeader(modal, data) helper function",
+            "description": "Extract the header text construction logic that builds the modal title from click data into a reusable helper function to eliminate duplication between showModal and showEditModal.",
+            "dependencies": [],
+            "details": "Create a setModalHeader(modal, data) helper that: (1) constructs header text using data.element, data.textContent, data.selector patterns, (2) handles truncation logic (maxLength 40 chars with ellipsis), (3) sets modal.querySelector('h3').textContent. Extract from showModal lines 781-790 and showEditModal lines 888-897. Ensure the helper handles both click data formats used by showModal and showEditModal.",
+            "status": "pending",
+            "testStrategy": "Run regression tests to verify header text appears correctly in both modals. Test with various element types (long text, short text, elements with/without textContent) to ensure truncation and fallback logic works identically to original implementation.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update showModal and showEditModal to use extracted helpers",
+            "description": "Refactor both showModal and showEditModal functions to call the newly extracted positionModal and setModalHeader helpers instead of duplicating the logic inline.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "In showModal (lines 780-808): replace lines 781-790 with setModalHeader(modal, data) call, replace lines 792-804 with positionModal(modal, x, y) call. In showEditModal (lines 887-911): replace lines 888-897 with setModalHeader(modal, data) call, replace lines 899-907 with positionModal(modal, x, y) call. Verify both functions maintain identical behavior with ~17 fewer lines of duplicated code.",
+            "status": "pending",
+            "testStrategy": "Run full regression test suite to ensure no behavior changes. Manually verify: (1) modals appear with correct headers, (2) modals position correctly at click coordinates, (3) modals stay within viewport bounds, (4) both showModal and showEditModal work identically to before refactoring. Check that test_pipeline passes without any failures.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break into: (1) extract positionModal(modal, x, y) helper that handles off-screen positioning, measurement, and viewport constraint logic from lines 792-804 and 899-907, (2) extract setModalHeader(modal, data) helper for header text construction from lines 781-790 and 888-897, (3) update both showModal and showEditModal to call helpers and verify regression tests pass",
+        "updatedAt": "2026-02-23T17:39:11.386Z"
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Eliminate O(n*m) loop in updateSessionColor",
         "description": "In client-source.js:516-529, for every marker ID, the code linearly scans all of allClickData to find the matching entry. This nested loop is unnecessary.",
         "details": "Since markers[clickId] already stores the full data object, attach sessionId to the marker when it is created in addMarker (one-line change). Then the inner loop scanning allClickData can be removed entirely, simplifying the code and improving readability.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Modify addMarker to attach sessionId to marker object",
+            "description": "Update the addMarker function to store sessionId directly on each marker object when it is created, eliminating the need to scan allClickData later.",
+            "dependencies": [],
+            "details": "In client-source.js, locate the addMarker function where marker objects are created. Add a single line to attach sessionId to the marker object (likely from the click data being passed in). This is a one-line change that stores sessionId alongside other marker properties like position, timestamp, etc. The sessionId should come from the data object that already contains this information when the marker is being created.",
+            "status": "pending",
+            "testStrategy": "Verify that markers object has sessionId property after creation by inspecting markers in browser console. Test that session color updates still work correctly after this change.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Simplify updateSessionColor to use stored sessionId",
+            "description": "Refactor updateSessionColor function at lines 516-529 to remove the nested loop that scans allClickData, instead using the sessionId now stored directly on marker objects.",
+            "dependencies": [
+              1
+            ],
+            "details": "In client-source.js:516-529, replace the current nested loop implementation with direct access to sessionId from markers[clickId]. The outer loop over Object.keys(markers) remains, but the inner loop scanning allClickData to find matching entries can be completely removed. Instead, read sessionId directly from the marker object. This simplifies the logic from O(n*m) to O(n) and improves code readability significantly.",
+            "status": "pending",
+            "testStrategy": "Test session color changes by recording clicks across multiple sessions, then changing session colors in the UI. Verify all markers update to correct colors. Check browser console for any errors. Performance can be validated with large datasets if available.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Split into: (1) modify addMarker function to attach sessionId to marker object when creating marker, (2) simplify updateSessionColor function at lines 516-529 to remove inner loop scanning allClickData by using stored sessionId directly from markers object",
+        "updatedAt": "2026-02-23T17:39:11.388Z"
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Cache client script in server.js middleware",
         "description": "getClientScript() in server.js:125 does fs.readFileSync on every GET to /client.js. In plugin.js the script is read once and cached, but middleware-mode users (Express, Webpack, SvelteKit) re-read from disk on every page load.",
         "details": "Cache the result of getClientScript() in a module-level variable inside client.js, or move the caching into createMiddleware. The script content doesn't change at runtime so there's no reason to re-read it.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add module-level cache variable in client.js",
+            "description": "Add a module-level variable to cache the client script content after first read, preventing repeated fs.readFileSync calls.",
+            "dependencies": [],
+            "details": "In src/client.js, add a module-level variable (e.g., `let cachedScript = null;`) before the getClientScript function. This will store the script content after the first read.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Modify getClientScript to use cached value",
+            "description": "Update getClientScript function to return cached value if available, otherwise read from disk and cache the result.",
+            "dependencies": [
+              1
+            ],
+            "details": "In src/client.js:12-14, modify the getClientScript function to check if cachedScript is null. If null, read from disk using fs.readFileSync and store in cachedScript. Return cachedScript. Pattern: if (!cachedScript) { cachedScript = fs.readFileSync(...); } return cachedScript;",
+            "status": "pending",
+            "testStrategy": "Manual testing: verify that multiple calls to getClientScript return the same cached value",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Remove redundant caching in plugin.js",
+            "description": "Remove the module-level clientScript variable from plugin.js since caching is now handled in client.js.",
+            "dependencies": [
+              2
+            ],
+            "details": "In src/plugin.js:15, remove the line `const clientScript = getClientScript();` and update line 43 to call `getClientScript()` directly in the transformIndexHtml return statement. This eliminates redundant caching now that client.js handles it.",
+            "status": "pending",
+            "testStrategy": "Verify that Vite plugin still injects the script correctly and doesn't re-read from disk on each page load",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify middleware no longer re-reads on every request",
+            "description": "Test that server.js middleware now serves cached script without disk reads on subsequent requests.",
+            "dependencies": [
+              2
+            ],
+            "details": "In src/server.js:125, verify that getClientScript() now returns the cached value. Test by making multiple GET requests to /__see-my-clicks/client.js and confirming no repeated fs.readFileSync calls occur (can use fs.readFileSync spy or manual verification).",
+            "status": "pending",
+            "testStrategy": "Integration test: make multiple HTTP GET requests to /client.js endpoint and verify response is identical and fast (no disk I/O delay)",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Update test to verify caching behavior",
+            "description": "Ensure existing regression test in tests/regression/modal-resize.spec.mjs still works with the new caching mechanism.",
+            "dependencies": [
+              2
+            ],
+            "details": "In tests/regression/modal-resize.spec.mjs:4, the test already calls getClientScript() once and stores it in CLIENT_SCRIPT. Verify this still works correctly with the new caching. No changes needed to the test itself, but run it to confirm the cached script content is identical to the previous uncached version.",
+            "status": "pending",
+            "testStrategy": "Run npm test:regression to verify modal-resize.spec.mjs passes with cached script",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:39:11.389Z"
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Remove unused currentRoute state variable",
         "description": "currentRoute in client-source.js:121 is declared, set on init (line 1456), and updated on navigation (line 1418), but is never read anywhere. Route matching uses getRoute() directly via routeMatches().",
         "details": "Remove the variable declaration at line 121, the assignment at line 1456, and the update at line 1418. This is dead code.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Verify currentRoute has no external references",
+            "description": "Search the entire codebase to confirm currentRoute is only referenced in client-source.js and has no dependencies in other files, type definitions, or documentation.",
+            "dependencies": [],
+            "details": "Use grep/search tools to verify currentRoute doesn't appear in: src/index.d.ts, README.md, any test files, or any other source files. This ensures the removal is safe and won't break any external dependencies or documented APIs.",
+            "status": "pending",
+            "testStrategy": "Run grep across all project files excluding node_modules and .taskmaster directories",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Remove currentRoute variable declaration",
+            "description": "Delete the currentRoute variable declaration at line 121 in src/client-source.js.",
+            "dependencies": [
+              1
+            ],
+            "details": "Remove the line 'var currentRoute = null;' from the state variable declarations block. This is the first of three locations where currentRoute appears in the file.",
+            "status": "pending",
+            "testStrategy": "Verify the line is removed and surrounding state variable declarations remain intact",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Remove currentRoute assignment in onNavigate function",
+            "description": "Delete the currentRoute assignment at line 1418 in the onNavigate() function in src/client-source.js.",
+            "dependencies": [
+              2
+            ],
+            "details": "Remove the line 'currentRoute = getRoute();' from the onNavigate() function at line 1418. The function will still work correctly with just removeAllMarkers() and the setTimeout call, since route matching is done via routeMatches() which calls getRoute() directly.",
+            "status": "pending",
+            "testStrategy": "Verify navigation still works correctly and markers sync properly on route changes",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Remove currentRoute initialization in init block",
+            "description": "Delete the currentRoute initialization at line 1456 in the init section of src/client-source.js.",
+            "dependencies": [
+              3
+            ],
+            "details": "Remove the line 'currentRoute = getRoute();' from the initialization block at line 1456. This is the final reference to currentRoute in the file. The init sequence will continue to work with just the setTimeout(loadAndSync, 300) call.",
+            "status": "pending",
+            "testStrategy": "Verify the plugin initializes correctly and initial marker sync works as expected",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Verify removal with manual testing",
+            "description": "Test the plugin end-to-end to confirm removing currentRoute doesn't break navigation detection or marker synchronization.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Test: (1) Alt+Click to capture clicks on initial page load, (2) navigate using pushState/replaceState (SPA navigation), (3) navigate using hash changes, (4) verify markers disappear and reappear correctly, (5) verify click data persists across navigation. Confirm routeMatches() continues to work correctly since it calls getRoute() directly each time.",
+            "status": "pending",
+            "testStrategy": "Manual testing with SPA navigation and marker visibility verification across multiple route changes",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 1,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:39:11.390Z"
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Fix package.json test script to run existing tests",
         "description": "The test script in package.json:24 says \"No tests yet\" but tests/regression/modal-resize.spec.mjs exists.",
         "details": "Change the \"test\" script to run existing tests, e.g. point it at the same command as test:regression, or use \"playwright test tests/\" to auto-discover all tests as the suite grows.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Read current package.json test script configuration",
+            "description": "Read package.json:24 to understand the current placeholder test script that outputs 'No tests yet' and returns exit code 0.",
+            "dependencies": [],
+            "details": "Examine package.json line 24 where the test script is defined. The current script is a placeholder: \"echo \\\"No tests yet\\\" && exit 0\". This needs to be replaced with a command that runs the actual Playwright tests in the tests/ directory. Also examine line 25 to see how test:regression currently runs tests.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Verify existing test files and structure",
+            "description": "Confirm that tests/regression/modal-resize.spec.mjs exists and check for any other test files in the tests/ directory to understand the test suite structure.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use file system tools to verify tests/regression/modal-resize.spec.mjs exists. Check the entire tests/ directory structure to see if there are other test files or subdirectories. This ensures the new test command will properly discover all existing and future tests. The test file uses @playwright/test framework with 2 test cases for modal resize behavior.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update package.json test script to auto-discover tests",
+            "description": "Replace the placeholder test script with 'playwright test tests/' to enable automatic discovery of all test files in the tests directory as the suite grows.",
+            "dependencies": [
+              2
+            ],
+            "details": "Edit package.json:24 to change the test script from \"echo \\\"No tests yet\\\" && exit 0\" to \"playwright test tests/\". This command will auto-discover all .spec.mjs files in the tests/ directory and subdirectories, making it compatible with future test additions without requiring script updates. This follows Playwright's standard test discovery pattern.",
+            "status": "pending",
+            "testStrategy": "Run the updated test script to verify it executes the existing modal-resize.spec.mjs test successfully",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify test script executes existing tests",
+            "description": "Run 'npm test' to confirm the updated script successfully finds and executes tests/regression/modal-resize.spec.mjs with both test cases passing.",
+            "dependencies": [
+              3
+            ],
+            "details": "Execute 'npm test' in the project root. Verify that: (1) Playwright discovers the modal-resize.spec.mjs file, (2) both test cases run ('modal stays open when click starts inside and ends outside' and 'normal outside click still dismisses the modal'), (3) tests pass successfully, (4) no errors occur. The test uses a mocked fetch stub and evaluates client script behavior in a headless browser.",
+            "status": "pending",
+            "testStrategy": "Manual verification of test execution output and exit code",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Document test script behavior and future expansion",
+            "description": "Add a comment or update documentation to clarify that the test script auto-discovers all tests in tests/ directory, supporting future test additions without configuration changes.",
+            "dependencies": [
+              4
+            ],
+            "details": "While package.json doesn't support inline comments, verify that the script pattern 'playwright test tests/' is self-documenting. Consider whether a brief comment in CLAUDE.md or project README about test structure would be helpful. The key point is that any new .spec.mjs files added to tests/ or its subdirectories will be automatically discovered and run by 'npm test', unlike the previous test:regression script which hardcoded a specific file path.",
+            "status": "pending",
+            "testStrategy": "Review if existing documentation adequately explains the test discovery mechanism",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:40:19.132Z"
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Remove or document unused clickCount field in POST response",
         "description": "The server sends clickCount: active.clicks.length in the POST response at server.js:183, but the client never reads this field.",
         "details": "Either remove clickCount from the response object, or add it to index.d.ts if it is intended as part of the public API for external consumers.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Verify client-source.js does not read clickCount from POST response",
+            "description": "Search client-source.js for any usage of the clickCount field returned in the POST response to confirm it is never read or used by the client code.",
+            "dependencies": [],
+            "details": "Use grep/search to find all references to 'clickCount' in client-source.js. Check the fetch POST handler and any response processing logic to confirm the clickCount field from server.js:183 is not consumed. Document findings to determine whether removal or documentation is appropriate.",
+            "status": "pending",
+            "testStrategy": "Search codebase for 'clickCount' references and manually review POST response handling code paths",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Remove clickCount from server.js:183 or add to index.d.ts",
+            "description": "Based on verification results, either remove the unused clickCount field from the POST response object in server.js:183, or add it to index.d.ts if it should be part of the public API.",
+            "dependencies": [
+              1
+            ],
+            "details": "If subtask 1 confirms no client usage and no external consumer requirements exist, remove 'clickCount: active.clicks.length' from the response object at server.js:183. If the field is intended for external API consumers, add it to index.d.ts with appropriate TypeScript type annotation documenting its purpose.",
+            "status": "pending",
+            "testStrategy": "Run existing tests to ensure POST endpoint still works correctly; verify TypeScript compilation if adding to index.d.ts",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Split into: (1) verify client-source.js never reads clickCount from POST response, (2) either remove clickCount from server.js:183 or add to index.d.ts if intended as public API",
+        "updatedAt": "2026-02-23T17:40:19.134Z"
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Fix wrong GitHub username in 4 instruction files",
         "description": "instructions/codex.md:4, copilot.md:4, cursor.md:9, and windsurf.md:4 all link to https://github.com/sandervanhooff/see-my-clicks but the actual repo is github.com/sanderdatema/see_my_clicks.",
         "details": "Update all 4 URLs to point to the correct repository: https://github.com/sanderdatema/see_my_clicks. The claude.md instruction file is unaffected.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update GitHub URL in instructions/codex.md",
+            "description": "Replace the incorrect GitHub username 'sandervanhooff' with 'sanderdatema' in the repository URL on line 4 of instructions/codex.md",
+            "dependencies": [],
+            "details": "Edit instructions/codex.md:4 to change 'https://github.com/sandervanhooff/see-my-clicks' to 'https://github.com/sanderdatema/see_my_clicks'. Use the Edit tool to perform an exact string replacement.",
+            "status": "pending",
+            "testStrategy": "Verify the URL on line 4 now points to github.com/sanderdatema/see_my_clicks by reading the file after edit",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Update GitHub URL in instructions/copilot.md",
+            "description": "Replace the incorrect GitHub username 'sandervanhooff' with 'sanderdatema' in the repository URL on line 4 of instructions/copilot.md",
+            "dependencies": [],
+            "details": "Edit instructions/copilot.md:4 to change 'https://github.com/sandervanhooff/see-my-clicks' to 'https://github.com/sanderdatema/see_my_clicks'. Use the Edit tool to perform an exact string replacement.",
+            "status": "pending",
+            "testStrategy": "Verify the URL on line 4 now points to github.com/sanderdatema/see_my_clicks by reading the file after edit",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update GitHub URL in instructions/cursor.md",
+            "description": "Replace the incorrect GitHub username 'sandervanhooff' with 'sanderdatema' in the repository URL on line 9 of instructions/cursor.md",
+            "dependencies": [],
+            "details": "Edit instructions/cursor.md:9 to change 'https://github.com/sandervanhooff/see-my-clicks' to 'https://github.com/sanderdatema/see_my_clicks'. Note that cursor.md has the URL on line 9 instead of line 4 due to YAML frontmatter. Use the Edit tool to perform an exact string replacement.",
+            "status": "pending",
+            "testStrategy": "Verify the URL on line 9 now points to github.com/sanderdatema/see_my_clicks by reading the file after edit",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Update GitHub URL in instructions/windsurf.md",
+            "description": "Replace the incorrect GitHub username 'sandervanhooff' with 'sanderdatema' in the repository URL on line 4 of instructions/windsurf.md",
+            "dependencies": [],
+            "details": "Edit instructions/windsurf.md:4 to change 'https://github.com/sandervanhooff/see-my-clicks' to 'https://github.com/sanderdatema/see_my_clicks'. Use the Edit tool to perform an exact string replacement.",
+            "status": "pending",
+            "testStrategy": "Verify the URL on line 4 now points to github.com/sanderdatema/see_my_clicks by reading the file after edit",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Verify all GitHub URLs are corrected",
+            "description": "Run a final verification to ensure all 4 instruction files now contain the correct GitHub repository URL and no incorrect URLs remain",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Use Grep to search for 'sandervanhooff' across all instruction files to confirm no instances remain. Also grep for 'sanderdatema/see_my_clicks' to verify all 4 files now have the correct URL. This ensures the fix is complete and consistent.",
+            "status": "pending",
+            "testStrategy": "Search for 'sandervanhooff' should return zero results in instructions/ directory. Search for 'sanderdatema/see_my_clicks' should return exactly 4 matches (one in each file)",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 1,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:40:19.135Z"
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Add cross-reference comments for duplicate ID generation",
         "description": "The same Date.now().toString(36) + Math.random().toString(36).slice(2, 7) expression appears in both server.js:27 (inside generateId()) and client-source.js:1157 (inlined in captureElement).",
         "details": "Add comments in both locations cross-referencing the other. Consider whether client-generated IDs could clash with server-generated IDs and document the decision.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add cross-reference comments in server.js and client-source.js",
+            "description": "Add comments at both ID generation locations (server.js:27 in generateId() and client-source.js:1157 in captureElement) that cross-reference each other, noting that the same Date.now().toString(36) + Math.random().toString(36).slice(2, 7) expression is used in both places.",
+            "dependencies": [],
+            "details": "In server.js:27 (inside generateId function), add comment: '// Keep in sync with ID generation in captureElement() in src/client-source.js:1157'. In client-source.js:1157 (inline ID generation in captureElement), add comment: '// Keep in sync with generateId() in src/server.js:27'. This ensures developers are aware of the duplication when modifying either location.",
+            "status": "pending",
+            "testStrategy": "Manual verification: read both files and confirm comments are present at the correct line numbers and accurately reference the other location.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Analyze and document client/server ID collision safety",
+            "description": "Determine whether client-generated IDs (client-source.js:1157) could clash with server-generated IDs (server.js:27), analyze the probability and implications, and document the decision with a comment explaining why the current approach is or is not safe.",
+            "dependencies": [
+              1
+            ],
+            "details": "Both use Date.now().toString(36) + Math.random().toString(36).slice(2, 7). Since Date.now() returns milliseconds since epoch and both client and server execute in similar timeframes, collision is theoretically possible if both generate an ID in the same millisecond with the same random suffix (5 chars from Math.random() provides ~60 million combinations). Calculate collision probability and document findings. Add a comment in one or both locations explaining: 'ID collision between client and server is extremely unlikely due to timestamp precision and 5-char random suffix (~1 in 60M per millisecond). If collision prevention is required, consider adding a client/server prefix.' If collision is deemed a real risk, note whether changes are needed.",
+            "status": "pending",
+            "testStrategy": "Review the added documentation comment for technical accuracy. Optionally write a small script to simulate concurrent ID generation and verify collision probability is negligible in practice.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break into: (1) add cross-reference comments at server.js:27 (generateId) and client-source.js:1157 (inline in captureElement), (2) document whether client/server ID collision is possible and if the current approach is safe",
+        "updatedAt": "2026-02-23T17:40:19.137Z"
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "Add comment explaining single-letter vars in getVueComponent",
         "description": "In client-source.js:1091-1097, the Vue2 branch uses var n/var f to avoid reusing hoisted name/file from the Vue3 branch. This is non-obvious.",
         "details": "Add a comment explaining why single-letter variable names are used: \"// Use n/f instead of name/file to avoid conflict with hoisted var declarations from the Vue3 branch above. Can't use let/const since the file avoids ES6+ for transpilation-free delivery.\"",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify exact comment insertion location",
+            "description": "Determine the precise line number and position where the explanatory comment should be added in the getVueComponent function's Vue2 branch.",
+            "dependencies": [],
+            "details": "The comment should be placed at line 1091-1092, immediately before the Vue2 variable declarations (var vue2 = el.__vue__;). This location provides clear context before the reader encounters the single-letter variable names.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Draft the explanatory comment text",
+            "description": "Write a clear, concise comment explaining why single-letter variable names (n, f) are used instead of (name, file) in the Vue2 branch.",
+            "dependencies": [
+              1
+            ],
+            "details": "The comment should explain: (1) var name/file are already hoisted from the Vue3 branch above, (2) reusing them would cause a conflict, (3) let/const can't be used because client-source.js uses ES5 syntax for transpilation-free delivery. Format as multi-line comment for readability.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add comment to client-source.js",
+            "description": "Insert the explanatory comment at the identified location in src/client-source.js before the Vue2 variable declarations.",
+            "dependencies": [
+              2
+            ],
+            "details": "Use the Edit tool to insert the comment at line 1091. The comment should read: '// Use n/f instead of name/file to avoid conflict with hoisted var declarations\n    // from the Vue3 branch above (lines 1086-1088). Can't use let/const since this\n    // file uses ES5 syntax for transpilation-free delivery to the browser.'",
+            "status": "pending",
+            "testStrategy": "Manual code review to verify comment is placed correctly and formatting is consistent with existing code style",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify comment formatting and style",
+            "description": "Ensure the added comment follows the project's commenting conventions and indentation style used throughout client-source.js.",
+            "dependencies": [
+              3
+            ],
+            "details": "Check that: (1) comment uses the same indentation as surrounding code (2 spaces), (2) line length is reasonable (under 80 chars per line), (3) comment style matches existing comments in the file, (4) the comment is clear and addresses the non-obvious naming choice.",
+            "status": "pending",
+            "testStrategy": "Visual inspection of the modified file to ensure formatting consistency",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test that code functionality is unchanged",
+            "description": "Verify that adding the comment does not introduce any syntax errors or change the runtime behavior of the getVueComponent function.",
+            "dependencies": [
+              4
+            ],
+            "details": "Run any existing tests for the client-source.js file. If no automated tests exist, manually verify the file syntax is valid by checking that the application still loads and Vue component detection works correctly. Comments should not affect execution.",
+            "status": "pending",
+            "testStrategy": "Run build process and manual smoke test to confirm Vue2/Vue3 component detection still works correctly",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 1,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:40:19.139Z"
       },
       {
-        "id": 14,
+        "id": "14",
         "title": "Add knip.json to silence false positive for client-source.js",
         "description": "knip reports src/client-source.js as unused because it's loaded via fs.readFileSync at runtime, not via a static import.",
         "details": "Create a knip.json (or add to existing config) with \"ignore\": [\"src/client-source.js\"] to silence the false positive and prevent future contributors from deleting the file.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Research knip configuration format and best practices",
+            "description": "Review knip documentation to understand the correct configuration format for ignoring files that are dynamically loaded at runtime via fs.readFileSync.",
+            "dependencies": [],
+            "details": "Confirm the correct JSON schema for knip.json and determine whether 'ignore' or 'ignoreFiles' is the appropriate option for suppressing false positives for src/client-source.js. The file is loaded at runtime via fs.readFileSync in src/client.js:13 but not statically imported, causing knip to incorrectly flag it as unused.",
+            "status": "pending",
+            "testStrategy": "Verify configuration syntax against knip documentation at knip.dev/reference/configuration",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create knip.json configuration file in project root",
+            "description": "Create a new knip.json file at the project root with the ignore pattern for src/client-source.js.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create /Users/sander/Documents/Coding/vibe/see_my_clicks/knip.json with the configuration: { \"ignore\": [\"src/client-source.js\"] }. Include a comment in the JSON explaining why this file is ignored (loaded via fs.readFileSync at runtime in src/client.js).",
+            "status": "pending",
+            "testStrategy": "Validate JSON syntax and ensure the file is created in the correct location",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add explanatory comment to knip.json",
+            "description": "Add inline documentation to knip.json explaining why client-source.js needs to be ignored by knip.",
+            "dependencies": [
+              2
+            ],
+            "details": "Since JSON doesn't support comments, add a '$schema' reference and consider adding a 'description' field or create a comment in the ignore array pattern format if knip supports it. If not, document the rationale in the git commit message. The file src/client-source.js is loaded dynamically via fs.readFileSync in src/client.js:13 and is not a static import, which causes knip to incorrectly report it as unused.",
+            "status": "pending",
+            "testStrategy": "Ensure the configuration remains valid JSON and knip can parse it successfully",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify knip no longer reports client-source.js as unused",
+            "description": "Run knip to confirm that src/client-source.js is no longer flagged as an unused file after the configuration change.",
+            "dependencies": [
+              3
+            ],
+            "details": "Execute knip (via npx knip or if configured as an npm script) and verify that src/client-source.js does not appear in the 'unused files' report. Confirm that other legitimate unused files (if any) are still detected, ensuring the ignore pattern is not too broad.",
+            "status": "pending",
+            "testStrategy": "Run 'npx knip' and grep output for 'client-source.js' - should not appear in unused files list",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Document knip configuration in project documentation",
+            "description": "Add a note to project documentation or README about the knip configuration and why client-source.js is excluded from analysis.",
+            "dependencies": [
+              4
+            ],
+            "details": "Consider adding a comment in package.json scripts section if a knip script is added, or add a brief note in CLAUDE.md or a dedicated CONTRIBUTING.md file explaining that src/client-source.js is dynamically loaded at runtime (via fs.readFileSync in src/client.js) and is intentionally excluded from knip's unused file detection. This prevents future contributors from questioning or removing the ignore configuration.",
+            "status": "pending",
+            "testStrategy": "Review documentation for clarity and ensure it's discoverable for future contributors",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:40:19.140Z"
       },
       {
-        "id": 15,
+        "id": "15",
         "title": "Extract HTTP verb handlers from server.js middleware",
         "description": "seeMyClicksMiddleware in server.js:110-307 handles POST, GET, DELETE, and PUT in one 200-line if/else chain with 4x duplicated error handling (try/catch with writeHead(500) pattern).",
         "details": "Extract handlePost, handleGet, handleDelete, handlePut functions and a shared sendJson(res, status, body) helper. Replace the cascading if/else with a dispatch table. This reduces the function from ~200 lines to a clear dispatcher and eliminates the 4-way duplicated error pattern.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extract sendJson helper for response handling",
+            "description": "Create a shared sendJson(res, status, body) helper function to eliminate the 4-way duplicated error handling pattern with writeHead(500) across POST, GET, DELETE, and PUT handlers.",
+            "dependencies": [],
+            "details": "Extract the common response pattern (res.writeHead + res.end with JSON.stringify) into a reusable sendJson(res, status, body) helper function. This helper should handle setting the correct status code, content-type header, and JSON serialization. Place it before the seeMyClicksMiddleware function in server.js. This eliminates the duplicated try/catch error handling pattern that appears 4 times in the current implementation.",
+            "status": "pending",
+            "testStrategy": "Verify that the helper correctly sets headers and serializes JSON by running existing tests. Check that error responses still return 500 status with proper JSON formatting.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Extract handlePost, handleGet, handleDelete, handlePut functions",
+            "description": "Extract four separate handler functions from the 200-line if/else chain in seeMyClicksMiddleware, one for each HTTP verb (POST, GET, DELETE, PUT).",
+            "dependencies": [
+              1
+            ],
+            "details": "Create four separate functions: handlePost(req, res), handleGet(req, res), handleDelete(req, res), and handlePut(req, res). Each function should contain the logic currently in the corresponding if/else branch (lines 129-307). All handlers should use the sendJson helper from subtask 1 for responses and error handling. Preserve the exact behavior of each endpoint including request body parsing, file operations, and response formatting.",
+            "status": "pending",
+            "testStrategy": "Run existing endpoint tests for all four HTTP methods to ensure behavior is preserved. Verify that request parsing, file I/O, and response formatting remain unchanged.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Replace cascading if/else with dispatch table",
+            "description": "Replace the 200-line cascading if/else chain (lines 129-307) with a clean dispatch table or method router that maps HTTP verbs to their handler functions.",
+            "dependencies": [
+              2
+            ],
+            "details": "In seeMyClicksMiddleware at lines 129-307, replace the if (req.method === 'POST') / else if (req.method === 'GET') / else if (req.method === 'DELETE') / else if (req.method === 'PUT') chain with a dispatch table approach. Create a handlers object mapping method names to functions: { POST: handlePost, GET: handleGet, DELETE: handleDelete, PUT: handlePut }. Use handlers[req.method]?.(req, res) or similar pattern to dispatch. This reduces the middleware from ~200 lines to a clear, concise dispatcher.",
+            "status": "pending",
+            "testStrategy": "Run full test suite to verify all endpoints work correctly with the new dispatch mechanism. Test each HTTP method (POST, GET, DELETE, PUT) and verify unsupported methods still return appropriate errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify all endpoints with existing tests",
+            "description": "Run the complete test suite to verify that all HTTP endpoints (POST, GET, DELETE, PUT) still function correctly after the refactoring.",
+            "dependencies": [
+              3
+            ],
+            "details": "Execute all existing tests for the see-my-clicks middleware to ensure the refactoring preserved exact behavior. Verify: (1) POST endpoint correctly saves clicks, (2) GET endpoint returns click data, (3) DELETE endpoint removes clicks, (4) PUT endpoint updates sessions/comments. Check that error cases return 500 status with proper JSON, and that unsupported methods are handled correctly. If tests don't exist for all paths, manually test each endpoint or create minimal verification tests.",
+            "status": "pending",
+            "testStrategy": "Run npm test or equivalent command to execute the test suite. If coverage gaps exist, perform manual testing with curl or similar tools to verify each endpoint's request/response cycle.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break into: (1) extract sendJson(res, status, body) helper for response handling, (2) extract handlePost, handleGet, handleDelete, handlePut functions from middleware, (3) replace cascading if/else at lines 129-307 with dispatch table or function calls, (4) verify all endpoints still work with existing tests",
+        "updatedAt": "2026-02-23T17:42:05.686Z"
       },
       {
-        "id": 16,
+        "id": "16",
         "title": "Split PUT handler into separate session and click operations",
         "description": "The PUT handler in server.js:242-302 conflates \"update session color\" (sessionId + color) and \"update click comment\" (clickId) into one endpoint with branching logic.",
         "details": "Split into separate sub-routes (e.g. PUT /__see-my-clicks/session and PUT /__see-my-clicks/click) or at minimum extract named helper functions (updateSessionColor, updateClickComment) to make the code self-documenting. Update the client-source.js fetch calls accordingly if routes change.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design approach: separate routes vs named helper functions",
+            "description": "Decide whether to split the PUT handler into separate routes (PUT /__see-my-clicks/session and PUT /__see-my-clicks/click) or extract named helper functions within the existing route. Consider API contract implications and client-side breaking changes.",
+            "dependencies": [],
+            "details": "Analyze the trade-offs between two approaches: (1) Separate routes provides clearer REST semantics and eliminates branching logic entirely, but requires updating client fetch calls at lines 533 and 821 in client-source.js. (2) Named helper functions (updateSessionColor, updateClickComment) improve readability without breaking the client API but retain the branching dispatch logic. Document the decision and rationale before proceeding with implementation.",
+            "status": "pending",
+            "testStrategy": "No testing required for design decision phase. Document the chosen approach and verify it aligns with project REST conventions and client compatibility requirements.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Extract updateSessionColor function from PUT handler",
+            "description": "Extract the session color update logic (lines 249-268 in server.js) into a dedicated updateSessionColor function to improve code clarity and eliminate mixed concerns in the PUT handler.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a new updateSessionColor(req, res, body, sessionManager) function that encapsulates the logic from lines 249-268. This includes: (1) validating sessionId and color fields, (2) calling sessionManager.updateSessionColor(), (3) sending the appropriate JSON response. Ensure error handling is preserved and the function signature is clear. If separate routes were chosen in subtask 1, place this in a new PUT /__see-my-clicks/session route handler.",
+            "status": "pending",
+            "testStrategy": "Write unit tests for updateSessionColor covering: valid color update, missing sessionId, missing color, invalid sessionId, and sessionManager errors. Verify existing integration tests still pass after extraction.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Extract updateClickComment function from PUT handler",
+            "description": "Extract the click comment update logic (lines 271-296 in server.js) into a dedicated updateClickComment function to separate concerns and make the code self-documenting.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a new updateClickComment(req, res, body, sessionManager) function that encapsulates the logic from lines 271-296. This includes: (1) validating clickId field, (2) calling sessionManager.updateClickComment(), (3) sending the appropriate JSON response. Preserve all error handling and edge cases. If separate routes were chosen in subtask 1, place this in a new PUT /__see-my-clicks/click route handler.",
+            "status": "pending",
+            "testStrategy": "Write unit tests for updateClickComment covering: valid comment update, missing clickId, invalid clickId, empty comment string, and sessionManager errors. Verify existing integration tests still pass after extraction.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Update client-source.js fetch calls if routes changed",
+            "description": "If separate routes were implemented in subtasks 2-3, update the client-side fetch calls at lines 533 and 821 in client-source.js to target the new PUT /__see-my-clicks/session and PUT /__see-my-clicks/click endpoints.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Review the approach decided in subtask 1. If separate routes were implemented: (1) Update the fetch call at line 533 (session color update) to use PUT /__see-my-clicks/session. (2) Update the fetch call at line 821 (click comment update) to use PUT /__see-my-clicks/click. (3) Ensure request bodies remain compatible. If named helpers were used instead, no client changes are needed. Run the full test suite to verify client-server communication works correctly.",
+            "status": "pending",
+            "testStrategy": "Run end-to-end tests covering: (1) updating session color via client UI, (2) updating click comment via client UI. Verify network requests use correct endpoints and server responses are handled properly. Test in both plugin mode and middleware mode (Express/Webpack/SvelteKit).",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Split into: (1) design approach: separate routes (PUT /session, PUT /click) vs named helpers, (2) extract updateSessionColor function from lines 249-268, (3) extract updateClickComment function from lines 271-296, (4) update client-source.js fetch calls at lines 533 and 821 if routes change, verify with tests",
+        "updatedAt": "2026-02-23T17:42:05.687Z"
       },
       {
-        "id": 17,
+        "id": "17",
         "title": "Group client-source.js state declarations by concern",
         "description": "The 24 state variables in client-source.js:103-126 are declared in a single block mixing session, UI, marker, and modal state.",
         "details": "Group the variables with comment banners: session state (currentSessionId, sessionColors, etc.), UI state (flashTimer, isDragging, etc.), marker state (markers, allClickData, etc.), modal state (lastClickX, lastClickY, colorPickerSessionId, etc.). Low urgency but improves debuggability.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Read and analyze current state variable block structure",
+            "description": "Examine the current state variable declarations in client-source.js:103-126 to understand all 22 variables and their usage patterns.",
+            "dependencies": [],
+            "details": "Read lines 103-126 in src/client-source.js to catalog all state variables currently declared in a single block. Search for usage patterns of each variable to determine logical groupings (session state, UI state, marker state, modal state, sync/pending state). This analysis will inform the proper categorization for the reorganization.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create categorized groupings with comment banners",
+            "description": "Group the 22 state variables into 5 logical categories with descriptive comment banners separating each group.",
+            "dependencies": [
+              1
+            ],
+            "details": "Reorganize the state variables into these groups with comment banners:\n1. Session state (forceNewSession, forceSessionName, pendingNewSession, pendingSessionName, allClickData, hiddenSessions)\n2. UI state (flashTimer, panelOpen, previousFocus, sessionPrompt, rafId, latestMouseEvent, updateMarkersRaf)\n3. Marker state (markers, markerNumber, lastClickId, currentRoute)\n4. Modal/Color picker state (modal, colorPickerEl, colorPickerSessionId)\n5. Pending operation state (pendingClick, syncScheduled)\n\nUse consistent comment banner style matching the existing '// ── State ──' pattern.",
+            "status": "pending",
+            "testStrategy": "Visual inspection to confirm variables are grouped logically and comment banners are consistent with existing code style",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Verify no logic changes were introduced",
+            "description": "Confirm that the reorganization only moved variable declarations and added comments without changing any initialization values or behavior.",
+            "dependencies": [
+              2
+            ],
+            "details": "Use git diff to verify that the changes are purely cosmetic: (1) All 22 variables are still declared with identical initialization values, (2) Only whitespace, comments, and declaration order changed, (3) No variable names were modified, (4) The line count should increase only by the number of comment banners added (approximately 5 lines).",
+            "status": "pending",
+            "testStrategy": "Run 'git diff src/client-source.js' and manually verify only comments and ordering changed, no initialization values or variable names were modified",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Test plugin functionality remains unchanged",
+            "description": "Verify that the plugin still functions correctly after the state variable reorganization.",
+            "dependencies": [
+              3
+            ],
+            "details": "Load the plugin in a test environment and verify core functionality: (1) Alt+Click creates markers, (2) Panel opens and closes, (3) Session management works, (4) Color picker modal functions, (5) Marker visibility and filtering work. Since this is only a cosmetic change with no logic modifications, basic smoke testing is sufficient to confirm nothing was accidentally broken during the reorganization.",
+            "status": "pending",
+            "testStrategy": "Manual smoke test: load plugin, create clicks, open panel, manage sessions, use color picker, verify markers display correctly",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Update related documentation if applicable",
+            "description": "Check if any documentation references the state variable structure and update it to reflect the new organization.",
+            "dependencies": [
+              4
+            ],
+            "details": "Search for any README, ARCHITECTURE, CONTRIBUTING, or inline documentation that describes the state variable structure in client-source.js. If found, update those references to mention the new categorized organization. If no such documentation exists, this subtask can be completed immediately as a no-op. The improved organization itself serves as inline documentation via the comment banners.",
+            "status": "pending",
+            "testStrategy": "Search codebase for documentation files and inline comments that reference state variable structure; update if found",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2026-02-23T17:42:05.689Z"
       },
       {
-        "id": 18,
+        "id": "18",
         "title": "Add playwright.config.js for test auto-discovery",
         "description": "The test:regression script runs a single file path directly. As tests are added, each one will need to be added to the script manually.",
         "details": "Create a playwright.config.js with testDir: 'tests', plus browser settings, retries, and reporter config. Update package.json scripts to use plain \"playwright test\" so all tests are discovered automatically.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create playwright.config.js with test directory and browser settings",
+            "description": "Create a new playwright.config.js file at the project root with testDir pointing to 'tests', browser configuration (chromium), retry settings, and reporter configuration following Playwright best practices.",
+            "dependencies": [],
+            "details": "Create playwright.config.js with: testDir: 'tests' to enable auto-discovery, browser projects array with chromium (can add firefox/webkit later), retries: 2 for CI resilience, reporter configuration with both 'list' for terminal and 'html' for artifact generation. Include reasonable timeouts (30s action, 60s test) and fullyParallel: true for performance. Use module.exports or export default depending on project's module system.",
+            "status": "pending",
+            "testStrategy": "Verify the config file is syntactically valid by running 'npx playwright test --list' to ensure it loads without errors and discovers the existing modal-resize.spec.mjs test. Check that the config values are applied by running a test and confirming browser launches, retries work on failure, and HTML report is generated.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Update package.json test scripts to use playwright auto-discovery",
+            "description": "Modify the test and test:regression scripts in package.json to use 'playwright test' instead of the hardcoded file path, enabling automatic discovery of all tests in the tests directory.",
+            "dependencies": [
+              1
+            ],
+            "details": "Update package.json scripts section: change 'test' script from current placeholder to 'playwright test' for full test suite execution, and update 'test:regression' to also use 'playwright test' (or remove it if redundant with 'test'). The playwright.config.js created in subtask 1 will handle the testDir configuration, so no file paths need to be specified in the script commands. This enables adding new test files to tests/ directory without modifying package.json.",
+            "status": "pending",
+            "testStrategy": "Run 'npm test' and verify it discovers and executes the existing modal-resize.spec.mjs test. Add a second dummy test file temporarily in tests/ directory and confirm both are discovered and run. Verify 'npm run test:regression' also works correctly. Remove the dummy test file after verification.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break into: (1) create playwright.config.js with testDir: 'tests', browser settings, retries, and reporter config using Playwright best practices, (2) update package.json test script to use 'playwright test' for auto-discovery instead of hardcoded file path",
+        "updatedAt": "2026-02-23T17:42:05.691Z"
       }
     ],
     "metadata": {
-      "created": "2026-02-23T17:06:01.304Z",
-      "description": "Default tasks context",
-      "updated": "2026-02-23T17:06:57.070Z"
+      "version": "1.0.0",
+      "lastModified": "2026-02-23T17:42:05.691Z",
+      "taskCount": 18,
+      "completedCount": 18,
+      "tags": [
+        "master"
+      ]
     }
   }
 }

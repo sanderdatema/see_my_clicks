@@ -6,7 +6,7 @@ alwaysApply: false
 
 # See My Clicks
 
-This project uses [see-my-clicks](https://github.com/sandervanhooff/see-my-clicks) — a Vite plugin that captures Alt+Click element info during development.
+This project uses [see-my-clicks](https://github.com/sanderdatema/see_my_clicks) — a Vite plugin that captures Alt+Click element info during development.
 
 When the user asks you to check their clicks (e.g. "check my clicks", "what did I click", "/clicked"):
 
