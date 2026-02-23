@@ -562,12 +562,28 @@
     return current === data.textContent;
   }
 
+  function stripHashClasses(selector) {
+    // Remove Svelte scoped class hashes (.s-XXXX, .svelte-XXXX) from selectors
+    return selector.replace(/\.(?:s-|svelte-)[A-Za-z0-9_-]+/g, "");
+  }
+
   function findElement(data) {
     // Try full selector first
     try {
       var el = document.querySelector(data.selector);
       if (el && verifyElement(el, data)) return el;
     } catch (e) {}
+
+    // Fallback: selector without framework hash classes (Svelte/SvelteKit)
+    if (data.selector) {
+      try {
+        var loose = stripHashClasses(data.selector);
+        if (loose !== data.selector) {
+          var el = document.querySelector(loose);
+          if (el && verifyElement(el, data)) return el;
+        }
+      } catch (e) {}
+    }
 
     // Fallback: match by data-* attributes
     if (data.attributes) {
@@ -592,6 +608,25 @@
         var byId = document.getElementById(data.elementId);
         if (byId && verifyElement(byId, data)) return byId;
       } catch (e) {}
+    }
+
+    // Fallback: match by component file + tag name + text content
+    if (
+      data.component &&
+      data.component.file &&
+      data.component.file !== "Unknown"
+    ) {
+      var candidates = document.querySelectorAll(data.tagName);
+      for (var i = 0; i < candidates.length; i++) {
+        var comp = getFrameworkComponentFromChain(candidates[i]);
+        if (
+          comp &&
+          comp.file === data.component.file &&
+          verifyElement(candidates[i], data)
+        ) {
+          return candidates[i];
+        }
+      }
     }
 
     return null;
