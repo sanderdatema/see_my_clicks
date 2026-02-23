@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>see-my-clicks Architecture &amp; Data Flow</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    height: 100vh;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────── */
+  .sidebar {
+    grid-row: 1 / 3;
+    background: #181825;
+    border-right: 1px solid #45475a;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .sidebar h1 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #cdd6f4;
+    letter-spacing: -0.02em;
+  }
+  .sidebar h1 span { color: #6c7086; font-weight: 400; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c7086;
+    margin-bottom: 6px;
+  }
+
+  .section { display: flex; flex-direction: column; gap: 4px; }
+
+  /* Buttons */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    background: #313244;
+    color: #cdd6f4;
+    cursor: pointer;
+    text-align: left;
+    transition: background .12s, border-color .12s;
+  }
+  .btn:hover { background: #45475a; }
+  .btn.active { border-color: #89b4fa; background: #45475a; color: #89b4fa; }
+
+  .btn-row { display: flex; gap: 4px; }
+  .btn-row .btn { flex: 1; text-align: center; }
+
+  /* Checkboxes */
+  .check-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; cursor: pointer; padding: 4px 0;
+  }
+  .check-row input { accent-color: #89b4fa; }
+  .color-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  }
+
+  /* Comments list */
+  .comment-item {
+    background: #313244;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 11px;
+    position: relative;
+  }
+  .comment-item .comment-target { font-weight: 600; color: #89b4fa; margin-bottom: 2px; }
+  .comment-item .comment-text { color: #a6adc8; line-height: 1.4; }
+  .comment-item .comment-delete {
+    position: absolute; top: 6px; right: 6px;
+    background: none; border: none; color: #6c7086; cursor: pointer; font-size: 14px;
+    line-height: 1;
+  }
+  .comment-item .comment-delete:hover { color: #f38ba8; }
+
+  /* ── Canvas area ──────────────────────────────── */
+  .canvas-area {
+    position: relative;
+    overflow: hidden;
+    background: #1e1e2e;
+  }
+
+  svg.graph {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    bottom: 12px; left: 12px;
+    background: #181825ee;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex; gap: 14px;
+    font-size: 11px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+
+  /* Zoom controls */
+  .zoom-controls {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: flex; gap: 4px;
+  }
+  .zoom-btn {
+    width: 32px; height: 32px;
+    background: #313244; border: 1px solid #45475a; border-radius: 6px;
+    color: #cdd6f4; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .zoom-btn:hover { background: #45475a; }
+
+  /* ── Detail panel (right overlay) ────────────── */
+  .detail-panel {
+    position: absolute;
+    top: 12px; right: 56px;
+    width: 300px;
+    background: #181825f0;
+    border: 1px solid #45475a;
+    border-radius: 10px;
+    padding: 16px;
+    display: none;
+    backdrop-filter: blur(8px);
+    z-index: 10;
+  }
+  .detail-panel.show { display: block; }
+  .detail-panel .dp-close {
+    position: absolute; top: 8px; right: 10px;
+    background: none; border: none; color: #6c7086; cursor: pointer; font-size: 16px;
+  }
+  .detail-panel .dp-close:hover { color: #cdd6f4; }
+  .detail-panel h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .detail-panel .dp-subtitle { font-size: 11px; color: #6c7086; margin-bottom: 10px; }
+  .detail-panel .dp-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #6c7086; margin: 10px 0 4px; }
+  .detail-panel .dp-list { font-size: 12px; line-height: 1.6; color: #a6adc8; }
+  .detail-panel .dp-list code {
+    font-family: "SF Mono", "Fira Code", monospace;
+    background: #31324480;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+  .detail-panel .dp-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #1e1e2e;
+    margin-right: 6px;
+  }
+  .detail-panel .dp-lines { font-size: 11px; color: #6c7086; }
+
+  /* ── Comment modal ───────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: #00000088;
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #313244;
+    border: 1px solid #45475a;
+    border-radius: 10px;
+    padding: 20px;
+    width: 380px;
+  }
+  .modal h3 { font-size: 14px; margin-bottom: 12px; }
+  .modal textarea {
+    width: 100%;
+    height: 80px;
+    background: #1e1e2e;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    color: #cdd6f4;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 8px;
+    resize: vertical;
+    outline: none;
+  }
+  .modal textarea:focus { border-color: #89b4fa; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px; }
+  .modal-actions .btn { width: auto; }
+  .modal-actions .btn.primary { background: #89b4fa; color: #1e1e2e; border-color: #89b4fa; font-weight: 600; }
+
+  /* ── Prompt bar ──────────────────────────────── */
+  .prompt-bar {
+    background: #181825;
+    border-top: 1px solid #45475a;
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    max-height: 140px;
+  }
+  .prompt-bar .prompt-text {
+    flex: 1;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #a6adc8;
+    font-family: "SF Mono", "Fira Code", monospace;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    max-height: 110px;
+  }
+  .prompt-notes {
+    flex: 1;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12px; line-height: 1.5; color: #cdd6f4;
+    background: transparent; border: 1px solid #45475a; border-radius: 6px;
+    padding: 8px; resize: vertical; min-height: 36px; outline: none;
+  }
+  .prompt-notes:focus { border-color: #89b4fa; }
+  .prompt-notes::placeholder { color: #45475a; }
+  .prompt-sep { color: #45475a; font-size: 11px; padding: 4px 0; }
+  .copy-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    background: #89b4fa;
+    color: #1e1e2e;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .copy-btn:hover { background: #74c7ec; }
+
+  /* Edge label tooltip */
+  .edge-tooltip {
+    position: absolute;
+    background: #181825f0;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #cdd6f4;
+    max-width: 280px;
+    display: none;
+    z-index: 20;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+  }
+  .edge-tooltip.show { display: block; }
+  .edge-tooltip strong { color: #89b4fa; }
+  .edge-tooltip code {
+    font-family: "SF Mono", "Fira Code", monospace;
+    background: #31324480;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ Sidebar ═══════════ -->
+<div class="sidebar">
+  <h1>see-my-clicks <span>Architecture</span></h1>
+
+  <div>
+    <div class="section-title">Mode</div>
+    <div class="btn-row">
+      <button class="btn active" data-mode="vite" onclick="setMode('vite')">Vite Plugin</button>
+      <button class="btn" data-mode="middleware" onclick="setMode('middleware')">Middleware</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Highlight Path</div>
+    <div class="section">
+      <button class="btn" data-path="none" onclick="setPath('none')">None</button>
+      <button class="btn" data-path="click-capture" onclick="setPath('click-capture')">Click Capture (browser &rarr; file)</button>
+      <button class="btn" data-path="data-read" onclick="setPath('data-read')">Data Read (file &rarr; AI)</button>
+      <button class="btn" data-path="plugin-wiring" onclick="setPath('plugin-wiring')">Plugin Wiring</button>
+      <button class="btn" data-path="cli-init" onclick="setPath('cli-init')">CLI Init</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Layers</div>
+    <div class="section">
+      <label class="check-row"><input type="checkbox" checked onchange="toggleLayer('browser')"><span class="color-dot" style="background:#8b5cf6"></span> Browser</label>
+      <label class="check-row"><input type="checkbox" checked onchange="toggleLayer('server')"><span class="color-dot" style="background:#a6e3a1"></span> Server</label>
+      <label class="check-row"><input type="checkbox" checked onchange="toggleLayer('filesystem')"><span class="color-dot" style="background:#fab387"></span> File System</label>
+      <label class="check-row"><input type="checkbox" checked onchange="toggleLayer('external')"><span class="color-dot" style="background:#89dceb"></span> External</label>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Connection Types</div>
+    <div class="section">
+      <label class="check-row"><input type="checkbox" checked onchange="toggleConnType('data-flow')"><span class="color-dot" style="background:#89b4fa"></span> Data Flow</label>
+      <label class="check-row"><input type="checkbox" checked onchange="toggleConnType('function-call')"><span class="color-dot" style="background:#a6e3a1"></span> Function Calls</label>
+      <label class="check-row"><input type="checkbox" checked onchange="toggleConnType('file-io')"><span class="color-dot" style="background:#fab387"></span> File I/O</label>
+      <label class="check-row"><input type="checkbox" checked onchange="toggleConnType('re-export')"><span class="color-dot" style="background:#6c7086"></span> Re-exports</label>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Comments (<span id="comment-count">0</span>)</div>
+    <div class="section" id="comments-list">
+      <div style="font-size:11px;color:#6c7086;">Click a node to add a comment.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ Canvas ═══════════ -->
+<div class="canvas-area" id="canvas-area">
+  <svg class="graph" id="graph"></svg>
+
+  <div class="legend">
+    <div class="legend-item"><span class="color-dot" style="background:#8b5cf6"></span> Browser</div>
+    <div class="legend-item"><span class="color-dot" style="background:#a6e3a1"></span> Server</div>
+    <div class="legend-item"><span class="color-dot" style="background:#fab387"></span> File System</div>
+    <div class="legend-item"><span class="color-dot" style="background:#89dceb"></span> External</div>
+  </div>
+
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <button class="zoom-btn" onclick="zoomOut()">&minus;</button>
+    <button class="zoom-btn" onclick="zoomReset()" style="font-size:11px;">Fit</button>
+  </div>
+
+  <div class="detail-panel" id="detail-panel">
+    <button class="dp-close" onclick="closeDetail()">&times;</button>
+    <div id="dp-content"></div>
+  </div>
+
+  <div class="edge-tooltip" id="edge-tooltip"></div>
+</div>
+
+<!-- ═══════════ Prompt bar ═══════════ -->
+<div class="prompt-bar">
+  <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+    <div class="prompt-text" id="prompt-text">Add comments to nodes to generate a prompt.</div>
+    <div class="prompt-sep">-- your notes --</div>
+    <textarea class="prompt-notes" id="prompt-notes" rows="2" placeholder="Add your own notes here..."></textarea>
+  </div>
+  <button class="copy-btn" onclick="copyPrompt()">Copy</button>
+</div>
+
+<!-- ═══════════ Comment modal ═══════════ -->
+<div class="modal-overlay" id="comment-modal">
+  <div class="modal">
+    <h3 id="modal-title">Add comment</h3>
+    <textarea id="modal-textarea" placeholder="What should change here?"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveComment()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════
+const state = {
+  mode: 'vite',          // 'vite' | 'middleware'
+  path: 'none',          // highlight path
+  layers: { browser: true, server: true, filesystem: true, external: true },
+  connTypes: { 'data-flow': true, 'function-call': true, 'file-io': true, 're-export': true },
+  comments: [],
+  zoom: 1,
+  panX: 0, panY: 0,
+  selectedNode: null,
+  modalNodeId: null,
+};
+
+// ═══════════════════════════════════════════
+//  Node & Edge Definitions
+// ═══════════════════════════════════════════
+const NODES = [
+  {
+    id: 'client-source', label: 'client-source.js', subtitle: 'Browser Runtime',
+    x: 120, y: 60, w: 170, h: 54, layer: 'browser', color: '#8b5cf6',
+    lines: 1480,
+    role: 'Runs in the browser. Captures clicks via Alt+Click, detects frameworks (React, Vue, Svelte), renders the full overlay UI, and POSTs captured data to the server.',
+    exports: ['captureElement(el) → CapturedElementData', 'Alt+Click event listener', 'Overlay UI (badge, panel, modal, markers, tooltip, highlight, session prompt, color picker)'],
+  },
+  {
+    id: 'client', label: 'client.js', subtitle: 'File Reader',
+    x: 420, y: 60, w: 140, h: 54, layer: 'server', color: '#a6e3a1',
+    lines: 25,
+    role: 'Reads client-source.js from disk and returns it as a raw JS string. Caches after first read.',
+    exports: ['getClientScript() → string (cached)'],
+  },
+  {
+    id: 'plugin', label: 'plugin.js', subtitle: 'Vite Plugin',
+    x: 310, y: 180, w: 150, h: 54, layer: 'server', color: '#a6e3a1',
+    lines: 90,
+    role: 'Hooks into the Vite dev server. Only active during serve (not build). Mounts middleware, injects client script.',
+    exports: ['seeMyClicks(opts?) → VitePlugin', 'config hook: adds .see-my-clicks/** to watch ignore', 'configureServer hook: mounts middleware', 'transformIndexHtml hook: injects <script>'],
+  },
+  {
+    id: 'server', label: 'server.js', subtitle: 'Middleware / Handlers',
+    x: 120, y: 180, w: 155, h: 54, layer: 'server', color: '#a6e3a1',
+    lines: 280,
+    role: 'HTTP API + file I/O. Handles GET/POST/DELETE/PUT at /__see-my-clicks. Manages sessions, filters expired data, writes atomically via tmp+rename with a serialized Promise queue.',
+    exports: ['createMiddleware(opts) → connect middleware', 'GET → read + filter expired → JSON', 'POST → validate + session manage → write', 'DELETE → clear / remove click', 'PUT → update color / comment', 'filterExpiredSessions()'],
+  },
+  {
+    id: 'index', label: 'index.js', subtitle: 'Entry Point',
+    x: 310, y: 310, w: 140, h: 54, layer: 'server', color: '#a6e3a1',
+    lines: 10,
+    role: 'Package entry point. Re-exports the public API from plugin.js, server.js, and client.js.',
+    exports: ['seeMyClicks (from plugin.js)', 'createMiddleware (from server.js)', 'getClientScript (from client.js)'],
+  },
+  {
+    id: 'clicked-json', label: 'clicked.json', subtitle: '.see-my-clicks/clicked.json',
+    x: 560, y: 180, w: 155, h: 54, layer: 'filesystem', color: '#fab387',
+    lines: null,
+    role: 'JSON data file storing captured sessions. Written atomically by server.js, read by AI tool instructions.',
+    exports: ['{ sessions: CaptureSession[] }', 'Each session: { id, color, clicks[], createdAt }', 'Each click: { selector, tagName, text, rect, timestamp, ... }'],
+  },
+  {
+    id: 'cli', label: 'bin/cli.js', subtitle: 'CLI Command',
+    x: 560, y: 310, w: 145, h: 54, layer: 'server', color: '#a6e3a1',
+    lines: 60,
+    role: 'The `see-my-clicks` CLI command. Copies AI instruction templates into the project and initializes the .see-my-clicks/ directory.',
+    exports: ['see-my-clicks init', 'Copies instruction templates', 'Creates .see-my-clicks/ directory'],
+  },
+  {
+    id: 'instructions', label: 'AI Instructions', subtitle: 'instructions/ directory',
+    x: 760, y: 310, w: 155, h: 54, layer: 'filesystem', color: '#fab387',
+    lines: null,
+    role: 'Template files that tell AI assistants how to read and act on clicked.json data. Copied into projects via the CLI.',
+    exports: ['Instruction templates for AI tools', 'Read clicked.json patterns', 'Action recommendations'],
+  },
+  {
+    id: 'ai-assistant', label: 'AI Assistant', subtitle: 'External Consumer',
+    x: 760, y: 180, w: 150, h: 54, layer: 'external', color: '#89dceb',
+    lines: null,
+    role: 'External AI tool (Claude, Copilot, etc.) that reads clicked.json data via the instruction templates and acts on it.',
+    exports: ['Reads clicked.json via instructions', 'Generates code changes based on clicks'],
+  },
+];
+
+const EDGES = [
+  // Click capture flow
+  { id: 'e1', from: 'client-source', to: 'server', type: 'data-flow', label: 'POST /__see-my-clicks',
+    path: 'click-capture',
+    dataShape: 'POST body: { selector, tagName, textContent, boundingRect, attributes, computedStyles, framework, componentName }' },
+  { id: 'e2', from: 'server', to: 'clicked-json', type: 'file-io', label: 'atomic write',
+    path: 'click-capture',
+    dataShape: 'Atomic write: tmp file → rename. Serialized via Promise queue. Full store: { sessions: CaptureSession[] }' },
+
+  // Plugin wiring
+  { id: 'e3', from: 'plugin', to: 'server', type: 'function-call', label: 'createMiddleware()',
+    path: 'plugin-wiring', modeOnly: 'vite',
+    dataShape: 'plugin.js calls createMiddleware(opts) in configureServer hook. Mounts at /__see-my-clicks.' },
+  { id: 'e4', from: 'plugin', to: 'client', type: 'function-call', label: 'getClientScript()',
+    path: 'plugin-wiring', modeOnly: 'vite',
+    dataShape: 'plugin.js calls getClientScript() in transformIndexHtml hook. Returns raw JS string to inject as inline <script>.' },
+  { id: 'e5', from: 'client', to: 'client-source', type: 'file-io', label: 'reads from disk',
+    path: 'plugin-wiring',
+    dataShape: 'client.js reads client-source.js via fs.readFile. Caches the result after first read.' },
+
+  // Data read flow
+  { id: 'e6', from: 'clicked-json', to: 'ai-assistant', type: 'data-flow', label: 'reads JSON',
+    path: 'data-read',
+    dataShape: 'AI reads { sessions: [{ id, color, clicks: [{ selector, tagName, text, ... }] }] }' },
+  { id: 'e7', from: 'instructions', to: 'ai-assistant', type: 'data-flow', label: 'guides behavior',
+    path: 'data-read',
+    dataShape: 'Instruction templates tell AI how to parse clicked.json and what actions to take per element type.' },
+
+  // Re-exports
+  { id: 'e8', from: 'index', to: 'plugin', type: 're-export', label: 'seeMyClicks',
+    dataShape: 'export { seeMyClicks } from "./plugin.js"' },
+  { id: 'e9', from: 'index', to: 'server', type: 're-export', label: 'createMiddleware',
+    dataShape: 'export { createMiddleware } from "./server.js"' },
+  { id: 'e10', from: 'index', to: 'client', type: 're-export', label: 'getClientScript',
+    dataShape: 'export { getClientScript } from "./client.js"' },
+
+  // CLI flow
+  { id: 'e11', from: 'cli', to: 'instructions', type: 'file-io', label: 'copies templates',
+    path: 'cli-init',
+    dataShape: 'CLI copies instruction template files from the package\'s instructions/ directory into the user\'s project.' },
+  { id: 'e12', from: 'cli', to: 'clicked-json', type: 'file-io', label: 'creates dir',
+    path: 'cli-init',
+    dataShape: 'CLI creates .see-my-clicks/ directory and initializes empty clicked.json if not present.' },
+
+  // Server reads file on GET
+  { id: 'e13', from: 'clicked-json', to: 'server', type: 'file-io', label: 'reads on GET',
+    path: 'click-capture',
+    dataShape: 'GET /__see-my-clicks: server reads clicked.json, calls filterExpiredSessions(), returns filtered store as JSON.' },
+];
+
+// ═══════════════════════════════════════════
+//  SVG rendering
+// ═══════════════════════════════════════════
+const svgNS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('graph');
+let gRoot; // top-level <g> for pan/zoom
+
+function initSVG() {
+  svg.innerHTML = '';
+
+  // Defs (arrowheads)
+  const defs = createSVG('defs');
+  const arrowColors = {
+    'data-flow': '#89b4fa',
+    'function-call': '#a6e3a1',
+    'file-io': '#fab387',
+    're-export': '#6c7086',
+  };
+  for (const [type, color] of Object.entries(arrowColors)) {
+    const marker = createSVG('marker', {
+      id: `arrow-${type}`, markerWidth: 8, markerHeight: 6,
+      refX: 7, refY: 3, orient: 'auto', markerUnits: 'strokeWidth',
+    });
+    marker.appendChild(createSVG('polygon', { points: '0 0, 8 3, 0 6', fill: color }));
+    defs.appendChild(marker);
+    // Dimmed version
+    const markerDim = createSVG('marker', {
+      id: `arrow-${type}-dim`, markerWidth: 8, markerHeight: 6,
+      refX: 7, refY: 3, orient: 'auto', markerUnits: 'strokeWidth',
+    });
+    markerDim.appendChild(createSVG('polygon', { points: '0 0, 8 3, 0 6', fill: color, opacity: 0.15 }));
+    defs.appendChild(markerDim);
+    // Highlighted version
+    const markerHi = createSVG('marker', {
+      id: `arrow-${type}-hi`, markerWidth: 10, markerHeight: 7,
+      refX: 9, refY: 3.5, orient: 'auto', markerUnits: 'strokeWidth',
+    });
+    markerHi.appendChild(createSVG('polygon', { points: '0 0, 10 3.5, 0 7', fill: '#f9e2af' }));
+    defs.appendChild(markerHi);
+  }
+  // Glow filter
+  const filter = createSVG('filter', { id: 'glow', x: '-20%', y: '-20%', width: '140%', height: '140%' });
+  const blur = createSVG('feGaussianBlur', { stdDeviation: 3, result: 'blur' });
+  const merge = createSVG('feMerge');
+  merge.appendChild(createSVG('feMergeNode', { in: 'blur' }));
+  merge.appendChild(createSVG('feMergeNode', { in: 'SourceGraphic' }));
+  filter.appendChild(blur);
+  filter.appendChild(merge);
+  defs.appendChild(filter);
+
+  svg.appendChild(defs);
+  gRoot = createSVG('g', { id: 'root' });
+  svg.appendChild(gRoot);
+
+  updateTransform();
+}
+
+function createSVG(tag, attrs) {
+  const el = document.createElementNS(svgNS, tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function updateTransform() {
+  if (gRoot) gRoot.setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
+}
+
+// ═══════════════════════════════════════════
+//  Render
+// ═══════════════════════════════════════════
+function render() {
+  initSVG();
+  const edgesGroup = createSVG('g', { class: 'edges' });
+  const nodesGroup = createSVG('g', { class: 'nodes' });
+  gRoot.appendChild(edgesGroup);
+  gRoot.appendChild(nodesGroup);
+
+  // Filter edges
+  const visibleEdges = EDGES.filter(e => {
+    if (!state.connTypes[e.type]) return false;
+    if (e.modeOnly && e.modeOnly !== state.mode) return false;
+    const fromNode = NODES.find(n => n.id === e.from);
+    const toNode = NODES.find(n => n.id === e.to);
+    if (!fromNode || !toNode) return false;
+    if (!state.layers[fromNode.layer] || !state.layers[toNode.layer]) return false;
+    return true;
+  });
+
+  // Draw edges
+  for (const edge of visibleEdges) {
+    const fromNode = NODES.find(n => n.id === edge.from);
+    const toNode = NODES.find(n => n.id === edge.to);
+    const isHighlighted = state.path !== 'none' && edge.path === state.path;
+    const isDimmed = state.path !== 'none' && edge.path !== state.path;
+    drawEdge(edgesGroup, edge, fromNode, toNode, isHighlighted, isDimmed);
+  }
+
+  // Filter and draw nodes
+  const visibleNodes = NODES.filter(n => state.layers[n.layer]);
+  for (const node of visibleNodes) {
+    const isOnPath = state.path !== 'none' && visibleEdges.some(e =>
+      e.path === state.path && (e.from === node.id || e.to === node.id)
+    );
+    const isDimmed = state.path !== 'none' && !isOnPath;
+    const hasComment = state.comments.some(c => c.target === node.id);
+    drawNode(nodesGroup, node, isDimmed, hasComment);
+  }
+}
+
+function getNodeCenter(n) {
+  return { x: n.x + n.w / 2, y: n.y + n.h / 2 };
+}
+
+function getEdgeEndpoints(fromNode, toNode) {
+  const fc = getNodeCenter(fromNode);
+  const tc = getNodeCenter(toNode);
+  const dx = tc.x - fc.x;
+  const dy = tc.y - fc.y;
+  const angle = Math.atan2(dy, dx);
+
+  // Exit point on from node
+  let fx, fy;
+  if (Math.abs(Math.cos(angle)) * fromNode.h > Math.abs(Math.sin(angle)) * fromNode.w) {
+    fx = fc.x + (Math.sign(Math.cos(angle)) * fromNode.w / 2);
+    fy = fc.y + Math.tan(angle) * (Math.sign(Math.cos(angle)) * fromNode.w / 2);
+  } else {
+    fy = fc.y + (Math.sign(Math.sin(angle)) * fromNode.h / 2);
+    fx = fc.x + (1 / Math.tan(angle)) * (Math.sign(Math.sin(angle)) * fromNode.h / 2);
+  }
+
+  const angleR = angle + Math.PI;
+  let tx, ty;
+  if (Math.abs(Math.cos(angleR)) * toNode.h > Math.abs(Math.sin(angleR)) * toNode.w) {
+    tx = tc.x + (Math.sign(Math.cos(angleR)) * toNode.w / 2);
+    ty = tc.y + Math.tan(angleR) * (Math.sign(Math.cos(angleR)) * toNode.w / 2);
+  } else {
+    ty = tc.y + (Math.sign(Math.sin(angleR)) * toNode.h / 2);
+    tx = tc.x + (1 / Math.tan(angleR)) * (Math.sign(Math.sin(angleR)) * toNode.h / 2);
+  }
+
+  return { fx, fy, tx, ty };
+}
+
+function drawEdge(parent, edge, fromNode, toNode, isHighlighted, isDimmed) {
+  const { fx, fy, tx, ty } = getEdgeEndpoints(fromNode, toNode);
+  const mx = (fx + tx) / 2;
+  const my = (fy + ty) / 2;
+
+  // Offset control point perpendicular for curvature
+  const dx = tx - fx, dy = ty - fy;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const off = Math.min(len * 0.15, 30);
+  const nx = -dy / len, ny = dx / len;
+  const cx = mx + nx * off;
+  const cy = my + ny * off;
+
+  const colors = {
+    'data-flow': '#89b4fa',
+    'function-call': '#a6e3a1',
+    'file-io': '#fab387',
+    're-export': '#6c7086',
+  };
+  const dashArrays = {
+    'data-flow': 'none',
+    'function-call': '6,3',
+    'file-io': '4,4',
+    're-export': '2,3',
+  };
+
+  const color = isHighlighted ? '#f9e2af' : colors[edge.type];
+  const opacity = isDimmed ? 0.12 : (isHighlighted ? 1 : 0.6);
+  const strokeWidth = isHighlighted ? 2.5 : 1.5;
+  const markerSuffix = isHighlighted ? '-hi' : (isDimmed ? '-dim' : '');
+
+  const path = createSVG('path', {
+    d: `M ${fx} ${fy} Q ${cx} ${cy} ${tx} ${ty}`,
+    fill: 'none',
+    stroke: color,
+    'stroke-width': strokeWidth,
+    'stroke-dasharray': isHighlighted ? 'none' : dashArrays[edge.type],
+    opacity,
+    'marker-end': `url(#arrow-${edge.type}${markerSuffix})`,
+    'data-edge-id': edge.id,
+    style: 'cursor: pointer;',
+  });
+  if (isHighlighted) path.setAttribute('filter', 'url(#glow)');
+
+  // Wider invisible hit area
+  const hitArea = createSVG('path', {
+    d: `M ${fx} ${fy} Q ${cx} ${cy} ${tx} ${ty}`,
+    fill: 'none',
+    stroke: 'transparent',
+    'stroke-width': 14,
+    style: 'cursor: pointer;',
+    'data-edge-id': edge.id,
+  });
+
+  hitArea.addEventListener('mouseenter', (ev) => showEdgeTooltip(ev, edge));
+  hitArea.addEventListener('mousemove', (ev) => moveEdgeTooltip(ev));
+  hitArea.addEventListener('mouseleave', hideEdgeTooltip);
+
+  parent.appendChild(path);
+  parent.appendChild(hitArea);
+
+  // Edge label
+  // Position label at curve midpoint
+  const lx = 0.25 * fx + 0.5 * cx + 0.25 * tx;
+  const ly = 0.25 * fy + 0.5 * cy + 0.25 * ty;
+  if (edge.label) {
+    const text = createSVG('text', {
+      x: lx, y: ly - 5,
+      'font-size': 9,
+      fill: isDimmed ? '#45475a' : (isHighlighted ? '#f9e2af' : '#6c7086'),
+      'text-anchor': 'middle',
+      'font-family': 'system-ui, -apple-system, sans-serif',
+      'pointer-events': 'none',
+    });
+    text.textContent = edge.label;
+    parent.appendChild(text);
+  }
+}
+
+function drawNode(parent, node, isDimmed, hasComment) {
+  const g = createSVG('g', {
+    'data-node-id': node.id,
+    style: 'cursor: grab;',
+    opacity: isDimmed ? 0.25 : 1,
+  });
+
+  // Shadow
+  g.appendChild(createSVG('rect', {
+    x: node.x + 2, y: node.y + 2, width: node.w, height: node.h,
+    rx: 8, ry: 8,
+    fill: '#00000040',
+  }));
+
+  // Main rect
+  const borderColor = hasComment ? '#89b4fa' : '#45475a';
+  const borderWidth = hasComment ? 2 : 1;
+  g.appendChild(createSVG('rect', {
+    x: node.x, y: node.y, width: node.w, height: node.h,
+    rx: 8, ry: 8,
+    fill: '#313244',
+    stroke: borderColor,
+    'stroke-width': borderWidth,
+  }));
+
+  // Color accent bar (top)
+  const clipId = `clip-${node.id}`;
+  const clipPath = createSVG('clipPath', { id: clipId });
+  clipPath.appendChild(createSVG('rect', {
+    x: node.x, y: node.y, width: node.w, height: node.h, rx: 8, ry: 8,
+  }));
+  parent.appendChild(clipPath);
+
+  g.appendChild(createSVG('rect', {
+    x: node.x, y: node.y, width: node.w, height: 4,
+    fill: node.color,
+    'clip-path': `url(#${clipId})`,
+  }));
+
+  // Label
+  const title = createSVG('text', {
+    x: node.x + 12, y: node.y + 24,
+    'font-size': 12, 'font-weight': 600,
+    fill: '#cdd6f4',
+    'font-family': '"SF Mono", "Fira Code", monospace',
+    'pointer-events': 'none',
+  });
+  title.textContent = node.label;
+  g.appendChild(title);
+
+  // Subtitle
+  const sub = createSVG('text', {
+    x: node.x + 12, y: node.y + 40,
+    'font-size': 10,
+    fill: '#6c7086',
+    'font-family': 'system-ui, -apple-system, sans-serif',
+    'pointer-events': 'none',
+  });
+  sub.textContent = node.subtitle;
+  g.appendChild(sub);
+
+  // Comment indicator dot
+  if (hasComment) {
+    g.appendChild(createSVG('circle', {
+      cx: node.x + node.w - 10, cy: node.y + 10,
+      r: 4, fill: '#89b4fa',
+    }));
+  }
+
+  // Drag + click handling
+  let dragging = false;
+  let dragStartX, dragStartY, nodeStartX, nodeStartY;
+  let dragMoved = false;
+
+  g.addEventListener('mousedown', (ev) => {
+    ev.preventDefault();
+    dragging = true;
+    dragMoved = false;
+    dragStartX = ev.clientX;
+    dragStartY = ev.clientY;
+    nodeStartX = node.x;
+    nodeStartY = node.y;
+    g.style.cursor = 'grabbing';
+
+    const onMove = (ev2) => {
+      if (!dragging) return;
+      const dx = (ev2.clientX - dragStartX) / state.zoom;
+      const dy = (ev2.clientY - dragStartY) / state.zoom;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true;
+      node.x = nodeStartX + dx;
+      node.y = nodeStartY + dy;
+      render();
+    };
+    const onUp = () => {
+      dragging = false;
+      g.style.cursor = 'grab';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (!dragMoved) {
+        onNodeClick(node);
+      }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Double-click to add comment
+  g.addEventListener('dblclick', (ev) => {
+    ev.preventDefault();
+    openModal(node);
+  });
+
+  parent.appendChild(g);
+}
+
+// ═══════════════════════════════════════════
+//  Edge tooltip
+// ═══════════════════════════════════════════
+const edgeTooltip = document.getElementById('edge-tooltip');
+
+function showEdgeTooltip(ev, edge) {
+  const html = `<strong>${edge.label || 'Connection'}</strong><br>${edge.dataShape.replace(/</g, '&lt;').replace(/>/g, '&gt;')}`;
+  edgeTooltip.innerHTML = html;
+  edgeTooltip.classList.add('show');
+  moveEdgeTooltip(ev);
+}
+function moveEdgeTooltip(ev) {
+  const area = document.getElementById('canvas-area').getBoundingClientRect();
+  edgeTooltip.style.left = (ev.clientX - area.left + 12) + 'px';
+  edgeTooltip.style.top = (ev.clientY - area.top + 12) + 'px';
+}
+function hideEdgeTooltip() {
+  edgeTooltip.classList.remove('show');
+}
+
+// ═══════════════════════════════════════════
+//  Node detail panel
+// ═══════════════════════════════════════════
+function onNodeClick(node) {
+  state.selectedNode = node.id;
+  const panel = document.getElementById('detail-panel');
+  const content = document.getElementById('dp-content');
+
+  const layerNames = { browser: 'Browser', server: 'Server', filesystem: 'File System', external: 'External' };
+  const linesHtml = node.lines ? `<div class="dp-lines">${node.lines.toLocaleString()} lines</div>` : '';
+
+  content.innerHTML = `
+    <h3>${node.label}</h3>
+    <div class="dp-subtitle">
+      <span class="dp-badge" style="background:${node.color}">${layerNames[node.layer]}</span>
+      ${node.subtitle} ${linesHtml}
+    </div>
+    <div class="dp-section-title">Role</div>
+    <div class="dp-list">${node.role}</div>
+    <div class="dp-section-title">Exports / Key Features</div>
+    <div class="dp-list">${node.exports.map(e => `<div>&bull; <code>${escapeHtml(e)}</code></div>`).join('')}</div>
+    <div style="margin-top:12px">
+      <button class="btn" onclick="openModal(NODES.find(n=>n.id==='${node.id}'))" style="font-size:11px;">Add Comment</button>
+    </div>
+  `;
+  panel.classList.add('show');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('show');
+  state.selectedNode = null;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ═══════════════════════════════════════════
+//  Comment system
+// ═══════════════════════════════════════════
+function openModal(node) {
+  state.modalNodeId = node.id;
+  document.getElementById('modal-title').textContent = `Comment on ${node.label}`;
+  document.getElementById('modal-textarea').value = '';
+  document.getElementById('comment-modal').classList.add('show');
+  setTimeout(() => document.getElementById('modal-textarea').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('comment-modal').classList.remove('show');
+  state.modalNodeId = null;
+}
+
+function saveComment() {
+  const text = document.getElementById('modal-textarea').value.trim();
+  if (!text) { closeModal(); return; }
+  const node = NODES.find(n => n.id === state.modalNodeId);
+  state.comments.push({
+    id: Date.now(),
+    target: node.id,
+    targetLabel: node.label,
+    targetFile: node.subtitle,
+    text,
+  });
+  closeModal();
+  renderComments();
+  updatePrompt();
+  render();
+}
+
+function deleteComment(id) {
+  state.comments = state.comments.filter(c => c.id !== id);
+  renderComments();
+  updatePrompt();
+  render();
+}
+
+function renderComments() {
+  const list = document.getElementById('comments-list');
+  document.getElementById('comment-count').textContent = state.comments.length;
+  if (state.comments.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:#6c7086;">Click a node to add a comment.</div>';
+    return;
+  }
+  list.innerHTML = state.comments.map(c => `
+    <div class="comment-item">
+      <button class="comment-delete" onclick="deleteComment(${c.id})">&times;</button>
+      <div class="comment-target">${escapeHtml(c.targetLabel)}</div>
+      <div class="comment-text">${escapeHtml(c.text)}</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+//  Prompt output
+// ═══════════════════════════════════════════
+function updatePrompt() {
+  const el = document.getElementById('prompt-text');
+  if (state.comments.length === 0) {
+    el.textContent = 'Add comments to nodes to generate a prompt.';
+    return;
+  }
+
+  const parts = [];
+  parts.push(`This is the see-my-clicks architecture (${state.mode === 'vite' ? 'Vite plugin mode' : 'standalone middleware mode'}).`);
+
+  // Mention hidden layers
+  const hiddenLayers = Object.entries(state.layers).filter(([,v]) => !v).map(([k]) => k);
+  if (hiddenLayers.length > 0) {
+    parts.push(`Currently viewing with ${hiddenLayers.join(', ')} layer(s) hidden.`);
+  }
+
+  if (state.path !== 'none') {
+    const pathNames = { 'click-capture': 'click capture', 'data-read': 'data read', 'plugin-wiring': 'plugin wiring', 'cli-init': 'CLI init' };
+    parts.push(`Focused on the ${pathNames[state.path]} flow.`);
+  }
+
+  parts.push('');
+  parts.push('Feedback on specific components:');
+  parts.push('');
+
+  for (const c of state.comments) {
+    parts.push(`**${c.targetLabel}** (${c.targetFile}):`);
+    parts.push(c.text);
+    parts.push('');
+  }
+
+  parts.push('[playground:architecture]');
+  el.textContent = parts.join('\n');
+}
+
+function copyPrompt() {
+  let text = document.getElementById('prompt-text').textContent;
+  const notes = document.getElementById('prompt-notes').value.trim();
+  if (notes) text += '\n\n' + notes;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  Controls
+// ═══════════════════════════════════════════
+function setMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  updatePrompt();
+  render();
+}
+
+function setPath(path) {
+  state.path = path;
+  document.querySelectorAll('[data-path]').forEach(b => b.classList.toggle('active', b.dataset.path === path));
+  updatePrompt();
+  render();
+}
+
+function toggleLayer(layer) {
+  state.layers[layer] = !state.layers[layer];
+  updatePrompt();
+  render();
+}
+
+function toggleConnType(type) {
+  state.connTypes[type] = !state.connTypes[type];
+  render();
+}
+
+// Zoom
+function zoomIn() { state.zoom = Math.min(state.zoom * 1.2, 3); updateTransform(); }
+function zoomOut() { state.zoom = Math.max(state.zoom / 1.2, 0.3); updateTransform(); }
+function zoomReset() {
+  state.zoom = 1;
+  state.panX = 0;
+  state.panY = 0;
+  updateTransform();
+}
+
+// Pan via mouse drag on background
+let isPanning = false, panStartX, panStartY, panStartPX, panStartPY;
+document.getElementById('canvas-area').addEventListener('mousedown', (ev) => {
+  if (ev.target === svg || ev.target === document.getElementById('canvas-area')) {
+    isPanning = true;
+    panStartX = ev.clientX;
+    panStartY = ev.clientY;
+    panStartPX = state.panX;
+    panStartPY = state.panY;
+    svg.style.cursor = 'grabbing';
+  }
+});
+document.addEventListener('mousemove', (ev) => {
+  if (!isPanning) return;
+  state.panX = panStartPX + (ev.clientX - panStartX);
+  state.panY = panStartPY + (ev.clientY - panStartY);
+  updateTransform();
+});
+document.addEventListener('mouseup', () => {
+  isPanning = false;
+  svg.style.cursor = '';
+});
+
+// Zoom with scroll wheel
+document.getElementById('canvas-area').addEventListener('wheel', (ev) => {
+  ev.preventDefault();
+  const factor = ev.deltaY > 0 ? 0.92 : 1.08;
+  const newZoom = Math.max(0.3, Math.min(3, state.zoom * factor));
+
+  // Zoom toward mouse position
+  const area = document.getElementById('canvas-area').getBoundingClientRect();
+  const mx = ev.clientX - area.left;
+  const my = ev.clientY - area.top;
+
+  state.panX = mx - (mx - state.panX) * (newZoom / state.zoom);
+  state.panY = my - (my - state.panY) * (newZoom / state.zoom);
+  state.zoom = newZoom;
+  updateTransform();
+}, { passive: false });
+
+// Close modal on Escape
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') {
+    closeModal();
+    closeDetail();
+  }
+});
+
+// ═══════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════
+render();
+updatePrompt();
+</script>
+</body>
+</html>

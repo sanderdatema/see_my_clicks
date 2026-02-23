@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>see-my-clicks Data Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    line-height: 1.5;
+  }
+
+  /* Layout */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #45475a;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header .subtitle { color: #6c7086; font-size: 13px; }
+  .sections { flex: 1; display: flex; flex-direction: column; gap: 0; }
+  .section {
+    border-bottom: 1px solid #45475a;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 24px;
+    cursor: pointer;
+    user-select: none;
+    background: #181825;
+    transition: background .15s;
+  }
+  .section-header:hover { background: #1e1e2e; }
+  .section-header .chevron {
+    transition: transform .2s;
+    color: #6c7086;
+    font-size: 12px;
+    width: 16px; text-align: center;
+  }
+  .section-header.open .chevron { transform: rotate(90deg); }
+  .section-header h2 { font-size: 14px; font-weight: 600; }
+  .section-header .badge {
+    font-size: 11px; padding: 1px 8px; border-radius: 99px;
+    background: #313244; color: #6c7086;
+  }
+  .section-body {
+    padding: 16px 24px;
+    display: none;
+  }
+  .section-body.open { display: block; }
+
+  /* Controls */
+  .controls-row {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+    align-items: center;
+  }
+  .control-label {
+    font-size: 12px; color: #6c7086; min-width: 90px;
+  }
+  .preset-btn {
+    padding: 4px 12px; border-radius: 6px; border: 1px solid #45475a;
+    background: #313244; color: #cdd6f4; font-size: 12px; cursor: pointer;
+    transition: all .15s;
+  }
+  .preset-btn:hover { border-color: #8b5cf6; }
+  .preset-btn.active { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+
+  select, input[type="number"] {
+    background: #313244; border: 1px solid #45475a; border-radius: 6px;
+    color: #cdd6f4; font-size: 12px; padding: 4px 8px; outline: none;
+  }
+  select:focus, input:focus { border-color: #8b5cf6; }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    height: 4px; border-radius: 2px; background: #45475a; outline: none;
+    cursor: pointer; flex: 1; max-width: 240px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #8b5cf6; cursor: pointer;
+  }
+
+  button {
+    font-family: inherit;
+  }
+  .action-btn {
+    padding: 6px 14px; border-radius: 6px; border: none;
+    background: #8b5cf6; color: #fff; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .action-btn:hover { opacity: .85; }
+  .action-btn.secondary {
+    background: #313244; color: #cdd6f4; border: 1px solid #45475a;
+  }
+  .action-btn.danger { background: #f38ba8; }
+
+  /* Tree view */
+  .tree { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 12px; line-height: 1.6; }
+  .tree-node { padding-left: 20px; position: relative; }
+  .tree-toggle {
+    position: absolute; left: 0; top: 0;
+    width: 16px; height: 1.6em; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #6c7086; user-select: none; font-size: 10px;
+  }
+  .tree-toggle:hover { color: #cdd6f4; }
+  .tree-key { color: #89b4fa; }
+  .tree-string { color: #a6e3a1; }
+  .tree-number { color: #fab387; }
+  .tree-boolean { color: #f38ba8; }
+  .tree-null { color: #6c7086; font-style: italic; }
+  .tree-bracket { color: #6c7086; }
+  .tree-children { display: none; }
+  .tree-children.open { display: block; }
+  .tree-leaf { cursor: pointer; border-radius: 4px; padding: 0 4px; margin: 0 -4px; }
+  .tree-leaf:hover { background: #313244; }
+  .tree-leaf.selected { background: rgba(139, 92, 246, 0.2); outline: 1px solid rgba(139, 92, 246, 0.4); }
+
+  /* Annotation popup */
+  .annotation {
+    margin-top: 8px; padding: 10px 14px; border-radius: 8px;
+    background: #313244; border: 1px solid #45475a;
+    font-size: 12px; line-height: 1.5;
+  }
+  .annotation .ann-field { color: #89b4fa; font-weight: 600; font-family: monospace; }
+  .annotation .ann-type { color: #fab387; font-family: monospace; font-size: 11px; }
+  .annotation .ann-desc { color: #a6adc8; margin-top: 4px; }
+
+  /* Config timeline */
+  .timeline-container {
+    background: #313244; border-radius: 8px; padding: 16px;
+    margin: 12px 0; position: relative; overflow: hidden;
+    min-height: 120px;
+  }
+  .timeline-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    font-size: 11px;
+  }
+  .timeline-session-label {
+    min-width: 100px; font-weight: 600; font-size: 11px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .timeline-clicks {
+    display: flex; gap: 3px; flex-wrap: wrap; flex: 1;
+  }
+  .timeline-click {
+    width: 18px; height: 18px; border-radius: 4px;
+    font-size: 8px; font-weight: 700; display: flex;
+    align-items: center; justify-content: center;
+    color: #fff; transition: all .3s; cursor: default;
+    position: relative;
+  }
+  .timeline-click.expired {
+    opacity: 0.15; text-decoration: line-through;
+  }
+  .timeline-click.trimmed {
+    opacity: 0.15; outline: 2px dashed rgba(255,255,255,0.3);
+  }
+
+  .stats-bar {
+    display: flex; gap: 16px; margin-top: 12px; font-size: 11px; color: #6c7086;
+  }
+  .stats-bar .stat-value { color: #cdd6f4; font-weight: 600; }
+
+  /* AI preview */
+  .ai-preview {
+    background: #313244; border-radius: 8px; padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 400px; overflow-y: auto;
+    color: #cdd6f4;
+    position: relative;
+  }
+  .ai-step { color: #8b5cf6; font-weight: 700; }
+  .ai-path { color: #a6e3a1; }
+  .ai-tag { color: #89b4fa; }
+  .ai-comment { color: #f9e2af; }
+  .ai-muted { color: #6c7086; }
+
+  /* Prompt output / Copy */
+  .prompt-output {
+    margin-top: 16px; padding: 12px 16px;
+    background: #181825; border: 1px solid #45475a; border-radius: 8px;
+    position: relative;
+  }
+  .prompt-output pre {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px; line-height: 1.5; white-space: pre-wrap;
+    word-break: break-word; color: #cdd6f4;
+    max-height: 200px; overflow-y: auto;
+  }
+  .prompt-notes {
+    width: 100%;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px; line-height: 1.5; color: #cdd6f4;
+    background: transparent; border: 1px solid #45475a; border-radius: 6px;
+    padding: 8px; resize: vertical; min-height: 36px; outline: none;
+    box-sizing: border-box;
+  }
+  .prompt-notes:focus { border-color: #8b5cf6; }
+  .prompt-notes::placeholder { color: #45475a; }
+  .prompt-sep { color: #45475a; font-size: 11px; padding: 4px 0; }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    padding: 4px 10px; border-radius: 6px; border: 1px solid #45475a;
+    background: #313244; color: #cdd6f4; font-size: 11px; cursor: pointer;
+    transition: all .15s;
+  }
+  .copy-btn:hover { border-color: #8b5cf6; }
+  .copy-btn.copied { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 12px; font-size: 11px; color: #6c7086; margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-swatch {
+    width: 12px; height: 12px; border-radius: 3px;
+  }
+
+  /* Filter algo box */
+  .algo-box {
+    margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+    background: #181825; border: 1px solid #45475a;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11px; line-height: 1.6; color: #6c7086;
+  }
+  .algo-box .hl { color: #8b5cf6; }
+  .algo-box .val { color: #fab387; }
+  .algo-box .str { color: #a6e3a1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div style="width:10px;height:10px;border-radius:50%;background:#8b5cf6;"></div>
+    <h1>see-my-clicks Data Explorer</h1>
+    <span class="subtitle">Capture Data Inspector &amp; Config Simulator</span>
+  </div>
+
+  <div class="sections">
+    <!-- Section A: Data Structure Explorer -->
+    <div class="section" id="sec-a">
+      <div class="section-header open" onclick="toggleSection('a')">
+        <span class="chevron">&#9654;</span>
+        <h2>A) Data Structure Explorer</h2>
+        <span class="badge">clicked.json</span>
+      </div>
+      <div class="section-body open" id="body-a">
+        <div class="controls-row">
+          <span class="control-label">Framework:</span>
+          <button class="preset-btn active" onclick="setPreset('react')">React</button>
+          <button class="preset-btn" onclick="setPreset('svelte')">Svelte</button>
+          <button class="preset-btn" onclick="setPreset('vue')">Vue</button>
+          <button class="preset-btn" onclick="setPreset('plain')">Plain HTML</button>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:320px;">
+            <div id="tree-root" class="tree"></div>
+          </div>
+          <div style="flex:0 0 300px;min-width:260px;">
+            <div id="annotation" class="annotation" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section B: Config Simulator -->
+    <div class="section" id="sec-b">
+      <div class="section-header" onclick="toggleSection('b')">
+        <span class="chevron">&#9654;</span>
+        <h2>B) Config Simulator</h2>
+        <span class="badge">maxEntries + expiryMinutes</span>
+      </div>
+      <div class="section-body" id="body-b">
+        <div class="controls-row">
+          <span class="control-label">maxEntries:</span>
+          <input type="range" id="slider-max" min="1" max="50" value="10" oninput="onConfigChange()">
+          <span id="val-max" style="font-size:13px;font-weight:600;min-width:28px;">10</span>
+        </div>
+        <div class="controls-row">
+          <span class="control-label">expiryMinutes:</span>
+          <input type="range" id="slider-expiry" min="1" max="1440" value="60" oninput="onConfigChange()">
+          <span id="val-expiry" style="font-size:13px;font-weight:600;min-width:40px;">60</span>
+        </div>
+        <div class="controls-row" style="gap:8px;">
+          <button class="action-btn" onclick="simulate15Clicks()">Simulate 15 rapid clicks</button>
+          <button class="action-btn secondary" onclick="advanceClock(10)">+10 min</button>
+          <button class="action-btn secondary" onclick="advanceClock(30)">+30 min</button>
+          <button class="action-btn secondary" onclick="advanceClock(60)">+60 min</button>
+          <button class="action-btn danger" onclick="resetSimulation()">Reset</button>
+        </div>
+
+        <div id="timeline" class="timeline-container"></div>
+
+        <div class="legend">
+          <div class="legend-item"><div class="legend-swatch" style="background:#8b5cf6;"></div> Active click</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#8b5cf6;opacity:0.15;"></div> Expired</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#8b5cf6;opacity:0.15;outline:2px dashed rgba(255,255,255,0.3);"></div> Trimmed by maxEntries</div>
+        </div>
+
+        <div id="stats" class="stats-bar"></div>
+
+        <div id="algo-display" class="algo-box"></div>
+      </div>
+    </div>
+
+    <!-- Section C: AI Instruction Preview -->
+    <div class="section" id="sec-c">
+      <div class="section-header" onclick="toggleSection('c')">
+        <span class="chevron">&#9654;</span>
+        <h2>C) AI Instruction Preview</h2>
+        <span class="badge">What the AI sees</span>
+      </div>
+      <div class="section-body" id="body-c">
+        <div class="controls-row">
+          <span class="control-label">Action preset:</span>
+          <select id="ai-action" onchange="renderAIPreview()">
+            <option value="suggest-fixes">suggest-fixes</option>
+            <option value="taskmaster">taskmaster</option>
+            <option value="github-issues">github-issues</option>
+            <option value="just-report">just-report</option>
+          </select>
+        </div>
+        <div id="ai-preview" class="ai-preview"></div>
+        <div class="prompt-output">
+          <button class="copy-btn" onclick="copyPrompt()">Copy</button>
+          <pre id="prompt-text"></pre>
+          <div class="prompt-sep">-- your notes --</div>
+          <textarea class="prompt-notes" id="prompt-notes" rows="2" placeholder="Add your own notes here..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Color palette ──────────────────────────────────────────────
+const COLORS = ["#8b5cf6","#f38ba8","#fab387","#f9e2af","#a6e3a1","#89dceb","#74c7ec","#cba6f7"];
+
+// ── Field annotations ──────────────────────────────────────────
+const ANNOTATIONS = {
+  'sessions': { type: 'CaptureSession[]', desc: 'Array of capture sessions. Each session groups clicks made during a single recording run.' },
+  'sessions.id': { type: 'string', desc: 'Unique session identifier. Generated via Date.now().toString(36) + random suffix.' },
+  'sessions.name': { type: 'string', desc: 'Human-readable session name, e.g. "Header fixes". Set when starting a new session.' },
+  'sessions.color': { type: 'string', desc: 'Hex color for the session marker dots. Assigned from the palette in order: #8b5cf6, #f38ba8, ...' },
+  'sessions.startedAt': { type: 'string (ISO 8601)', desc: 'When this session was created. Used for display purposes.' },
+  'sessions.clicks': { type: 'CapturedElementData[]', desc: 'Array of captured element data. Each entry is one Alt+Click capture.' },
+  'clickId': { type: 'string', desc: 'Unique click ID: Date.now().toString(36) + Math.random().toString(36).slice(2,7). Used for deletion and deduplication.' },
+  'tagName': { type: 'string', desc: 'The HTML tag name of the clicked element, e.g. "button", "div", "a". Always lowercase.' },
+  'timestamp': { type: 'string (ISO 8601)', desc: 'When the click was captured. Used by filterExpiredSessions to check: now - new Date(c.timestamp).getTime() < expiryMs' },
+  'comment': { type: 'string | null', desc: 'User comment entered in the modal after capturing. null if skipped. Used by the AI to suggest fixes.' },
+  'component': { type: 'CapturedComponentInfo | null', desc: 'Framework component info found by walking up the DOM tree. null for plain HTML elements.' },
+  'component.name': { type: 'string', desc: 'Component display name: React displayName/name, Svelte filename, or Vue component name.' },
+  'component.file': { type: 'string', desc: 'Source file path. From React _debugSource, Svelte __svelte_meta.loc.file, or Vue __file.' },
+  'component.framework': { type: '"react" | "svelte" | "vue"', desc: 'Which framework was detected for this component.' },
+  'elementId': { type: 'string | null', desc: 'The element\'s id attribute, or null if none. Used as a fallback for marker re-matching.' },
+  'classList': { type: 'string[]', desc: 'Array of CSS class names on the element. Includes framework-scoped classes (svelte-xxxx, etc.).' },
+  'selector': { type: 'string', desc: 'Full CSS selector path from body to element, e.g. "main > div.container > button.primary".' },
+  'textContent': { type: 'string | null', desc: 'Truncated innerText (max 100 chars). Used to verify element identity on re-render. null if empty.' },
+  'boundingBox': { type: '{ x, y, width, height }', desc: 'Element bounding rectangle at capture time (rounded integers). Used for marker positioning.' },
+  'boundingBox.x': { type: 'number', desc: 'Left edge of the element in viewport pixels (Math.round(rect.x)).' },
+  'boundingBox.y': { type: 'number', desc: 'Top edge of the element in viewport pixels (Math.round(rect.y)).' },
+  'boundingBox.width': { type: 'number', desc: 'Element width in viewport pixels (Math.round(rect.width)).' },
+  'boundingBox.height': { type: 'number', desc: 'Element height in viewport pixels (Math.round(rect.height)).' },
+  'parentChain': { type: 'Array<{ tagName, id?, classList? }>', desc: 'Up to 5 parent elements above the clicked element. Each may include component info.' },
+  'attributes': { type: 'Record<string, string>', desc: 'All HTML attributes on the element (excluding data-v- prefixes from Vue scoping).' },
+  'url': { type: 'string', desc: 'Full page URL at capture time. Used to match markers to the correct route on SPA navigation.' },
+  'viewportSize': { type: '{ width, height }', desc: 'Browser viewport dimensions at capture time. Useful for responsive layout debugging.' },
+  'viewportSize.width': { type: 'number', desc: 'window.innerWidth at capture time.' },
+  'viewportSize.height': { type: 'number', desc: 'window.innerHeight at capture time.' },
+};
+
+// ── Preset data ────────────────────────────────────────────────
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function makeTimestamp(minAgo) {
+  return new Date(Date.now() - minAgo * 60000).toISOString();
+}
+
+function buildPresetData(preset) {
+  const base = { sessions: [] };
+  if (preset === 'react') {
+    base.sessions = [
+      {
+        id: generateId(), name: 'Header issues', color: COLORS[0],
+        startedAt: makeTimestamp(45),
+        clicks: [
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(44), comment: 'Login button too small on mobile', component: { name: 'NavBar', file: 'src/components/NavBar.tsx', framework: 'react' }, elementId: 'login-btn', classList: ['btn', 'btn-primary'], selector: 'header > nav > button.btn.btn-primary', textContent: 'Sign In', boundingBox: { x: 1200, y: 12, width: 80, height: 36 }, parentChain: [{ tagName: 'nav', classList: ['main-nav'] }, { tagName: 'header', id: 'site-header', classList: [] }], attributes: { type: 'button', 'data-testid': 'login-btn' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(42), comment: null, component: { name: 'NavBar', file: 'src/components/NavBar.tsx', framework: 'react' }, elementId: null, classList: ['nav-link', 'active'], selector: 'header > nav > ul > li:nth-of-type(2) > a.nav-link.active', textContent: 'Products', boundingBox: { x: 300, y: 16, width: 70, height: 24 }, parentChain: [{ tagName: 'li', classList: [] }, { tagName: 'ul', classList: ['nav-list'] }], attributes: { href: '/products' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'img', timestamp: makeTimestamp(40), comment: 'Logo is blurry on retina', component: { name: 'Logo', file: 'src/components/Logo.tsx', framework: 'react' }, elementId: 'site-logo', classList: ['logo'], selector: 'header > a > img.logo', textContent: null, boundingBox: { x: 20, y: 8, width: 120, height: 40 }, parentChain: [{ tagName: 'a', classList: ['logo-link'] }, { tagName: 'header', id: 'site-header', classList: [] }], attributes: { src: '/logo.png', alt: 'Acme Inc' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'Product page fixes', color: COLORS[1],
+        startedAt: makeTimestamp(30),
+        clicks: [
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(28), comment: 'Add to cart does not show loading state', component: { name: 'ProductCard', file: 'src/components/ProductCard.tsx', framework: 'react' }, elementId: null, classList: ['add-cart-btn'], selector: 'main > div.grid > div.card:nth-of-type(1) > button.add-cart-btn', textContent: 'Add to Cart', boundingBox: { x: 150, y: 420, width: 140, height: 40 }, parentChain: [{ tagName: 'div', classList: ['card'] }, { tagName: 'div', classList: ['grid'] }], attributes: { 'data-product-id': '42' }, url: 'http://localhost:5173/products', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'span', timestamp: makeTimestamp(26), comment: 'Price should show currency symbol', component: { name: 'ProductCard', file: 'src/components/ProductCard.tsx', framework: 'react' }, elementId: null, classList: ['price'], selector: 'main > div.grid > div.card:nth-of-type(1) > span.price', textContent: '29.99', boundingBox: { x: 150, y: 380, width: 60, height: 20 }, parentChain: [{ tagName: 'div', classList: ['card'] }], attributes: {}, url: 'http://localhost:5173/products', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'Footer cleanup', color: COLORS[2],
+        startedAt: makeTimestamp(15),
+        clicks: [
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(14), comment: 'Link goes to 404', component: { name: 'Footer', file: 'src/components/Footer.tsx', framework: 'react' }, elementId: null, classList: ['footer-link'], selector: 'footer > div > a.footer-link:nth-of-type(3)', textContent: 'Privacy Policy', boundingBox: { x: 600, y: 850, width: 100, height: 18 }, parentChain: [{ tagName: 'div', classList: ['footer-links'] }, { tagName: 'footer', classList: [] }], attributes: { href: '/privacy' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'p', timestamp: makeTimestamp(12), comment: 'Copyright year is 2023, should be 2026', component: { name: 'Footer', file: 'src/components/Footer.tsx', framework: 'react' }, elementId: null, classList: ['copyright'], selector: 'footer > p.copyright', textContent: '(c) 2023 Acme Inc. All rights reserved.', boundingBox: { x: 400, y: 880, width: 300, height: 16 }, parentChain: [{ tagName: 'footer', classList: [] }], attributes: {}, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(10), comment: null, component: { name: 'Newsletter', file: 'src/components/Newsletter.tsx', framework: 'react' }, elementId: 'newsletter-signup', classList: ['newsletter-box'], selector: 'footer > div.newsletter-box', textContent: 'Subscribe to our newsletter', boundingBox: { x: 200, y: 820, width: 400, height: 60 }, parentChain: [{ tagName: 'footer', classList: [] }], attributes: { role: 'region', 'aria-label': 'Newsletter signup' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+        ]
+      }
+    ];
+  } else if (preset === 'svelte') {
+    base.sessions = [
+      {
+        id: generateId(), name: 'Dashboard bugs', color: COLORS[3],
+        startedAt: makeTimestamp(50),
+        clicks: [
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(48), comment: 'Dropdown does not close on outside click', component: { name: 'Sidebar', file: 'src/lib/components/Sidebar.svelte', framework: 'svelte' }, elementId: null, classList: ['menu-toggle', 'svelte-1abc123'], selector: 'aside.sidebar.svelte-1abc123 > button.menu-toggle.svelte-1abc123', textContent: 'Menu', boundingBox: { x: 10, y: 60, width: 200, height: 40 }, parentChain: [{ tagName: 'aside', classList: ['sidebar', 'svelte-1abc123'] }], attributes: { 'aria-expanded': 'false' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(46), comment: 'Chart does not resize on window change', component: { name: 'StatsChart', file: 'src/lib/components/StatsChart.svelte', framework: 'svelte' }, elementId: 'chart-container', classList: ['chart-wrapper', 'svelte-9def456'], selector: 'main > section > div.chart-wrapper.svelte-9def456', textContent: null, boundingBox: { x: 250, y: 100, width: 800, height: 400 }, parentChain: [{ tagName: 'section', classList: ['dashboard-main'] }, { tagName: 'main', classList: [] }], attributes: { role: 'img', 'aria-label': 'Monthly stats' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(44), comment: null, component: { name: 'SearchBar', file: 'src/lib/components/SearchBar.svelte', framework: 'svelte' }, elementId: 'search-input', classList: ['search', 'svelte-7ghi789'], selector: 'header > div.search-container > input.search.svelte-7ghi789', textContent: null, boundingBox: { x: 400, y: 12, width: 300, height: 36 }, parentChain: [{ tagName: 'div', classList: ['search-container'] }, { tagName: 'header', classList: [] }], attributes: { type: 'search', placeholder: 'Search...' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'Settings page', color: COLORS[4],
+        startedAt: makeTimestamp(20),
+        clicks: [
+          { clickId: generateId(), tagName: 'select', timestamp: makeTimestamp(18), comment: 'Theme selector has no dark option', component: { name: 'SettingsForm', file: 'src/routes/settings/+page.svelte', framework: 'svelte' }, elementId: 'theme-select', classList: ['form-control', 'svelte-klm012'], selector: 'form > div.field > select.form-control.svelte-klm012', textContent: 'Light', boundingBox: { x: 300, y: 200, width: 200, height: 36 }, parentChain: [{ tagName: 'div', classList: ['field'] }, { tagName: 'form', classList: ['settings-form'] }], attributes: { name: 'theme' }, url: 'http://localhost:5173/settings', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(16), comment: 'Save button stays disabled after changes', component: { name: 'SettingsForm', file: 'src/routes/settings/+page.svelte', framework: 'svelte' }, elementId: 'save-settings', classList: ['btn-save', 'svelte-klm012'], selector: 'form > button.btn-save.svelte-klm012', textContent: 'Save Changes', boundingBox: { x: 300, y: 400, width: 140, height: 40 }, parentChain: [{ tagName: 'form', classList: ['settings-form'] }], attributes: { type: 'submit', disabled: '' }, url: 'http://localhost:5173/settings', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'Navigation', color: COLORS[5],
+        startedAt: makeTimestamp(8),
+        clicks: [
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(6), comment: null, component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['nav-item', 'svelte-abc999'], selector: 'nav > ul > li:nth-of-type(4) > a.nav-item.svelte-abc999', textContent: 'Analytics', boundingBox: { x: 50, y: 200, width: 180, height: 32 }, parentChain: [{ tagName: 'li', classList: [] }, { tagName: 'ul', classList: [] }, { tagName: 'nav', classList: ['side-nav'] }], attributes: { href: '/analytics' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(4), comment: 'Collapse button icon flipped wrong way', component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['collapse-btn', 'svelte-abc999'], selector: 'nav > button.collapse-btn.svelte-abc999', textContent: null, boundingBox: { x: 50, y: 860, width: 180, height: 32 }, parentChain: [{ tagName: 'nav', classList: ['side-nav'] }], attributes: { 'aria-label': 'Collapse sidebar' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'span', timestamp: makeTimestamp(2), comment: 'Badge count is wrong', component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['badge', 'svelte-abc999'], selector: 'nav > ul > li:nth-of-type(3) > a > span.badge.svelte-abc999', textContent: '99+', boundingBox: { x: 200, y: 164, width: 28, height: 18 }, parentChain: [{ tagName: 'a', classList: ['nav-item'] }, { tagName: 'li', classList: [] }], attributes: {}, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+        ]
+      }
+    ];
+  } else if (preset === 'vue') {
+    base.sessions = [
+      {
+        id: generateId(), name: 'Form validation', color: COLORS[6],
+        startedAt: makeTimestamp(35),
+        clicks: [
+          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(33), comment: 'Email field accepts invalid format', component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: 'email-field', classList: ['v-input', 'error'], selector: 'form.contact-form > div.field-group > input.v-input.error', textContent: null, boundingBox: { x: 200, y: 300, width: 400, height: 40 }, parentChain: [{ tagName: 'div', classList: ['field-group'] }, { tagName: 'form', classList: ['contact-form'] }], attributes: { type: 'email', name: 'email', required: '' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(31), comment: 'Submit shows success even on error', component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: null, classList: ['submit-btn'], selector: 'form.contact-form > button.submit-btn', textContent: 'Send Message', boundingBox: { x: 200, y: 500, width: 160, height: 44 }, parentChain: [{ tagName: 'form', classList: ['contact-form'] }], attributes: { type: 'submit' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'textarea', timestamp: makeTimestamp(29), comment: null, component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: null, classList: ['v-textarea'], selector: 'form.contact-form > div.field-group:nth-of-type(3) > textarea.v-textarea', textContent: null, boundingBox: { x: 200, y: 400, width: 400, height: 80 }, parentChain: [{ tagName: 'div', classList: ['field-group'] }, { tagName: 'form', classList: ['contact-form'] }], attributes: { name: 'message', rows: '4', placeholder: 'Your message...' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'Modal issues', color: COLORS[7],
+        startedAt: makeTimestamp(18),
+        clicks: [
+          { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(16), comment: 'Modal backdrop does not close on click', component: { name: 'BaseModal', file: 'src/components/BaseModal.vue', framework: 'vue' }, elementId: null, classList: ['modal-backdrop'], selector: 'div.modal-backdrop', textContent: null, boundingBox: { x: 0, y: 0, width: 1440, height: 900 }, parentChain: [], attributes: { role: 'dialog', 'aria-modal': 'true' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(14), comment: 'Close X button focus ring missing', component: { name: 'BaseModal', file: 'src/components/BaseModal.vue', framework: 'vue' }, elementId: null, classList: ['close-btn'], selector: 'div.modal-backdrop > div.modal-content > button.close-btn', textContent: null, boundingBox: { x: 900, y: 150, width: 32, height: 32 }, parentChain: [{ tagName: 'div', classList: ['modal-content'] }, { tagName: 'div', classList: ['modal-backdrop'] }], attributes: { 'aria-label': 'Close' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'Table component', color: COLORS[0],
+        startedAt: makeTimestamp(5),
+        clicks: [
+          { clickId: generateId(), tagName: 'th', timestamp: makeTimestamp(4), comment: 'Sort indicator arrow missing', component: { name: 'DataTable', file: 'src/components/DataTable.vue', framework: 'vue' }, elementId: null, classList: ['sortable'], selector: 'table.data-table > thead > tr > th.sortable:nth-of-type(2)', textContent: 'Name', boundingBox: { x: 300, y: 200, width: 200, height: 36 }, parentChain: [{ tagName: 'tr', classList: [] }, { tagName: 'thead', classList: [] }, { tagName: 'table', classList: ['data-table'] }], attributes: { 'data-sort': 'name' }, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'td', timestamp: makeTimestamp(3), comment: null, component: { name: 'DataTable', file: 'src/components/DataTable.vue', framework: 'vue' }, elementId: null, classList: [], selector: 'table.data-table > tbody > tr:nth-of-type(1) > td:nth-of-type(2)', textContent: 'Jane Doe', boundingBox: { x: 300, y: 240, width: 200, height: 36 }, parentChain: [{ tagName: 'tr', classList: [] }, { tagName: 'tbody', classList: [] }], attributes: {}, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(1), comment: 'Pagination resets filters', component: { name: 'Pagination', file: 'src/components/Pagination.vue', framework: 'vue' }, elementId: null, classList: ['page-btn', 'active'], selector: 'nav.pagination > button.page-btn.active:nth-of-type(3)', textContent: '2', boundingBox: { x: 680, y: 600, width: 36, height: 36 }, parentChain: [{ tagName: 'nav', classList: ['pagination'] }], attributes: { 'data-page': '2' }, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
+        ]
+      }
+    ];
+  } else { // plain
+    base.sessions = [
+      {
+        id: generateId(), name: 'Homepage review', color: COLORS[0],
+        startedAt: makeTimestamp(25),
+        clicks: [
+          { clickId: generateId(), tagName: 'h1', timestamp: makeTimestamp(24), comment: 'Heading font too large on mobile', component: null, elementId: 'main-heading', classList: ['hero-title'], selector: 'main > section.hero > h1.hero-title', textContent: 'Welcome to Our Site', boundingBox: { x: 100, y: 200, width: 600, height: 60 }, parentChain: [{ tagName: 'section', classList: ['hero'] }, { tagName: 'main', classList: [] }], attributes: {}, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(22), comment: 'CTA link color has poor contrast', component: null, elementId: null, classList: ['cta-link'], selector: 'main > section.hero > a.cta-link', textContent: 'Get Started', boundingBox: { x: 100, y: 280, width: 140, height: 44 }, parentChain: [{ tagName: 'section', classList: ['hero'] }], attributes: { href: '/signup' }, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'img', timestamp: makeTimestamp(20), comment: null, component: null, elementId: null, classList: ['hero-image'], selector: 'main > section.hero > img.hero-image', textContent: null, boundingBox: { x: 700, y: 160, width: 500, height: 300 }, parentChain: [{ tagName: 'section', classList: ['hero'] }], attributes: { src: '/hero.jpg', alt: 'Hero illustration', loading: 'lazy' }, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'About page', color: COLORS[1],
+        startedAt: makeTimestamp(10),
+        clicks: [
+          { clickId: generateId(), tagName: 'p', timestamp: makeTimestamp(9), comment: 'Typo in second paragraph', component: null, elementId: null, classList: [], selector: 'main > article > p:nth-of-type(2)', textContent: 'We are a team of pasionate developers building tools for the web.', boundingBox: { x: 100, y: 340, width: 700, height: 48 }, parentChain: [{ tagName: 'article', classList: [] }, { tagName: 'main', classList: [] }], attributes: {}, url: 'http://localhost:3000/about', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'ul', timestamp: makeTimestamp(7), comment: 'List bullets not aligned with text', component: null, elementId: null, classList: ['team-list'], selector: 'main > article > ul.team-list', textContent: 'Alice Bob Charlie Diana', boundingBox: { x: 100, y: 420, width: 400, height: 120 }, parentChain: [{ tagName: 'article', classList: [] }], attributes: {}, url: 'http://localhost:3000/about', viewportSize: { width: 1440, height: 900 } },
+        ]
+      },
+      {
+        id: generateId(), name: 'Contact form', color: COLORS[2],
+        startedAt: makeTimestamp(3),
+        clicks: [
+          { clickId: generateId(), tagName: 'form', timestamp: makeTimestamp(2), comment: 'Form has no client-side validation', component: null, elementId: 'contact-form', classList: ['form'], selector: 'main > form.form', textContent: null, boundingBox: { x: 200, y: 200, width: 600, height: 400 }, parentChain: [{ tagName: 'main', classList: [] }], attributes: { action: '/api/contact', method: 'post' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(1), comment: 'Phone field should use tel input type', component: null, elementId: 'phone', classList: ['form-input'], selector: 'main > form.form > div > input.form-input#phone', textContent: null, boundingBox: { x: 220, y: 340, width: 400, height: 36 }, parentChain: [{ tagName: 'div', classList: ['field'] }, { tagName: 'form', classList: ['form'] }], attributes: { type: 'text', name: 'phone', placeholder: '(555) 123-4567' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(0.5), comment: null, component: null, elementId: 'submit-btn', classList: ['btn', 'btn-primary'], selector: 'main > form.form > button.btn.btn-primary', textContent: 'Send', boundingBox: { x: 220, y: 540, width: 120, height: 44 }, parentChain: [{ tagName: 'form', classList: ['form'] }], attributes: { type: 'submit' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
+        ]
+      }
+    ];
+  }
+  return base;
+}
+
+// ── State ──────────────────────────────────────────────────────
+let state = {
+  preset: 'react',
+  data: buildPresetData('react'),
+  maxEntries: 10,
+  expiryMinutes: 60,
+  simClock: Date.now(),
+  simSessions: [],
+  aiAction: 'suggest-fixes',
+  selectedField: null,
+};
+
+// ── Section toggling ───────────────────────────────────────────
+function toggleSection(id) {
+  const header = document.querySelector(`#sec-${id} .section-header`);
+  const body = document.getElementById(`body-${id}`);
+  const isOpen = header.classList.contains('open');
+  header.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ── Section A: Tree view ───────────────────────────────────────
+function setPreset(name) {
+  state.preset = name;
+  state.data = buildPresetData(name);
+  state.selectedField = null;
+  document.querySelectorAll('#body-a .preset-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase() === name);
+  });
+  renderTree();
+  renderAIPreview();
+  updatePrompt();
+}
+
+function renderTree() {
+  const root = document.getElementById('tree-root');
+  root.innerHTML = '';
+  root.appendChild(buildTreeNode('CaptureStore', state.data, '', true));
+}
+
+function buildTreeNode(key, value, path, startOpen) {
+  const isArray = Array.isArray(value);
+  const isObject = value !== null && typeof value === 'object';
+
+  if (isObject) {
+    const container = document.createElement('div');
+    container.className = 'tree-node';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'tree-toggle';
+    toggle.textContent = startOpen ? '\u25BC' : '\u25B6';
+    container.appendChild(toggle);
+
+    const label = document.createElement('span');
+    label.className = 'tree-leaf';
+    const bracket = isArray ? '[' : '{';
+    const closeBracket = isArray ? ']' : '}';
+    const count = isArray ? value.length : Object.keys(value).length;
+    label.innerHTML = `<span class="tree-key">${escHtml(key)}</span><span class="tree-bracket">: ${bracket}</span> <span style="color:#6c7086;font-size:10px;">${count} ${isArray ? 'items' : 'keys'}</span>`;
+
+    const lookupPath = normalizePath(path);
+    if (ANNOTATIONS[lookupPath]) {
+      label.addEventListener('click', (e) => { e.stopPropagation(); showAnnotation(lookupPath); });
+    }
+    container.appendChild(label);
+
+    const children = document.createElement('div');
+    children.className = 'tree-children' + (startOpen ? ' open' : '');
+
+    const entries = isArray ? value.map((v, i) => [i, v]) : Object.entries(value);
+    for (const [k, v] of entries) {
+      const childPath = path ? `${path}.${k}` : String(k);
+      // Open first two levels
+      const depth = childPath.split('.').length;
+      children.appendChild(buildTreeNode(isArray ? `[${k}]` : k, v, childPath, depth <= 2));
+    }
+
+    const closeLine = document.createElement('div');
+    closeLine.style.paddingLeft = '20px';
+    closeLine.innerHTML = `<span class="tree-bracket">${closeBracket}</span>`;
+    children.appendChild(closeLine);
+
+    container.appendChild(children);
+
+    toggle.addEventListener('click', () => {
+      const isOpen = children.classList.contains('open');
+      children.classList.toggle('open');
+      toggle.textContent = isOpen ? '\u25B6' : '\u25BC';
+    });
+    label.addEventListener('dblclick', () => {
+      const isOpen = children.classList.contains('open');
+      children.classList.toggle('open');
+      toggle.textContent = isOpen ? '\u25B6' : '\u25BC';
+    });
+
+    return container;
+  } else {
+    // Leaf node
+    const leaf = document.createElement('div');
+    leaf.className = 'tree-node';
+    leaf.style.paddingLeft = '20px';
+
+    const span = document.createElement('span');
+    span.className = 'tree-leaf';
+
+    let valHtml;
+    if (value === null || value === undefined) {
+      valHtml = '<span class="tree-null">null</span>';
+    } else if (typeof value === 'string') {
+      valHtml = `<span class="tree-string">"${escHtml(value.length > 80 ? value.slice(0, 80) + '...' : value)}"</span>`;
+    } else if (typeof value === 'number') {
+      valHtml = `<span class="tree-number">${value}</span>`;
+    } else if (typeof value === 'boolean') {
+      valHtml = `<span class="tree-boolean">${value}</span>`;
+    } else {
+      valHtml = escHtml(String(value));
+    }
+
+    span.innerHTML = `<span class="tree-key">${escHtml(key)}</span>: ${valHtml}`;
+
+    const lookupPath = normalizePath(path);
+    if (ANNOTATIONS[lookupPath]) {
+      span.addEventListener('click', (e) => { e.stopPropagation(); showAnnotation(lookupPath, span); });
+    }
+
+    leaf.appendChild(span);
+    return leaf;
+  }
+}
+
+function normalizePath(path) {
+  // Convert "sessions.0.clicks.1.tagName" → "tagName"
+  // Or "sessions.0.id" → "sessions.id"
+  // Or "sessions.0.clicks.1.component.name" → "component.name"
+  const parts = path.split('.');
+  // Remove numeric indices
+  const clean = parts.filter(p => isNaN(p));
+  // Try longest match first, then shorter
+  for (let i = 0; i < clean.length; i++) {
+    const candidate = clean.slice(i).join('.');
+    if (ANNOTATIONS[candidate]) return candidate;
+  }
+  return clean.join('.');
+}
+
+function showAnnotation(key, el) {
+  // Remove previous selection
+  document.querySelectorAll('.tree-leaf.selected').forEach(l => l.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+
+  const ann = ANNOTATIONS[key];
+  if (!ann) return;
+  const box = document.getElementById('annotation');
+  box.style.display = 'block';
+  state.selectedField = key;
+  box.innerHTML = `
+    <div><span class="ann-field">${escHtml(key)}</span></div>
+    <div style="margin-top:4px;"><span class="ann-type">${escHtml(ann.type)}</span></div>
+    <div class="ann-desc">${escHtml(ann.desc)}</div>
+  `;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Section B: Config Simulator ────────────────────────────────
+function initSimulation() {
+  state.simClock = Date.now();
+  state.simSessions = JSON.parse(JSON.stringify(state.data.sessions));
+  // Adjust timestamps relative to simClock
+  for (const s of state.simSessions) {
+    for (const c of s.clicks) {
+      // Keep original relative offsets
+    }
+  }
+  renderTimeline();
+}
+
+function onConfigChange() {
+  state.maxEntries = parseInt(document.getElementById('slider-max').value);
+  state.expiryMinutes = parseInt(document.getElementById('slider-expiry').value);
+  document.getElementById('val-max').textContent = state.maxEntries;
+  document.getElementById('val-expiry').textContent = state.expiryMinutes;
+  renderTimeline();
+  updatePrompt();
+}
+
+function simulate15Clicks() {
+  if (state.simSessions.length === 0) {
+    state.simSessions.push({
+      id: generateId(), name: 'Simulated Session', color: COLORS[0],
+      startedAt: new Date(state.simClock).toISOString(), clicks: []
+    });
+  }
+  const session = state.simSessions[state.simSessions.length - 1];
+  const tags = ['button', 'a', 'div', 'span', 'input', 'img', 'p', 'h2', 'li', 'td'];
+  for (let i = 0; i < 15; i++) {
+    session.clicks.push({
+      clickId: generateId(),
+      tagName: tags[Math.floor(Math.random() * tags.length)],
+      timestamp: new Date(state.simClock + i * 200).toISOString(),
+      comment: i % 4 === 0 ? 'Simulated issue #' + (session.clicks.length + 1) : null,
+      component: null, selector: 'body > div > ' + tags[i % tags.length],
+      textContent: 'Click ' + (session.clicks.length + 1),
+    });
+  }
+  renderTimeline();
+}
+
+function advanceClock(minutes) {
+  state.simClock += minutes * 60000;
+  renderTimeline();
+}
+
+function resetSimulation() {
+  state.simSessions = JSON.parse(JSON.stringify(state.data.sessions));
+  state.simClock = Date.now();
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timeline');
+  const expiryMs = state.expiryMinutes * 60000;
+  const now = state.simClock;
+
+  // Apply filterExpiredSessions logic (copy)
+  let sessions = JSON.parse(JSON.stringify(state.simSessions));
+  let expiredCounts = {};
+  let trimmedCounts = {};
+
+  for (const s of sessions) {
+    const beforeFilter = s.clicks.length;
+    const activeClicks = [];
+    const expired = [];
+    for (const c of s.clicks) {
+      const age = now - new Date(c.timestamp).getTime();
+      if (age < expiryMs) {
+        activeClicks.push(c);
+      } else {
+        expired.push(c);
+      }
+    }
+    expiredCounts[s.id] = expired.length;
+
+    // Apply slice(-maxEntries) trimming
+    let trimmed = 0;
+    let finalClicks = activeClicks;
+    if (activeClicks.length > state.maxEntries) {
+      trimmed = activeClicks.length - state.maxEntries;
+      finalClicks = activeClicks.slice(-state.maxEntries);
+    }
+    trimmedCounts[s.id] = trimmed;
+
+    s._allClicks = s.clicks; // keep originals for display
+    s._expired = expired;
+    s._trimmed = trimmed > 0 ? activeClicks.slice(0, trimmed) : [];
+    s._active = finalClicks;
+    s.clicks = finalClicks;
+  }
+
+  // Remove empty sessions
+  const activeSessions = sessions.filter(s => s.clicks.length > 0);
+  const removedSessions = sessions.filter(s => s.clicks.length === 0);
+
+  let html = '';
+  for (const s of sessions) {
+    const color = s.color || COLORS[0];
+    const isEmpty = s.clicks.length === 0;
+    html += `<div class="timeline-row" style="${isEmpty ? 'opacity:0.3;' : ''}">`;
+    html += `<div class="timeline-session-label" style="color:${color};">${escHtml(s.name)}</div>`;
+    html += `<div class="timeline-clicks">`;
+
+    // Show expired clicks
+    for (const c of (s._expired || [])) {
+      const age = Math.round((now - new Date(c.timestamp).getTime()) / 60000);
+      html += `<div class="timeline-click expired" style="background:${color};" title="EXPIRED: ${c.tagName} (${age}min ago)">${escHtml(c.tagName.charAt(0).toUpperCase())}</div>`;
+    }
+    // Show trimmed clicks
+    for (const c of (s._trimmed || [])) {
+      const age = Math.round((now - new Date(c.timestamp).getTime()) / 60000);
+      html += `<div class="timeline-click trimmed" style="background:${color};" title="TRIMMED by maxEntries: ${c.tagName} (${age}min ago)">${escHtml(c.tagName.charAt(0).toUpperCase())}</div>`;
+    }
+    // Show active clicks
+    for (const c of (s._active || [])) {
+      const age = Math.round((now - new Date(c.timestamp).getTime()) / 60000);
+      html += `<div class="timeline-click" style="background:${color};" title="${c.tagName} (${age}min ago)${c.comment ? ' - ' + c.comment : ''}">${escHtml(c.tagName.charAt(0).toUpperCase())}</div>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  container.innerHTML = html || '<div style="color:#6c7086;font-size:12px;padding:8px;">No sessions. Switch to a preset above or simulate clicks.</div>';
+
+  // Stats
+  let totalActive = 0, totalExpired = 0, totalTrimmed = 0;
+  for (const s of sessions) {
+    totalActive += s._active.length;
+    totalExpired += (s._expired || []).length;
+    totalTrimmed += (s._trimmed || []).length;
+  }
+
+  document.getElementById('stats').innerHTML = `
+    <span>Active: <span class="stat-value">${totalActive}</span></span>
+    <span>Expired: <span class="stat-value" style="color:#f38ba8;">${totalExpired}</span></span>
+    <span>Trimmed: <span class="stat-value" style="color:#fab387;">${totalTrimmed}</span></span>
+    <span>Sessions: <span class="stat-value">${activeSessions.length}</span> / ${sessions.length}</span>
+    <span>Clock: <span class="stat-value">${new Date(now).toLocaleTimeString()}</span></span>
+  `;
+
+  // Algorithm display
+  document.getElementById('algo-display').innerHTML = `
+<span class="hl">function</span> filterExpiredSessions(store, expiryMs) {
+  <span style="color:#6c7086;">// expiryMs = ${state.expiryMinutes} * 60 * 1000 = <span class="val">${expiryMs}</span></span>
+  <span class="hl">const</span> now = Date.now(); <span style="color:#6c7086;">// ${new Date(now).toLocaleTimeString()}</span>
+  <span class="hl">for</span> (<span class="hl">const</span> session <span class="hl">of</span> store.sessions) {
+    session.clicks = session.clicks.<span class="hl">filter</span>(c =>
+      now - <span class="hl">new</span> Date(c.timestamp).getTime() < <span class="val">${expiryMs}</span>
+    ); <span style="color:#6c7086;">// ${totalExpired} clicks removed</span>
+  }
+  store.sessions = store.sessions.<span class="hl">filter</span>(s => s.clicks.length > 0);
+  <span style="color:#6c7086;">// ${removedSessions.length} empty sessions removed</span>
+
+  <span style="color:#6c7086;">// Then per-session trimming:</span>
+  <span class="hl">if</span> (active.clicks.length > <span class="val">${state.maxEntries}</span>) {
+    active.clicks = active.clicks.<span class="hl">slice</span>(<span class="val">-${state.maxEntries}</span>);
+  } <span style="color:#6c7086;">// ${totalTrimmed} clicks trimmed</span>
+}`;
+}
+
+// ── Section C: AI Instruction Preview ──────────────────────────
+function renderAIPreview() {
+  const data = state.data;
+  const action = document.getElementById('ai-action').value;
+  const preview = document.getElementById('ai-preview');
+
+  const allSessions = data.sessions || [];
+  const totalClicks = allSessions.reduce((n, s) => n + s.clicks.length, 0);
+  const hasComments = allSessions.some(s => s.clicks.some(c => c.comment));
+
+  let html = '';
+
+  // Step 1
+  html += `<span class="ai-step">Step 1:</span> Read <span class="ai-path">.see-my-clicks/clicked.json</span>\n\n`;
+
+  if (totalClicks === 0) {
+    html += `<span class="ai-muted">No clicks found. Nothing to report.</span>\n`;
+    preview.innerHTML = html;
+    updatePrompt();
+    return;
+  }
+
+  // Step 2: Data found
+  html += `<span class="ai-step">Step 2:</span> Found <span style="color:#fab387;">${totalClicks}</span> clicks across <span style="color:#fab387;">${allSessions.length}</span> sessions\n\n`;
+
+  // Step 3: Per-session listing
+  html += `<span class="ai-step">Step 3:</span> Per-session click details:\n`;
+  for (const session of allSessions) {
+    html += `\n<span style="color:${session.color || COLORS[0]};font-weight:700;">  ${escHtml(session.name)}</span> <span class="ai-muted">(${session.clicks.length} clicks)</span>\n`;
+    for (const c of session.clicks) {
+      html += `    <span class="ai-tag">&lt;${escHtml(c.tagName)}&gt;</span>`;
+      if (c.selector) html += ` <span class="ai-muted">${escHtml(c.selector.length > 50 ? c.selector.slice(0, 50) + '...' : c.selector)}</span>`;
+      if (c.textContent) html += ` <span style="color:#cdd6f4;">"${escHtml(c.textContent.length > 40 ? c.textContent.slice(0, 40) + '...' : c.textContent)}"</span>`;
+      html += '\n';
+      if (c.component) {
+        html += `      Component: <span style="color:#89dceb;">${escHtml(c.component.name)}</span> <span class="ai-muted">(${escHtml(c.component.framework)}: ${escHtml(c.component.file || 'Unknown')})</span>\n`;
+      }
+      if (c.url) html += `      Page: <span class="ai-path">${escHtml(c.url)}</span>\n`;
+      if (c.comment) html += `      Comment: <span class="ai-comment">"${escHtml(c.comment)}"</span>\n`;
+    }
+  }
+
+  html += '\n';
+
+  // Step 4/5: Action-dependent
+  if (hasComments) {
+    html += `<span class="ai-step">Step 4:</span> Comments found. `;
+    if (action === 'suggest-fixes') {
+      html += `Suggest fixes grouped by component/page/concern:\n\n`;
+      // Group by component file
+      const groups = {};
+      for (const s of allSessions) {
+        for (const c of s.clicks) {
+          if (!c.comment) continue;
+          const key = c.component ? c.component.file : (c.url || 'unknown');
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(c);
+        }
+      }
+      for (const [file, clicks] of Object.entries(groups)) {
+        html += `  <span class="ai-path">${escHtml(file)}</span>\n`;
+        for (const c of clicks) {
+          html += `    - <span class="ai-comment">${escHtml(c.comment)}</span> <span class="ai-muted">(&lt;${c.tagName}&gt;)</span>\n`;
+        }
+      }
+    } else if (action === 'taskmaster') {
+      html += `Create Task Master tasks for each issue:\n\n`;
+      let taskNum = 1;
+      for (const s of allSessions) {
+        for (const c of s.clicks) {
+          if (!c.comment) continue;
+          html += `  <span style="color:#fab387;">Task ${taskNum}:</span> ${escHtml(c.comment)}\n`;
+          html += `    <span class="ai-muted">File: ${c.component ? escHtml(c.component.file) : 'N/A'} | Element: &lt;${c.tagName}&gt;</span>\n`;
+          taskNum++;
+        }
+      }
+    } else if (action === 'github-issues') {
+      html += `Create GitHub issues:\n\n`;
+      let issueNum = 1;
+      for (const s of allSessions) {
+        for (const c of s.clicks) {
+          if (!c.comment) continue;
+          html += `  <span style="color:#fab387;">Issue #${issueNum}:</span> ${escHtml(c.comment)}\n`;
+          html += `    <span class="ai-muted">Labels: bug | File: ${c.component ? escHtml(c.component.file) : 'N/A'}</span>\n`;
+          issueNum++;
+        }
+      }
+    } else { // just-report
+      html += `Report findings:\n\n`;
+      for (const s of allSessions) {
+        for (const c of s.clicks) {
+          if (!c.comment) continue;
+          html += `  - <span class="ai-comment">${escHtml(c.comment)}</span> <span class="ai-muted">(${c.tagName}${c.component ? ' in ' + c.component.name : ''})</span>\n`;
+        }
+      }
+    }
+  } else {
+    html += `<span class="ai-step">Step 5:</span> No comments found. Present element info and ask what to do.\n`;
+    html += `<span class="ai-muted">  "I found ${totalClicks} captured elements but no comments. Would you like me to analyze these elements and suggest potential issues?"</span>\n`;
+  }
+
+  // Step 6: Reset
+  html += `\n<span class="ai-step">Step 6:</span> Reset file:\n`;
+  html += `  <span class="ai-path">printf '{"sessions":[]}' > .see-my-clicks/clicked.json</span>\n`;
+
+  preview.innerHTML = html;
+  updatePrompt();
+}
+
+// ── Prompt output ──────────────────────────────────────────────
+function updatePrompt() {
+  const data = state.data;
+  const action = document.getElementById('ai-action')?.value || 'suggest-fixes';
+  const parts = [];
+
+  const allSessions = data.sessions || [];
+  const totalClicks = allSessions.reduce((n, s) => n + s.clicks.length, 0);
+  const hasComments = allSessions.some(s => s.clicks.some(c => c.comment));
+  const frameworks = [...new Set(allSessions.flatMap(s => s.clicks.map(c => c.component?.framework).filter(Boolean)))];
+
+  if (totalClicks === 0) {
+    document.getElementById('prompt-text').textContent = 'No click data to process.';
+    return;
+  }
+
+  parts.push(`Read .see-my-clicks/clicked.json. It contains ${totalClicks} captured clicks across ${allSessions.length} sessions`);
+  if (frameworks.length > 0) {
+    parts.push(` from a ${frameworks.join('/')} project`);
+  }
+  parts.push('.');
+
+  if (hasComments) {
+    const commentCount = allSessions.reduce((n, s) => n + s.clicks.filter(c => c.comment).length, 0);
+    parts.push(` ${commentCount} clicks have comments describing issues.`);
+
+    if (action === 'suggest-fixes') {
+      parts.push(' For each comment, suggest a concrete code fix grouped by component file.');
+    } else if (action === 'taskmaster') {
+      parts.push(' Create a Task Master task for each commented issue, with file paths and element context.');
+    } else if (action === 'github-issues') {
+      parts.push(' Create a GitHub issue for each commented issue with appropriate labels and reproduction steps.');
+    } else {
+      parts.push(' Report all findings in a summary.');
+    }
+  } else {
+    parts.push(' No comments were left. Present the captured elements and ask what the user wants to do.');
+  }
+
+  if (state.maxEntries !== 10) {
+    parts.push(` Config uses maxEntries=${state.maxEntries}.`);
+  }
+  if (state.expiryMinutes !== 60) {
+    parts.push(` Entries expire after ${state.expiryMinutes} minutes.`);
+  }
+
+  parts.push(' After processing, reset the file with: printf \'{"sessions":[]}\' > .see-my-clicks/clicked.json');
+
+  document.getElementById('prompt-text').textContent = parts.join('') + '\n\n[playground:data-explorer]';
+}
+
+function copyPrompt() {
+  let text = document.getElementById('prompt-text').textContent;
+  const notes = document.getElementById('prompt-notes').value.trim();
+  if (notes) text += '\n\n' + notes;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// ── Init ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  renderTree();
+  initSimulation();
+  renderAIPreview();
+  updatePrompt();
+});
+</script>
+</body>
+</html>

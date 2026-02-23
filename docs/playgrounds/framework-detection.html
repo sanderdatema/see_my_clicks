@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>see-my-clicks Framework Detection Playground</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1e1e2e;
+    --text: #cdd6f4;
+    --text-secondary: #6c7086;
+    --surface: #313244;
+    --border: #45475a;
+    --accent: #8b5cf6;
+    --react: #74c7ec;
+    --vue: #a6e3a1;
+    --svelte: #fab387;
+    --html-gray: #9399b2;
+    --success: #a6e3a1;
+    --fail: #f38ba8;
+    --font: system-ui, -apple-system, sans-serif;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* Layout */
+  .app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    gap: 0;
+  }
+
+  .header {
+    grid-column: 1 / -1;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg);
+  }
+
+  .header h1 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .header h1 span { color: var(--accent); }
+
+  .presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .preset-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.15s;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .preset-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    grid-row: 2;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  /* Framework tabs */
+  .fw-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .fw-tab {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.15s;
+  }
+
+  .fw-tab:hover { color: var(--text); }
+  .fw-tab.active { border-color: var(--accent); color: var(--text); background: rgba(139,92,246,0.15); }
+  .fw-tab[data-fw="react"].active { border-color: var(--react); color: var(--react); background: rgba(116,199,236,0.1); }
+  .fw-tab[data-fw="vue3"].active { border-color: var(--vue); color: var(--vue); background: rgba(166,227,161,0.1); }
+  .fw-tab[data-fw="vue2"].active { border-color: var(--vue); color: var(--vue); background: rgba(166,227,161,0.1); }
+  .fw-tab[data-fw="svelte"].active { border-color: var(--svelte); color: var(--svelte); background: rgba(250,179,135,0.1); }
+  .fw-tab[data-fw="html"].active { border-color: var(--html-gray); color: var(--html-gray); background: rgba(147,153,178,0.1); }
+
+  /* DOM Tree */
+  .dom-tree {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .tree-node {
+    padding-left: 0;
+  }
+
+  .tree-node-inner {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text-secondary);
+  }
+
+  .tree-node-inner:hover {
+    background: var(--surface);
+  }
+
+  .tree-node-inner.selected {
+    background: rgba(139,92,246,0.2);
+    color: var(--text);
+  }
+
+  .tree-toggle {
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .tree-tag { color: var(--text-secondary); }
+  .tree-comp {
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+  }
+
+  .tree-comp.react { background: rgba(116,199,236,0.15); color: var(--react); }
+  .tree-comp.vue { background: rgba(166,227,161,0.15); color: var(--vue); }
+  .tree-comp.svelte { background: rgba(250,179,135,0.15); color: var(--svelte); }
+
+  .tree-children {
+    padding-left: 16px;
+  }
+
+  .tree-children.collapsed {
+    display: none;
+  }
+
+  .tree-props {
+    font-size: 10px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    margin-left: 4px;
+    font-family: var(--mono);
+  }
+
+  /* Main area */
+  .main {
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .detection-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+    text-align: center;
+    gap: 8px;
+  }
+
+  .empty-state .arrow {
+    font-size: 32px;
+    transform: rotate(-90deg);
+    opacity: 0.3;
+  }
+
+  /* Detection steps */
+  .detection-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .detection-header {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detection-header .fn-name {
+    font-family: var(--mono);
+    color: var(--accent);
+  }
+
+  .detection-body {
+    padding: 10px 14px;
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 6px 0;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: all 0.3s ease;
+  }
+
+  .step.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .step.winner {
+    background: rgba(166,227,161,0.08);
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin: 0 -8px;
+  }
+
+  .step-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-icon.pass { background: rgba(166,227,161,0.2); color: var(--success); }
+  .step-icon.fail { background: rgba(243,139,168,0.2); color: var(--fail); }
+  .step-icon.skip { background: rgba(108,112,134,0.2); color: var(--text-secondary); }
+  .step-icon.pending { background: rgba(139,92,246,0.2); color: var(--accent); }
+
+  .step-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .step-label {
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .step-detail {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    margin-top: 2px;
+    word-break: break-all;
+  }
+
+  .step-detail code {
+    background: rgba(139,92,246,0.1);
+    padding: 1px 4px;
+    border-radius: 2px;
+    color: var(--accent);
+  }
+
+  /* Result object */
+  .result-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .result-box .key { color: var(--accent); }
+  .result-box .str { color: var(--success); }
+  .result-box .null-val { color: var(--fail); }
+  .result-box .brace { color: var(--text-secondary); }
+
+  /* Fiber walk animation */
+  .fiber-walk {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+  }
+
+  .fiber-node {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-secondary);
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.2s ease;
+  }
+
+  .fiber-node.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .fiber-node.match {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(166,227,161,0.08);
+  }
+
+  .fiber-node.skip-node {
+    border-color: var(--border);
+    color: var(--text-secondary);
+  }
+
+  .fiber-arrow {
+    color: var(--text-secondary);
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .fiber-arrow.visible { opacity: 1; }
+
+  /* findElement section */
+  .find-element-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .fe-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all 0.25s ease;
+  }
+
+  .fe-step.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .fe-step.found {
+    background: rgba(166,227,161,0.08);
+  }
+
+  .fe-step-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .fe-step-num.pass { background: var(--success); color: var(--bg); }
+  .fe-step-num.fail { background: var(--surface); color: var(--text-secondary); }
+  .fe-step-num.pending { background: var(--accent); color: #fff; }
+
+  .fe-step-text {
+    flex: 1;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+  }
+
+  .fe-step-text strong { color: var(--text); font-weight: 600; }
+
+  .fe-step-result {
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .fe-step-result.pass { color: var(--success); }
+  .fe-step-result.fail { color: var(--fail); }
+
+  /* Prompt output */
+  .prompt-bar {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--bg);
+    min-height: 60px;
+  }
+
+  .prompt-text {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-family: var(--mono);
+    max-height: 80px;
+    overflow-y: auto;
+  }
+
+  .prompt-notes {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12px; line-height: 1.5; color: var(--text);
+    background: transparent; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px; resize: vertical; min-height: 36px; outline: none;
+  }
+  .prompt-notes:focus { border-color: var(--accent); }
+  .prompt-notes::placeholder { color: var(--border); }
+  .prompt-sep { color: var(--border); font-size: 11px; padding: 4px 0; }
+
+  .copy-btn {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: var(--font);
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover { opacity: 0.85; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-in {
+    animation: fadeIn 0.3s ease forwards;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1><span>see-my-clicks</span> Framework Detection</h1>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <!-- Sidebar: Framework tabs + DOM tree -->
+  <div class="sidebar">
+    <div>
+      <div class="section-label">Framework</div>
+      <div class="fw-tabs" id="fwTabs"></div>
+    </div>
+    <div>
+      <div class="section-label">DOM Tree <span style="font-weight:400;text-transform:none;letter-spacing:0;">(click an element)</span></div>
+      <div class="dom-tree" id="domTree"></div>
+    </div>
+  </div>
+
+  <!-- Main detection panel -->
+  <div class="main">
+    <div class="detection-panel" id="detectionPanel">
+      <div class="empty-state" id="emptyState">
+        <div class="arrow">&larr;</div>
+        <div style="font-size:14px;font-weight:600;">Click an element in the DOM tree</div>
+        <div style="font-size:12px;">See how detection functions identify framework components</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt output -->
+  <div class="prompt-bar">
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div class="prompt-text" id="promptText">Select a framework tab and click an element to see how see-my-clicks detects components.</div>
+      <div class="prompt-sep">-- your notes --</div>
+      <textarea class="prompt-notes" id="promptNotes" rows="2" placeholder="Add your own notes here..."></textarea>
+    </div>
+    <button class="copy-btn" id="copyBtn">Copy</button>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+
+const FRAMEWORKS = ['react', 'vue3', 'vue2', 'svelte', 'html'];
+const FW_LABELS = { react: 'React', vue3: 'Vue 3', vue2: 'Vue 2', svelte: 'Svelte', html: 'Plain HTML' };
+
+const state = {
+  activeFramework: 'react',
+  selectedNode: null,
+  preset: null,
+};
+
+// ── Mock DOM Trees ─────────────────────────────────────────────────────
+
+function mockReactTree() {
+  return {
+    tag: 'div', id: 'root', classes: [],
+    props: { '__reactFiber$abc123': true },
+    component: { framework: 'react', name: 'App', file: '/src/App.tsx' },
+    fiber: [
+      { type: 'function', name: 'App', file: '/src/App.tsx' },
+    ],
+    text: null,
+    children: [
+      {
+        tag: 'div', id: '', classes: ['layout'],
+        props: { '__reactFiber$abc123': true },
+        component: { framework: 'react', name: 'Layout', file: '/src/components/Layout.tsx' },
+        fiber: [
+          { type: 'object', name: null, file: null },
+          { type: 'function', name: 'Layout', file: '/src/components/Layout.tsx' },
+        ],
+        text: null,
+        children: [
+          {
+            tag: 'header', id: '', classes: ['app-header'],
+            props: { '__reactFiber$abc123': true },
+            component: { framework: 'react', name: 'Header', file: '/src/components/Header.tsx' },
+            fiber: [
+              { type: 'string', name: null, file: null },
+              { type: 'function', name: 'Header', file: '/src/components/Header.tsx' },
+            ],
+            text: 'My Next.js App',
+            children: [
+              {
+                tag: 'button', id: 'user-menu', classes: ['user-btn'],
+                props: { '__reactFiber$abc123': true },
+                component: { framework: 'react', name: 'UserMenu', file: '/src/components/UserMenu.tsx' },
+                fiber: [
+                  { type: 'string', name: null, file: null },
+                  { type: 'function', name: 'UserMenu', file: '/src/components/UserMenu.tsx' },
+                  { type: 'function', name: 'Header', file: '/src/components/Header.tsx' },
+                ],
+                text: 'John Doe',
+                attrs: { 'data-testid': 'user-menu-btn' },
+                children: []
+              }
+            ]
+          },
+          {
+            tag: 'main', id: '', classes: ['content'],
+            props: { '__reactFiber$abc123': true },
+            component: { framework: 'react', name: 'Layout', file: '/src/components/Layout.tsx' },
+            fiber: [
+              { type: 'string', name: null, file: null },
+              { type: 'function', name: 'Layout', file: '/src/components/Layout.tsx' },
+            ],
+            text: 'Page content here...',
+            children: []
+          }
+        ]
+      }
+    ]
+  };
+}
+
+function mockSvelteTree() {
+  return {
+    tag: 'div', id: 'app', classes: ['svelte-1a2b3c'],
+    props: { '__svelte_meta': { loc: { file: '/src/routes/+layout.svelte' } } },
+    component: { framework: 'svelte', name: '+layout', file: '/src/routes/+layout.svelte' },
+    svelteDetection: { method: '__svelte_meta', meta: { loc: { file: '/src/routes/+layout.svelte' } } },
+    text: null,
+    children: [
+      {
+        tag: 'nav', id: '', classes: ['nav', 'svelte-4d5e6f'],
+        props: {},
+        component: { framework: 'svelte', name: 'Nav', file: '/src/lib/Nav.svelte' },
+        svelteDetection: { method: 'data-component', value: 'Nav' },
+        attrs: { 'data-component': 'Nav' },
+        text: null,
+        children: [
+          {
+            tag: 'a', id: '', classes: ['nav-link', 'svelte-4d5e6f'],
+            props: {},
+            component: { framework: 'svelte', name: 'Unknown (svelte-4d5e6f)', file: 'Unknown' },
+            svelteDetection: { method: 'svelte-class', className: 'svelte-4d5e6f' },
+            text: 'Home',
+            attrs: { href: '/', 'data-sveltekit-preload-data': 'hover' },
+            children: []
+          },
+          {
+            tag: 'button', id: '', classes: ['btn', 'svelte-7g8h9i'],
+            props: { '__svelte_meta': { loc: { file: '/src/lib/Button.svelte' } } },
+            component: { framework: 'svelte', name: 'Button', file: '/src/lib/Button.svelte' },
+            svelteDetection: { method: '__svelte_meta', meta: { loc: { file: '/src/lib/Button.svelte' } } },
+            text: 'Sign In',
+            attrs: { 'data-testid': 'sign-in' },
+            children: []
+          }
+        ]
+      },
+      {
+        tag: 'main', id: '', classes: ['svelte-1a2b3c'],
+        props: {},
+        component: { framework: 'svelte', name: 'Unknown (svelte-1a2b3c)', file: 'Unknown' },
+        svelteDetection: { method: 'svelte-class', className: 'svelte-1a2b3c' },
+        text: 'Page slot content',
+        children: []
+      }
+    ]
+  };
+}
+
+function mockVue3Tree() {
+  return {
+    tag: 'div', id: 'app', classes: [],
+    props: { '__vueParentComponent': true },
+    component: { framework: 'vue', name: 'App', file: '/src/App.vue' },
+    vueDetection: { version: 3, instance: { type: { name: 'App', __name: 'App', __file: '/src/App.vue' } } },
+    text: null,
+    children: [
+      {
+        tag: 'header', id: '', classes: ['app-header'],
+        props: { '__vueParentComponent': true },
+        component: { framework: 'vue', name: 'AppHeader', file: '/src/components/AppHeader.vue' },
+        vueDetection: { version: 3, instance: { type: { name: null, __name: 'AppHeader', __file: '/src/components/AppHeader.vue' } } },
+        text: 'Nuxt 3 App',
+        children: [
+          {
+            tag: 'nav', id: 'main-nav', classes: ['nav-bar'],
+            props: { '__vueParentComponent': true },
+            component: { framework: 'vue', name: 'NavBar', file: '/src/components/NavBar.vue' },
+            vueDetection: { version: 3, instance: { type: { name: 'NavBar', __name: 'NavBar', __file: '/src/components/NavBar.vue' } } },
+            text: null,
+            children: [
+              {
+                tag: 'a', id: '', classes: ['nav-item'],
+                props: { '__vueParentComponent': true },
+                component: { framework: 'vue', name: 'NavItem', file: '/src/components/NavItem.vue' },
+                vueDetection: { version: 3, instance: { type: { name: null, __name: 'NavItem', __file: '/src/components/NavItem.vue' } } },
+                text: 'Dashboard',
+                attrs: { href: '/dashboard', 'data-route': 'dashboard' },
+                children: []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        tag: 'main', id: 'content', classes: ['page-content'],
+        props: {},
+        component: null,
+        vueDetection: null,
+        text: 'Welcome to the dashboard',
+        children: []
+      }
+    ]
+  };
+}
+
+function mockVue2Tree() {
+  return {
+    tag: 'div', id: 'app', classes: [],
+    props: { '__vue__': true },
+    component: { framework: 'vue', name: 'App', file: '/src/App.vue' },
+    vueDetection: { version: 2, instance: { $options: { name: 'App', _componentTag: null, __file: '/src/App.vue' } } },
+    text: null,
+    children: [
+      {
+        tag: 'div', id: '', classes: ['sidebar'],
+        props: { '__vue__': true },
+        component: { framework: 'vue', name: 'Sidebar', file: '/src/components/Sidebar.vue' },
+        vueDetection: { version: 2, instance: { $options: { name: 'Sidebar', _componentTag: 'sidebar-menu', __file: '/src/components/Sidebar.vue' } } },
+        text: null,
+        children: [
+          {
+            tag: 'a', id: '', classes: ['menu-item'],
+            props: { '__vue__': true },
+            component: { framework: 'vue', name: 'menu-item', file: '/src/components/MenuItem.vue' },
+            vueDetection: { version: 2, instance: { $options: { name: null, _componentTag: 'menu-item', __file: '/src/components/MenuItem.vue' } } },
+            text: 'Settings',
+            attrs: { href: '/settings' },
+            children: []
+          }
+        ]
+      },
+      {
+        tag: 'div', id: 'view', classes: ['router-view'],
+        props: {},
+        component: null,
+        vueDetection: null,
+        text: 'Router view content',
+        children: []
+      }
+    ]
+  };
+}
+
+function mockHtmlTree() {
+  return {
+    tag: 'div', id: 'wrapper', classes: ['page-wrapper'],
+    props: {},
+    component: null,
+    text: null,
+    children: [
+      {
+        tag: 'header', id: 'site-header', classes: ['header'],
+        props: {},
+        component: null,
+        text: null,
+        attrs: { 'data-section': 'header' },
+        children: [
+          {
+            tag: 'nav', id: 'main-nav', classes: ['nav'],
+            props: {},
+            component: null,
+            text: null,
+            children: [
+              {
+                tag: 'a', id: '', classes: ['nav-link', 'active'],
+                props: {},
+                component: null,
+                text: 'Home',
+                attrs: { href: '/', 'data-nav': 'home' },
+                children: []
+              },
+              {
+                tag: 'button', id: 'menu-toggle', classes: ['hamburger'],
+                props: {},
+                component: null,
+                text: 'Menu',
+                children: []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        tag: 'main', id: 'content', classes: ['main-content'],
+        props: {},
+        component: null,
+        text: 'Static HTML content with no framework.',
+        attrs: { 'data-page': 'home' },
+        children: []
+      }
+    ]
+  };
+}
+
+function mockMixedTree() {
+  return {
+    tag: 'div', id: 'micro-fe-root', classes: [],
+    props: {},
+    component: null,
+    text: null,
+    children: [
+      {
+        tag: 'div', id: 'react-mount', classes: [],
+        props: { '__reactFiber$xyz789': true },
+        component: { framework: 'react', name: 'ReactWidget', file: '/react-app/src/Widget.tsx' },
+        fiber: [
+          { type: 'function', name: 'ReactWidget', file: '/react-app/src/Widget.tsx' },
+        ],
+        text: 'React Widget',
+        children: [
+          {
+            tag: 'button', id: '', classes: ['react-btn'],
+            props: { '__reactFiber$xyz789': true },
+            component: { framework: 'react', name: 'ActionButton', file: '/react-app/src/ActionButton.tsx' },
+            fiber: [
+              { type: 'function', name: 'ActionButton', file: '/react-app/src/ActionButton.tsx' },
+            ],
+            text: 'Add to Cart',
+            children: []
+          }
+        ]
+      },
+      {
+        tag: 'div', id: 'vue-mount', classes: [],
+        props: { '__vueParentComponent': true },
+        component: { framework: 'vue', name: 'VueCart', file: '/vue-app/src/Cart.vue' },
+        vueDetection: { version: 3, instance: { type: { name: 'VueCart', __name: 'VueCart', __file: '/vue-app/src/Cart.vue' } } },
+        text: 'Shopping Cart (3 items)',
+        children: [
+          {
+            tag: 'ul', id: '', classes: ['cart-list'],
+            props: { '__vueParentComponent': true },
+            component: { framework: 'vue', name: 'CartList', file: '/vue-app/src/CartList.vue' },
+            vueDetection: { version: 3, instance: { type: { name: null, __name: 'CartList', __file: '/vue-app/src/CartList.vue' } } },
+            text: 'Item 1, Item 2, Item 3',
+            children: []
+          }
+        ]
+      }
+    ]
+  };
+}
+
+// ── Detection Simulation ──────────────────────────────────────────────
+
+function simulateSvelteDetection(node) {
+  const steps = [];
+
+  // Step 1: __svelte_meta
+  if (node.svelteDetection && node.svelteDetection.method === '__svelte_meta') {
+    const meta = node.svelteDetection.meta;
+    const file = meta.loc && meta.loc.file ? meta.loc.file : 'Unknown';
+    const name = file !== 'Unknown' ? file.split('/').pop().replace('.svelte', '') : 'Unknown';
+    steps.push({
+      label: 'Check el.__svelte_meta',
+      detail: `Found! loc.file = "${file}"`,
+      status: 'pass',
+      winner: true,
+    });
+    steps.push({
+      label: 'Check el.getAttribute("data-component")',
+      detail: 'Skipped (already matched)',
+      status: 'skip',
+    });
+    steps.push({
+      label: 'Check el.classList for svelte-* class',
+      detail: 'Skipped (already matched)',
+      status: 'skip',
+    });
+    return { steps, result: { framework: 'svelte', name, file } };
+  }
+
+  // Step 1 failed
+  steps.push({
+    label: 'Check el.__svelte_meta',
+    detail: 'Not found on element',
+    status: 'fail',
+  });
+
+  // Step 2: data-component
+  if (node.svelteDetection && node.svelteDetection.method === 'data-component') {
+    steps.push({
+      label: 'Check el.getAttribute("data-component")',
+      detail: `Found! data-component = "${node.svelteDetection.value}"`,
+      status: 'pass',
+      winner: true,
+    });
+    steps.push({
+      label: 'Check el.classList for svelte-* class',
+      detail: 'Skipped (already matched)',
+      status: 'skip',
+    });
+    return { steps, result: { framework: 'svelte', name: node.svelteDetection.value, file: 'Unknown' } };
+  }
+
+  steps.push({
+    label: 'Check el.getAttribute("data-component")',
+    detail: 'Not found / null',
+    status: 'fail',
+  });
+
+  // Step 3: svelte-* class
+  if (node.svelteDetection && node.svelteDetection.method === 'svelte-class') {
+    steps.push({
+      label: 'Check el.classList for svelte-* class',
+      detail: `Found class "${node.svelteDetection.className}"`,
+      status: 'pass',
+      winner: true,
+    });
+    return { steps, result: { framework: 'svelte', name: `Unknown (${node.svelteDetection.className})`, file: 'Unknown' } };
+  }
+
+  // Check if any class starts with svelte-
+  const svelteClass = (node.classes || []).find(c => c.startsWith('svelte-'));
+  if (svelteClass) {
+    steps.push({
+      label: 'Check el.classList for svelte-* class',
+      detail: `Found class "${svelteClass}"`,
+      status: 'pass',
+      winner: true,
+    });
+    return { steps, result: { framework: 'svelte', name: `Unknown (${svelteClass})`, file: 'Unknown' } };
+  }
+
+  steps.push({
+    label: 'Check el.classList for svelte-* class',
+    detail: 'No svelte-* class found',
+    status: 'fail',
+  });
+
+  return { steps, result: null };
+}
+
+function simulateReactDetection(node) {
+  const steps = [];
+  const fiberKey = Object.keys(node.props || {}).find(k =>
+    k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$')
+  );
+
+  if (!fiberKey) {
+    steps.push({
+      label: 'Find fiber key (__reactFiber$ or __reactInternalInstance$)',
+      detail: 'No fiber key found on element',
+      status: 'fail',
+    });
+    return { steps, result: null, fiberWalk: null };
+  }
+
+  steps.push({
+    label: 'Find fiber key',
+    detail: `Found property "${fiberKey}"`,
+    status: 'pass',
+  });
+
+  // Fiber walk
+  const fiberNodes = node.fiber || [];
+  const walkSteps = [];
+  let matchedNode = null;
+
+  for (const fn of fiberNodes) {
+    if (fn.type === 'function' || fn.type === 'object') {
+      const name = fn.name || null;
+      if (name) {
+        walkSteps.push({ type: fn.type, name, file: fn.file || 'Unknown', match: true });
+        matchedNode = fn;
+        break;
+      } else {
+        walkSteps.push({ type: fn.type, name: '(anonymous)', file: null, match: false });
+      }
+    } else {
+      walkSteps.push({ type: fn.type, name: `"${fn.type}"`, file: null, match: false });
+    }
+  }
+
+  if (matchedNode) {
+    steps.push({
+      label: 'Walk node.return chain',
+      detail: `Found named component after ${walkSteps.length} node(s)`,
+      status: 'pass',
+      winner: true,
+    });
+    return {
+      steps,
+      result: { framework: 'react', name: matchedNode.name, file: matchedNode.file || 'Unknown' },
+      fiberWalk: walkSteps,
+    };
+  }
+
+  steps.push({
+    label: 'Walk node.return chain',
+    detail: 'No named component found in fiber tree',
+    status: 'fail',
+  });
+  return { steps, result: null, fiberWalk: walkSteps };
+}
+
+function simulateVueDetection(node) {
+  const steps = [];
+
+  if (node.vueDetection && node.vueDetection.version === 3) {
+    const inst = node.vueDetection.instance;
+    const name = (inst.type && (inst.type.name || inst.type.__name)) || 'Unknown';
+    const file = (inst.type && inst.type.__file) || 'Unknown';
+    steps.push({
+      label: 'Check el.__vueParentComponent (Vue 3)',
+      detail: `Found! type.__name = "${name}", type.__file = "${file}"`,
+      status: 'pass',
+      winner: true,
+    });
+    steps.push({
+      label: 'Check el.__vue__ (Vue 2)',
+      detail: 'Skipped (Vue 3 matched)',
+      status: 'skip',
+    });
+    return { steps, result: { framework: 'vue', name, file } };
+  }
+
+  if (node.props && node.props['__vueParentComponent']) {
+    steps.push({
+      label: 'Check el.__vueParentComponent (Vue 3)',
+      detail: 'Property exists but no detection data (parent)',
+      status: 'fail',
+    });
+  } else {
+    steps.push({
+      label: 'Check el.__vueParentComponent (Vue 3)',
+      detail: 'Not found on element',
+      status: 'fail',
+    });
+  }
+
+  if (node.vueDetection && node.vueDetection.version === 2) {
+    const inst = node.vueDetection.instance;
+    const name = (inst.$options && (inst.$options.name || inst.$options._componentTag)) || 'Unknown';
+    const file = (inst.$options && inst.$options.__file) || 'Unknown';
+    steps.push({
+      label: 'Check el.__vue__ (Vue 2)',
+      detail: `Found! $options.name = "${name}", $options.__file = "${file}"`,
+      status: 'pass',
+      winner: true,
+    });
+    return { steps, result: { framework: 'vue', name, file } };
+  }
+
+  steps.push({
+    label: 'Check el.__vue__ (Vue 2)',
+    detail: 'Not found on element',
+    status: 'fail',
+  });
+
+  return { steps, result: null };
+}
+
+function simulateGetFrameworkComponent(node) {
+  const results = {
+    svelte: simulateSvelteDetection(node),
+    react: simulateReactDetection(node),
+    vue: simulateVueDetection(node),
+  };
+
+  // Order: Svelte -> React -> Vue
+  const order = ['svelte', 'react', 'vue'];
+  let winner = null;
+  const triedFunctions = [];
+
+  for (const fw of order) {
+    const r = results[fw];
+    triedFunctions.push({ framework: fw, ...r });
+    if (r.result && !winner) {
+      winner = { framework: fw, ...r };
+    }
+  }
+
+  return { triedFunctions, winner };
+}
+
+function simulateFindElement(node, fw) {
+  const steps = [];
+  const hasSelector = true;
+  const selector = buildMockSelector(node);
+  const hasSvelteClasses = (node.classes || []).some(c => c.startsWith('svelte-') || c.match(/^s-[A-Za-z0-9]/));
+
+  // 1. Full selector
+  const fullSelectorWorks = node.component !== null || fw === 'html';
+  steps.push({
+    num: 1,
+    label: 'Full selector',
+    detail: `document.querySelector("${selector}")`,
+    pass: fullSelectorWorks,
+    verify: fullSelectorWorks ? 'verifyElement: textContent matches' : 'No element found',
+  });
+
+  if (fullSelectorWorks) return steps;
+
+  // 2. Hash-stripped selector (only for Svelte)
+  if (hasSvelteClasses) {
+    const stripped = selector.replace(/\.(?:s-|svelte-)[A-Za-z0-9_-]+/g, '');
+    const strippedWorks = stripped !== selector;
+    steps.push({
+      num: 2,
+      label: 'Hash-stripped selector',
+      detail: `Stripped: "${stripped}"`,
+      pass: strippedWorks && node.component !== null,
+      verify: strippedWorks ? 'Cleaned selector differs; trying...' : 'Same as original, skipped',
+    });
+    if (strippedWorks && node.component !== null) return steps;
+  } else {
+    steps.push({
+      num: 2,
+      label: 'Hash-stripped selector',
+      detail: 'No .s-*/. svelte-* classes to strip',
+      pass: false,
+      verify: 'Skipped (no hash classes)',
+    });
+  }
+
+  // 3. data-* attributes
+  const dataAttrs = Object.entries(node.attrs || {}).filter(([k]) => k.startsWith('data-') && k !== 'data-component');
+  if (dataAttrs.length > 0) {
+    const [attr, val] = dataAttrs[0];
+    steps.push({
+      num: 3,
+      label: 'data-* attributes',
+      detail: `${node.tag}[${attr}="${val}"]`,
+      pass: true,
+      verify: `verifyElement: matched via ${attr}`,
+    });
+    return steps;
+  }
+  steps.push({
+    num: 3,
+    label: 'data-* attributes',
+    detail: 'No data-* attributes (except data-component)',
+    pass: false,
+    verify: 'No candidates',
+  });
+
+  // 4. ID
+  if (node.id) {
+    steps.push({
+      num: 4,
+      label: 'getElementById',
+      detail: `document.getElementById("${node.id}")`,
+      pass: true,
+      verify: 'verifyElement: textContent matches',
+    });
+    return steps;
+  }
+  steps.push({
+    num: 4,
+    label: 'getElementById',
+    detail: 'No ID on element',
+    pass: false,
+    verify: 'Skipped',
+  });
+
+  // 5. Component file + tag + text
+  if (node.component && node.component.file && node.component.file !== 'Unknown') {
+    steps.push({
+      num: 5,
+      label: 'Component file + tag + text',
+      detail: `querySelectorAll("${node.tag}") where comp.file === "${node.component.file}"`,
+      pass: true,
+      verify: 'verifyElement: textContent matches',
+    });
+    return steps;
+  }
+  steps.push({
+    num: 5,
+    label: 'Component file + tag + text',
+    detail: node.component ? 'Component file is "Unknown"' : 'No component detected',
+    pass: false,
+    verify: 'No candidates',
+  });
+
+  return steps;
+}
+
+function buildMockSelector(node) {
+  let sel = node.tag;
+  if (node.id) return `#${node.id}`;
+  if (node.classes && node.classes.length) {
+    sel += '.' + node.classes.join('.');
+  }
+  return sel;
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────
+
+function getTree() {
+  switch (state.activeFramework) {
+    case 'react': return mockReactTree();
+    case 'svelte': return mockSvelteTree();
+    case 'vue3': return mockVue3Tree();
+    case 'vue2': return mockVue2Tree();
+    case 'html': return mockHtmlTree();
+    default: return mockReactTree();
+  }
+}
+
+function renderTabs() {
+  const container = document.getElementById('fwTabs');
+  container.innerHTML = FRAMEWORKS.map(fw =>
+    `<button class="fw-tab${state.activeFramework === fw ? ' active' : ''}" data-fw="${fw}">${FW_LABELS[fw]}</button>`
+  ).join('');
+
+  container.querySelectorAll('.fw-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.activeFramework = btn.dataset.fw;
+      state.selectedNode = null;
+      state.preset = null;
+      updateAll();
+    });
+  });
+}
+
+function renderPresets() {
+  const presets = [
+    { id: 'react-next', label: 'React Next.js app', fw: 'react' },
+    { id: 'sveltekit', label: 'SvelteKit app', fw: 'svelte' },
+    { id: 'vue3-nuxt', label: 'Vue 3 Nuxt app', fw: 'vue3' },
+    { id: 'mixed', label: 'Mixed micro-frontends', fw: 'mixed' },
+  ];
+
+  const container = document.getElementById('presets');
+  container.innerHTML = presets.map(p =>
+    `<button class="preset-btn${state.preset === p.id ? ' active' : ''}" data-preset="${p.id}">${p.label}</button>`
+  ).join('');
+
+  container.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = presets.find(x => x.id === btn.dataset.preset);
+      state.preset = p.id;
+      if (p.fw === 'mixed') {
+        // Mixed: special handling — use react tab with mixed tree
+        state.activeFramework = 'mixed';
+      } else {
+        state.activeFramework = p.fw;
+      }
+      state.selectedNode = null;
+      updateAll();
+    });
+  });
+}
+
+let nodeCounter = 0;
+
+function renderTreeNode(node, depth = 0) {
+  nodeCounter++;
+  const nodeId = `node-${nodeCounter}`;
+  const hasChildren = node.children && node.children.length > 0;
+  const isSelected = state.selectedNode === node;
+
+  const classStr = node.classes && node.classes.length ? `.${node.classes.join('.')}` : '';
+  const idStr = node.id ? `#${node.id}` : '';
+  const tagDisplay = `&lt;${node.tag}${idStr}${classStr}&gt;`;
+
+  let compBadge = '';
+  if (node.component) {
+    const fw = node.component.framework;
+    compBadge = `<span class="tree-comp ${fw}">${node.component.name}</span>`;
+  }
+
+  let propsDisplay = '';
+  const propKeys = Object.keys(node.props || {});
+  if (propKeys.length > 0) {
+    const key = propKeys[0];
+    propsDisplay = `<span class="tree-props">${key.length > 22 ? key.slice(0, 22) + '...' : key}</span>`;
+  }
+
+  let textSnippet = '';
+  if (node.text && !hasChildren) {
+    const t = node.text.length > 20 ? node.text.slice(0, 20) + '...' : node.text;
+    textSnippet = `<span style="color:var(--text-secondary);font-size:10px;margin-left:4px;font-style:italic;">"${t}"</span>`;
+  }
+
+  let html = `<div class="tree-node" data-node-id="${nodeId}">`;
+  html += `<div class="tree-node-inner${isSelected ? ' selected' : ''}" data-select="${nodeId}">`;
+  if (hasChildren) {
+    html += `<span class="tree-toggle" data-toggle="${nodeId}">&#9660;</span>`;
+  } else {
+    html += `<span class="tree-toggle">&bull;</span>`;
+  }
+  html += `<span class="tree-tag">${tagDisplay}</span>`;
+  html += compBadge;
+  html += propsDisplay;
+  html += textSnippet;
+  html += `</div>`;
+
+  if (hasChildren) {
+    html += `<div class="tree-children" data-children="${nodeId}">`;
+    for (const child of node.children) {
+      html += renderTreeNode(child, depth + 1);
+    }
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+// Map nodeId -> node data
+const nodeMap = new Map();
+
+function buildNodeMap(node) {
+  nodeCounter++;
+  const nodeId = `node-${nodeCounter}`;
+  nodeMap.set(nodeId, node);
+  if (node.children) {
+    for (const child of node.children) {
+      buildNodeMap(child);
+    }
+  }
+}
+
+function renderDomTree() {
+  const tree = state.activeFramework === 'mixed' ? mockMixedTree() : getTree();
+  nodeMap.clear();
+  nodeCounter = 0;
+  buildNodeMap(tree);
+
+  nodeCounter = 0;
+  const container = document.getElementById('domTree');
+  container.innerHTML = renderTreeNode(tree);
+
+  // Toggle children
+  container.querySelectorAll('.tree-toggle[data-toggle]').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const children = container.querySelector(`[data-children="${toggle.dataset.toggle}"]`);
+      if (children) {
+        children.classList.toggle('collapsed');
+        toggle.innerHTML = children.classList.contains('collapsed') ? '&#9654;' : '&#9660;';
+      }
+    });
+  });
+
+  // Select node
+  container.querySelectorAll('.tree-node-inner[data-select]').forEach(inner => {
+    inner.addEventListener('click', () => {
+      const node = nodeMap.get(inner.dataset.select);
+      if (node) {
+        state.selectedNode = node;
+        renderDetection();
+        renderDomTree(); // Re-render to update selection highlight
+        updatePrompt();
+      }
+    });
+  });
+}
+
+function renderDetection() {
+  const panel = document.getElementById('detectionPanel');
+  const node = state.selectedNode;
+
+  if (!node) {
+    panel.innerHTML = `<div class="empty-state" id="emptyState">
+      <div class="arrow">&larr;</div>
+      <div style="font-size:14px;font-weight:600;">Click an element in the DOM tree</div>
+      <div style="font-size:12px;">See how detection functions identify framework components</div>
+    </div>`;
+    return;
+  }
+
+  const detection = simulateGetFrameworkComponent(node);
+  const fw = state.activeFramework === 'mixed' ? 'mixed' : state.activeFramework;
+  const findSteps = simulateFindElement(node, fw);
+
+  let html = '';
+
+  // getFrameworkComponent section
+  html += `<div class="detection-section animate-in">
+    <div class="detection-header">
+      <span class="fn-name">getFrameworkComponent(el)</span>
+      <span style="color:var(--text-secondary);font-size:11px;">tries Svelte → React → Vue</span>
+    </div>
+    <div class="detection-body">`;
+
+  for (const tried of detection.triedFunctions) {
+    const fnName = tried.framework === 'svelte' ? 'getSvelteComponent' :
+                   tried.framework === 'react' ? 'getReactComponent' : 'getVueComponent';
+    const fwColor = tried.framework === 'svelte' ? 'var(--svelte)' :
+                    tried.framework === 'react' ? 'var(--react)' : 'var(--vue)';
+    const isWinner = detection.winner && detection.winner.framework === tried.framework;
+
+    html += `<div style="margin-bottom:12px;${isWinner ? '' : 'opacity:0.7;'}">
+      <div style="font-size:12px;font-weight:600;color:${fwColor};margin-bottom:6px;font-family:var(--mono);">
+        ${fnName}(el) ${isWinner ? '<span style="color:var(--success);font-size:10px;">&#10004; WINNER</span>' : tried.result ? '' : '<span style="color:var(--text-secondary);font-size:10px;">null</span>'}
+      </div>`;
+
+    // Steps
+    for (let i = 0; i < tried.steps.length; i++) {
+      const step = tried.steps[i];
+      const icon = step.status === 'pass' ? '&#10004;' : step.status === 'fail' ? '&#10008;' : '&#8212;';
+      html += `<div class="step" data-delay="${i}" style="transition-delay:${i * 120}ms;">
+        <div class="step-icon ${step.status}">${icon}</div>
+        <div class="step-content">
+          <div class="step-label">${step.label}</div>
+          <div class="step-detail">${step.detail}</div>
+        </div>
+      </div>`;
+    }
+
+    // Fiber walk for React
+    if (tried.framework === 'react' && tried.fiberWalk && tried.fiberWalk.length > 0) {
+      html += `<div style="margin-top:6px;margin-bottom:2px;font-size:10px;color:var(--text-secondary);font-weight:600;">Fiber walk (node.return chain):</div>`;
+      html += `<div class="fiber-walk">`;
+      for (let i = 0; i < tried.fiberWalk.length; i++) {
+        const fn = tried.fiberWalk[i];
+        if (i > 0) html += `<span class="fiber-arrow" data-fdelay="${i}">&larr;</span>`;
+        html += `<span class="fiber-node ${fn.match ? 'match' : 'skip-node'}" data-fdelay="${i}">
+          ${fn.match ? fn.name : fn.name}
+          <span style="font-size:9px;opacity:0.6;">(${fn.type})</span>
+        </span>`;
+      }
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  html += `</div></div>`;
+
+  // Result object
+  if (detection.winner) {
+    const r = detection.winner.result;
+    html += `<div class="detection-section animate-in" style="animation-delay:0.15s;">
+      <div class="detection-header">
+        <span style="color:var(--success);font-weight:700;">Result</span>
+        <span style="font-size:11px;color:var(--text-secondary);">CapturedComponentInfo</span>
+      </div>
+      <div class="detection-body">
+        <div class="result-box">
+          <span class="brace">{</span><br>
+          &nbsp;&nbsp;<span class="key">framework</span>: <span class="str">"${r.framework}"</span>,<br>
+          &nbsp;&nbsp;<span class="key">name</span>: <span class="str">"${r.name}"</span>,<br>
+          &nbsp;&nbsp;<span class="key">file</span>: <span class="str">"${r.file}"</span><br>
+          <span class="brace">}</span>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    html += `<div class="detection-section animate-in" style="animation-delay:0.15s;">
+      <div class="detection-header">
+        <span style="color:var(--fail);font-weight:700;">Result</span>
+        <span style="font-size:11px;color:var(--text-secondary);">getFrameworkComponent returned null</span>
+      </div>
+      <div class="detection-body">
+        <div class="result-box">
+          <span class="null-val">null</span> — No framework detected on this element or its ancestors.
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // findElement fallback strategies
+  html += `<div class="detection-section animate-in" style="animation-delay:0.3s;">
+    <div class="detection-header">
+      <span class="fn-name">findElement(data)</span>
+      <span style="color:var(--text-secondary);font-size:11px;">fallback strategies (5 steps)</span>
+    </div>
+    <div class="detection-body">
+      <div class="find-element-steps">`;
+
+  for (let i = 0; i < findSteps.length; i++) {
+    const s = findSteps[i];
+    const isLast = i === findSteps.length - 1;
+    const isFound = s.pass && isLast;
+    html += `<div class="fe-step${isFound ? ' found' : ''}" data-fedelay="${i}" style="transition-delay:${i * 150}ms;">
+      <div class="fe-step-num ${s.pass ? 'pass' : 'fail'}">${s.num}</div>
+      <div class="fe-step-text">
+        <strong>${s.label}</strong><br>
+        ${s.detail}<br>
+        <span style="font-size:10px;color:${s.pass ? 'var(--success)' : 'var(--text-secondary)'};">${s.verify}</span>
+      </div>
+      <div class="fe-step-result ${s.pass ? 'pass' : 'fail'}">${s.pass ? 'FOUND' : 'MISS'}</div>
+    </div>`;
+  }
+
+  html += `</div></div></div>`;
+
+  panel.innerHTML = html;
+
+  // Trigger step animations
+  requestAnimationFrame(() => {
+    panel.querySelectorAll('.step').forEach(el => {
+      setTimeout(() => el.classList.add('visible'), 50);
+    });
+    panel.querySelectorAll('.fiber-node, .fiber-arrow').forEach(el => {
+      const delay = parseInt(el.dataset.fdelay || 0) * 180 + 200;
+      setTimeout(() => el.classList.add('visible'), delay);
+    });
+    panel.querySelectorAll('.fe-step').forEach(el => {
+      setTimeout(() => el.classList.add('visible'), 100);
+    });
+  });
+}
+
+function updatePrompt() {
+  const promptEl = document.getElementById('promptText');
+  const node = state.selectedNode;
+
+  if (!node) {
+    promptEl.textContent = 'Select a framework tab and click an element to see how see-my-clicks detects components.';
+    return;
+  }
+
+  const parts = [];
+  const tagDisplay = `<${node.tag}${node.id ? '#' + node.id : ''}>`;
+
+  if (node.component) {
+    const fw = node.component.framework;
+    const fwLabel = fw === 'react' ? 'React' : fw === 'vue' ? 'Vue' : 'Svelte';
+    parts.push(`The ${tagDisplay} element is detected as a ${fwLabel} component named "${node.component.name}"`);
+    if (node.component.file && node.component.file !== 'Unknown') {
+      parts.push(`sourced from ${node.component.file}`);
+    }
+
+    if (fw === 'svelte' && node.svelteDetection) {
+      const method = node.svelteDetection.method;
+      if (method === '__svelte_meta') parts.push(`Detection used __svelte_meta.loc.file`);
+      else if (method === 'data-component') parts.push(`Detection fell back to data-component attribute`);
+      else if (method === 'svelte-class') parts.push(`Detection fell back to CSS class matching (${node.svelteDetection.className})`);
+    }
+
+    if (fw === 'react' && node.fiber) {
+      parts.push(`React fiber walk traversed ${node.fiber.length} node(s) via node.return chain`);
+    }
+  } else {
+    parts.push(`The ${tagDisplay} element has no framework component detected`);
+    parts.push(`All detection functions (getSvelteComponent, getReactComponent, getVueComponent) returned null`);
+
+    // Describe findElement fallback path
+    const fw = state.activeFramework;
+    const findSteps = simulateFindElement(node, fw);
+    const foundStep = findSteps.find(s => s.pass);
+    if (foundStep) {
+      parts.push(`findElement would locate it via fallback #${foundStep.num}: ${foundStep.label}`);
+    } else {
+      parts.push(`findElement would fail all 5 fallback strategies — element cannot be relocated`);
+    }
+  }
+
+  promptEl.textContent = parts.join('. ') + '.\n\n[playground:framework-detection]';
+}
+
+function updateAll() {
+  renderTabs();
+  renderPresets();
+  renderDomTree();
+  renderDetection();
+  updatePrompt();
+}
+
+// ── Copy ──────────────────────────────────────────────────────────────
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  let text = document.getElementById('promptText').textContent;
+  const notes = document.getElementById('promptNotes').value.trim();
+  if (notes) text += '\n\n' + notes;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+});
+
+// ── Init ──────────────────────────────────────────────────────────────
+
+updateAll();
+</script>
+</body>
+</html>
