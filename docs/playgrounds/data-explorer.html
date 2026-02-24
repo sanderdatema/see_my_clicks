@@ -185,37 +185,102 @@
   .ai-comment { color: #f9e2af; }
   .ai-muted { color: #6c7086; }
 
-  /* Prompt output / Copy */
-  .prompt-output {
-    margin-top: 16px; padding: 12px 16px;
+  /* Findings panel */
+  .findings-panel {
+    margin-top: 16px; padding: 0;
     background: #181825; border: 1px solid #45475a; border-radius: 8px;
-    position: relative;
+    display: flex; flex-direction: column;
+    overflow: hidden;
   }
-  .prompt-output pre {
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 12px; line-height: 1.5; white-space: pre-wrap;
-    word-break: break-word; color: #cdd6f4;
-    max-height: 200px; overflow-y: auto;
+
+  .findings-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid #313244;
   }
-  .prompt-notes {
-    width: 100%;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 12px; line-height: 1.5; color: #cdd6f4;
-    background: transparent; border: 1px solid #45475a; border-radius: 6px;
-    padding: 8px; resize: vertical; min-height: 36px; outline: none;
-    box-sizing: border-box;
+  .findings-header h3 {
+    font-size: 12px; font-weight: 600; color: #6c7086;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    display: flex; align-items: center; gap: 6px;
   }
-  .prompt-notes:focus { border-color: #8b5cf6; }
-  .prompt-notes::placeholder { color: #45475a; }
-  .prompt-sep { color: #45475a; font-size: 11px; padding: 4px 0; }
-  .copy-btn {
-    position: absolute; top: 8px; right: 8px;
+  .findings-count {
+    font-size: 10px; padding: 1px 7px; border-radius: 99px;
+    background: #313244; color: #6c7086; font-weight: 600;
+  }
+  .findings-actions { display: flex; gap: 6px; }
+  .findings-btn {
     padding: 4px 10px; border-radius: 6px; border: 1px solid #45475a;
     background: #313244; color: #cdd6f4; font-size: 11px; cursor: pointer;
-    transition: all .15s;
+    transition: all .15s; font-family: inherit;
   }
-  .copy-btn:hover { border-color: #8b5cf6; }
-  .copy-btn.copied { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+  .findings-btn:hover { border-color: #8b5cf6; }
+  .findings-btn.copied { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+  .findings-btn.clear { color: #6c7086; }
+  .findings-btn.clear:hover { border-color: #f38ba8; color: #f38ba8; }
+
+  .add-finding-row {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 10px 14px;
+    border-bottom: 1px solid #313244;
+  }
+  .add-finding-row textarea {
+    flex: 1; padding: 6px 10px;
+    border: 1px solid #45475a; border-radius: 6px;
+    background: #1e1e2e; color: #cdd6f4; font-family: inherit;
+    font-size: 12px; resize: none; min-height: 32px; outline: none;
+  }
+  .add-finding-row textarea:focus { border-color: #8b5cf6; }
+  .add-finding-row textarea::placeholder { color: #45475a; }
+  .add-finding-btn {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid #8b5cf6;
+    background: rgba(139, 92, 246, 0.15); color: #8b5cf6; font-size: 12px;
+    font-weight: 600; cursor: pointer; transition: all .15s;
+    white-space: nowrap; font-family: inherit;
+  }
+  .add-finding-btn:hover { background: #8b5cf6; color: #fff; }
+  .add-finding-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .findings-list {
+    max-height: 200px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .finding-item {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 8px 14px; font-size: 11px;
+    border-bottom: 1px solid #313244;
+  }
+  .finding-item:last-child { border-bottom: none; }
+  .finding-summary {
+    flex: 1; min-width: 0;
+  }
+  .finding-config {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    color: #89b4fa; font-size: 10px; line-height: 1.5;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .finding-note {
+    color: #cdd6f4; font-size: 11px; margin-top: 2px;
+    line-height: 1.4;
+  }
+  .finding-remove {
+    background: none; border: none; color: #6c7086; cursor: pointer;
+    font-size: 14px; padding: 0 2px; line-height: 1; flex-shrink: 0;
+    font-family: inherit;
+  }
+  .finding-remove:hover { color: #f38ba8; }
+
+  .findings-prompt {
+    margin: 10px 14px 14px;
+    padding: 10px; border-radius: 6px;
+    background: #1e1e2e; border: 1px solid #313244;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11px; line-height: 1.6;
+    color: #6c7086; white-space: pre-wrap;
+    max-height: 140px; overflow-y: auto;
+  }
+  .findings-empty {
+    color: #45475a; font-size: 12px; padding: 12px 14px;
+  }
 
   /* Legend */
   .legend {
@@ -332,11 +397,23 @@
           </select>
         </div>
         <div id="ai-preview" class="ai-preview"></div>
-        <div class="prompt-output">
-          <button class="copy-btn" onclick="copyPrompt()">Copy</button>
-          <pre id="prompt-text"></pre>
-          <div class="prompt-sep">-- your notes --</div>
-          <textarea class="prompt-notes" id="prompt-notes" rows="2" placeholder="Add your own notes here..."></textarea>
+        <div class="findings-panel">
+          <div class="findings-header">
+            <h3>Findings <span class="findings-count" id="findings-count"></span></h3>
+            <div class="findings-actions">
+              <button class="findings-btn clear" onclick="clearFindings()">Clear all</button>
+              <button class="findings-btn" id="copy-prompt-btn" onclick="copyPrompt()">Copy prompt</button>
+            </div>
+          </div>
+          <div style="color:#a6adc8;font-size:12px;line-height:1.5;padding:6px 0;border-bottom:1px solid #313244;margin-bottom:6px;">
+            The clicked.json format is the contract between the capture tool and AI assistants. Play with the config sliders to see how maxEntries and expiryMinutes affect what data survives. Switch presets to compare framework-specific captures. I need to know if the data shape makes sense, if the config defaults feel right, and if the AI instruction preview is clear enough.</div>
+          <div style="color:#6c7086;font-size:12px;padding:4px 0 2px;">What did you notice about this data or config behavior?</div>
+          <div class="add-finding-row">
+            <textarea id="finding-note" placeholder="e.g. With maxEntries=5 and rapid clicks, older context gets lost too fast" rows="1"></textarea>
+            <button class="add-finding-btn" id="add-finding-btn" onclick="addFinding()" disabled>+ Add</button>
+          </div>
+          <div class="findings-list" id="findings-list"></div>
+          <div class="findings-prompt" id="findings-prompt" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -542,7 +619,7 @@ function setPreset(name) {
   });
   renderTree();
   renderAIPreview();
-  updatePrompt();
+  updateFindingsAddButton();
 }
 
 function renderTree() {
@@ -698,7 +775,7 @@ function onConfigChange() {
   document.getElementById('val-max').textContent = state.maxEntries;
   document.getElementById('val-expiry').textContent = state.expiryMinutes;
   renderTimeline();
-  updatePrompt();
+  updateFindingsAddButton();
 }
 
 function simulate15Clicks() {
@@ -861,7 +938,7 @@ function renderAIPreview() {
   if (totalClicks === 0) {
     html += `<span class="ai-muted">No clicks found. Nothing to report.</span>\n`;
     preview.innerHTML = html;
-    updatePrompt();
+    updateFindingsAddButton();
     return;
   }
 
@@ -949,70 +1026,107 @@ function renderAIPreview() {
   html += `  <span class="ai-path">printf '{"sessions":[]}' > .see-my-clicks/clicked.json</span>\n`;
 
   preview.innerHTML = html;
-  updatePrompt();
+  updateFindingsAddButton();
 }
 
-// ── Prompt output ──────────────────────────────────────────────
-function updatePrompt() {
-  const data = state.data;
-  const action = document.getElementById('ai-action')?.value || 'suggest-fixes';
-  const parts = [];
+// ── Findings system ────────────────────────────────────────────
+let findings = [];
 
-  const allSessions = data.sessions || [];
+function getPresetLabel() {
+  const labels = { react: 'React', svelte: 'Svelte', vue: 'Vue', plain: 'Plain HTML' };
+  return labels[state.preset] || state.preset;
+}
+
+function getSessionAndClickCounts() {
+  const allSessions = state.data.sessions || [];
   const totalClicks = allSessions.reduce((n, s) => n + s.clicks.length, 0);
-  const hasComments = allSessions.some(s => s.clicks.some(c => c.comment));
-  const frameworks = [...new Set(allSessions.flatMap(s => s.clicks.map(c => c.component?.framework).filter(Boolean)))];
+  return { sessions: allSessions.length, clicks: totalClicks };
+}
 
-  if (totalClicks === 0) {
-    document.getElementById('prompt-text').textContent = 'No click data to process.';
+function addFinding() {
+  const note = document.getElementById('finding-note').value.trim();
+  if (!note) return;
+
+  const action = document.getElementById('ai-action')?.value || 'suggest-fixes';
+  const counts = getSessionAndClickCounts();
+
+  findings.push({
+    preset: getPresetLabel(),
+    maxEntries: state.maxEntries,
+    expiryMinutes: state.expiryMinutes,
+    action: action,
+    sessions: counts.sessions,
+    clicks: counts.clicks,
+    note: note,
+  });
+
+  document.getElementById('finding-note').value = '';
+  renderFindings();
+}
+
+function removeFinding(i) {
+  findings.splice(i, 1);
+  renderFindings();
+}
+
+function clearFindings() {
+  if (findings.length > 0 && !confirm('Clear all findings?')) return;
+  findings = [];
+  renderFindings();
+}
+
+function renderFindings() {
+  const list = document.getElementById('findings-list');
+  const countEl = document.getElementById('findings-count');
+  const promptEl = document.getElementById('findings-prompt');
+
+  countEl.textContent = findings.length > 0 ? findings.length : '';
+  countEl.style.display = findings.length > 0 ? 'inline' : 'none';
+
+  if (findings.length === 0) {
+    list.innerHTML = '<div class="findings-empty">No findings yet. Explore configurations and add notes.</div>';
+    promptEl.style.display = 'none';
     return;
   }
 
-  parts.push(`Read .see-my-clicks/clicked.json. It contains ${totalClicks} captured clicks across ${allSessions.length} sessions`);
-  if (frameworks.length > 0) {
-    parts.push(` from a ${frameworks.join('/')} project`);
-  }
-  parts.push('.');
+  list.innerHTML = findings.map((f, i) => {
+    return `<div class="finding-item">
+      <div class="finding-summary">
+        <div class="finding-config">${escHtml(f.preset)} preset, maxEntries=${f.maxEntries}, expiry=${f.expiryMinutes}min, action=${escHtml(f.action)} (${f.sessions} sessions, ${f.clicks} clicks)</div>
+        <div class="finding-note">${escHtml(f.note)}</div>
+      </div>
+      <button class="finding-remove" onclick="removeFinding(${i})" title="Remove">\u00d7</button>
+    </div>`;
+  }).join('');
 
-  if (hasComments) {
-    const commentCount = allSessions.reduce((n, s) => n + s.clicks.filter(c => c.comment).length, 0);
-    parts.push(` ${commentCount} clicks have comments describing issues.`);
+  // Build combined prompt
+  const lines = findings.map((f, i) => {
+    let line = `${i + 1}. ${f.preset} preset, maxEntries=${f.maxEntries}, expiryMinutes=${f.expiryMinutes}, action=${f.action} (${f.sessions} sessions, ${f.clicks} clicks)`;
+    line += `\n   Note: ${f.note}`;
+    return line;
+  });
 
-    if (action === 'suggest-fixes') {
-      parts.push(' For each comment, suggest a concrete code fix grouped by component file.');
-    } else if (action === 'taskmaster') {
-      parts.push(' Create a Task Master task for each commented issue, with file paths and element context.');
-    } else if (action === 'github-issues') {
-      parts.push(' Create a GitHub issue for each commented issue with appropriate labels and reproduction steps.');
-    } else {
-      parts.push(' Report all findings in a summary.');
-    }
-  } else {
-    parts.push(' No comments were left. Present the captured elements and ask what the user wants to do.');
-  }
-
-  if (state.maxEntries !== 10) {
-    parts.push(` Config uses maxEntries=${state.maxEntries}.`);
-  }
-  if (state.expiryMinutes !== 60) {
-    parts.push(` Entries expire after ${state.expiryMinutes} minutes.`);
-  }
-
-  parts.push(' After processing, reset the file with: printf \'{"sessions":[]}\' > .see-my-clicks/clicked.json');
-
-  document.getElementById('prompt-text').textContent = parts.join('') + '\n\n[playground:data-explorer]';
+  const prompt = `I tested ${findings.length} data configuration${findings.length !== 1 ? 's' : ''} in the see-my-clicks data explorer.\n\n${lines.join('\n\n')}\n\n[playground:data-explorer]`;
+  promptEl.style.display = 'block';
+  promptEl.textContent = prompt;
 }
 
 function copyPrompt() {
-  let text = document.getElementById('prompt-text').textContent;
-  const notes = document.getElementById('prompt-notes').value.trim();
-  if (notes) text += '\n\n' + notes;
+  const promptEl = document.getElementById('findings-prompt');
+  const text = promptEl.textContent || 'No findings yet.';
   navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector('.copy-btn');
+    const btn = document.getElementById('copy-prompt-btn');
     btn.textContent = 'Copied!';
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    setTimeout(() => { btn.textContent = 'Copy prompt'; btn.classList.remove('copied'); }, 1500);
   });
+}
+
+function updateFindingsAddButton() {
+  const btn = document.getElementById('add-finding-btn');
+  const allSessions = state.data.sessions || [];
+  const totalClicks = allSessions.reduce((n, s) => n + s.clicks.length, 0);
+  btn.disabled = totalClicks === 0;
 }
 
 // ── Init ───────────────────────────────────────────────────────
@@ -1020,7 +1134,16 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTree();
   initSimulation();
   renderAIPreview();
-  updatePrompt();
+  renderFindings();
+  updateFindingsAddButton();
+
+  // Enter in textarea triggers add
+  document.getElementById('finding-note').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!document.getElementById('add-finding-btn').disabled) addFinding();
+    }
+  });
 });
 </script>
 </body>

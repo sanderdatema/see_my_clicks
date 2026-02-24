@@ -137,6 +137,7 @@
   .fw-tab[data-fw="vue2"].active { border-color: var(--vue); color: var(--vue); background: rgba(166,227,161,0.1); }
   .fw-tab[data-fw="svelte"].active { border-color: var(--svelte); color: var(--svelte); background: rgba(250,179,135,0.1); }
   .fw-tab[data-fw="html"].active { border-color: var(--html-gray); color: var(--html-gray); background: rgba(147,153,178,0.1); }
+  .fw-tab[data-fw="mixed"].active { border-color: var(--accent); color: var(--accent); background: rgba(139,92,246,0.1); }
 
   /* DOM Tree */
   .dom-tree {
@@ -463,55 +464,219 @@
   .fe-step-result.pass { color: var(--success); }
   .fe-step-result.fail { color: var(--fail); }
 
-  /* Prompt output */
-  .prompt-bar {
+  /* Findings panel */
+  .findings-panel {
     grid-column: 1 / -1;
     border-top: 1px solid var(--border);
-    padding: 10px 20px;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    padding: 12px 20px;
     background: var(--bg);
-    min-height: 60px;
+    max-height: 50vh;
+    display: flex;
+    flex-direction: column;
   }
 
-  .prompt-text {
-    flex: 1;
-    font-size: 12px;
+  .findings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .findings-header h3 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     color: var(--text-secondary);
-    line-height: 1.5;
-    font-family: var(--mono);
-    max-height: 80px;
-    overflow-y: auto;
   }
 
-  .prompt-notes {
-    flex: 1;
-    font-family: var(--mono);
-    font-size: 12px; line-height: 1.5; color: var(--text);
-    background: transparent; border: 1px solid var(--border); border-radius: 6px;
-    padding: 8px; resize: vertical; min-height: 36px; outline: none;
+  .finding-count {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 400;
   }
-  .prompt-notes:focus { border-color: var(--accent); }
-  .prompt-notes::placeholder { color: var(--border); }
-  .prompt-sep { color: var(--border); font-size: 11px; padding: 4px 0; }
 
-  .copy-btn {
-    background: var(--accent);
-    border: none;
-    color: #fff;
+  .findings-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .findings-btn {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 600;
-    padding: 6px 14px;
-    border-radius: 5px;
     cursor: pointer;
     font-family: var(--font);
     white-space: nowrap;
-    transition: opacity 0.15s;
+    transition: all 0.15s;
+  }
+
+  .findings-btn:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
+
+  .findings-btn.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .findings-btn.primary:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .findings-btn.copied {
+    background: var(--success);
+    border-color: var(--success);
+    color: var(--bg);
+  }
+
+  .add-finding-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .add-finding-row textarea {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    resize: none;
+    min-height: 32px;
+    line-height: 1.4;
+  }
+
+  .add-finding-row textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .add-finding-row textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+  }
+
+  .add-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    background: rgba(139,92,246,0.1);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .add-btn:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .add-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .findings-list {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .finding-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 6px 8px;
+    background: var(--surface);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  .finding-num {
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    padding-top: 1px;
+  }
+
+  .finding-summary {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .finding-summary .fw-label {
+    font-weight: 700;
+  }
+
+  .finding-summary .fw-label.react { color: var(--react); }
+  .finding-summary .fw-label.vue { color: var(--vue); }
+  .finding-summary .fw-label.svelte { color: var(--svelte); }
+  .finding-summary .fw-label.html { color: var(--html-gray); }
+
+  .finding-summary .detection-result { color: var(--text-secondary); }
+  .finding-summary .detection-result .comp-name { color: var(--success); font-weight: 600; }
+  .finding-summary .detection-result .no-detect { color: var(--fail); }
+
+  .finding-note {
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 11px;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  .finding-remove {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    line-height: 1;
     flex-shrink: 0;
   }
 
-  .copy-btn:hover { opacity: 0.85; }
+  .finding-remove:hover {
+    color: var(--fail);
+  }
+
+  .findings-prompt {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--surface);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+  }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -562,22 +727,34 @@
     </div>
   </div>
 
-  <!-- Prompt output -->
-  <div class="prompt-bar">
-    <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
-      <div class="prompt-text" id="promptText">Select a framework tab and click an element to see how see-my-clicks detects components.</div>
-      <div class="prompt-sep">-- your notes --</div>
-      <textarea class="prompt-notes" id="promptNotes" rows="2" placeholder="Add your own notes here..."></textarea>
+  <!-- Findings panel -->
+  <div class="findings-panel">
+    <div class="findings-header">
+      <h3>Findings <span class="finding-count" id="findingCount"></span></h3>
+      <div class="findings-actions">
+        <button class="findings-btn" id="clearAllBtn" onclick="clearFindings()">Clear all</button>
+        <button class="findings-btn primary" id="copyPromptBtn" onclick="copyPrompt()">Copy prompt</button>
+      </div>
     </div>
-    <button class="copy-btn" id="copyBtn">Copy</button>
+
+    <div style="color:var(--text);font-size:12px;line-height:1.5;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px;">
+      Framework detection is the key differentiator — it figures out which React/Vue/Svelte component an element belongs to. Switch between framework tabs, click elements in the DOM tree, and watch the detection cascade fire step by step. I need to know if the detection order makes sense, if the fallback strategies in findElement are robust enough, and if you spot any edge cases that would break.</div>
+    <div style="color:var(--text-secondary);font-size:12px;padding:4px 0 2px;">What did you notice about how this element was detected?</div>
+    <div class="add-finding-row">
+      <textarea id="findingNote" placeholder="e.g. Svelte detection relies on CSS class as last resort — fragile if classes are minified" rows="1"></textarea>
+      <button class="add-btn" id="addFindingBtn" onclick="addFinding()" disabled>+ Add</button>
+    </div>
+
+    <div class="findings-list" id="findingsList"></div>
+    <div class="findings-prompt" id="findingsPrompt" style="display:none;"></div>
   </div>
 </div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────
 
-const FRAMEWORKS = ['react', 'vue3', 'vue2', 'svelte', 'html'];
-const FW_LABELS = { react: 'React', vue3: 'Vue 3', vue2: 'Vue 2', svelte: 'Svelte', html: 'Plain HTML' };
+const FRAMEWORKS = ['react', 'vue3', 'vue2', 'svelte', 'html', 'mixed'];
+const FW_LABELS = { react: 'React', vue3: 'Vue 3', vue2: 'Vue 2', svelte: 'Svelte', html: 'Plain HTML', mixed: 'Mixed' };
 
 const state = {
   activeFramework: 'react',
@@ -1272,12 +1449,7 @@ function renderPresets() {
     btn.addEventListener('click', () => {
       const p = presets.find(x => x.id === btn.dataset.preset);
       state.preset = p.id;
-      if (p.fw === 'mixed') {
-        // Mixed: special handling — use react tab with mixed tree
-        state.activeFramework = 'mixed';
-      } else {
-        state.activeFramework = p.fw;
-      }
+      state.activeFramework = p.fw;
       state.selectedNode = null;
       updateAll();
     });
@@ -1384,7 +1556,7 @@ function renderDomTree() {
         state.selectedNode = node;
         renderDetection();
         renderDomTree(); // Re-render to update selection highlight
-        updatePrompt();
+        updateAddButton();
       }
     });
   });
@@ -1537,52 +1709,9 @@ function renderDetection() {
   });
 }
 
-function updatePrompt() {
-  const promptEl = document.getElementById('promptText');
-  const node = state.selectedNode;
-
-  if (!node) {
-    promptEl.textContent = 'Select a framework tab and click an element to see how see-my-clicks detects components.';
-    return;
-  }
-
-  const parts = [];
-  const tagDisplay = `<${node.tag}${node.id ? '#' + node.id : ''}>`;
-
-  if (node.component) {
-    const fw = node.component.framework;
-    const fwLabel = fw === 'react' ? 'React' : fw === 'vue' ? 'Vue' : 'Svelte';
-    parts.push(`The ${tagDisplay} element is detected as a ${fwLabel} component named "${node.component.name}"`);
-    if (node.component.file && node.component.file !== 'Unknown') {
-      parts.push(`sourced from ${node.component.file}`);
-    }
-
-    if (fw === 'svelte' && node.svelteDetection) {
-      const method = node.svelteDetection.method;
-      if (method === '__svelte_meta') parts.push(`Detection used __svelte_meta.loc.file`);
-      else if (method === 'data-component') parts.push(`Detection fell back to data-component attribute`);
-      else if (method === 'svelte-class') parts.push(`Detection fell back to CSS class matching (${node.svelteDetection.className})`);
-    }
-
-    if (fw === 'react' && node.fiber) {
-      parts.push(`React fiber walk traversed ${node.fiber.length} node(s) via node.return chain`);
-    }
-  } else {
-    parts.push(`The ${tagDisplay} element has no framework component detected`);
-    parts.push(`All detection functions (getSvelteComponent, getReactComponent, getVueComponent) returned null`);
-
-    // Describe findElement fallback path
-    const fw = state.activeFramework;
-    const findSteps = simulateFindElement(node, fw);
-    const foundStep = findSteps.find(s => s.pass);
-    if (foundStep) {
-      parts.push(`findElement would locate it via fallback #${foundStep.num}: ${foundStep.label}`);
-    } else {
-      parts.push(`findElement would fail all 5 fallback strategies — element cannot be relocated`);
-    }
-  }
-
-  promptEl.textContent = parts.join('. ') + '.\n\n[playground:framework-detection]';
+function updateAddButton() {
+  const btn = document.getElementById('addFindingBtn');
+  btn.disabled = !state.selectedNode;
 }
 
 function updateAll() {
@@ -1590,25 +1719,189 @@ function updateAll() {
   renderPresets();
   renderDomTree();
   renderDetection();
-  updatePrompt();
+  updateAddButton();
 }
 
-// ── Copy ──────────────────────────────────────────────────────────────
+// ── Findings ──────────────────────────────────────────────────────────
 
-document.getElementById('copyBtn').addEventListener('click', () => {
-  let text = document.getElementById('promptText').textContent;
-  const notes = document.getElementById('promptNotes').value.trim();
-  if (notes) text += '\n\n' + notes;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+const findings = [];
+
+function captureFinding() {
+  const node = state.selectedNode;
+  if (!node) return null;
+
+  const fw = state.activeFramework;
+  const fwLabel = FW_LABELS[fw] || fw;
+  const classes = (node.classes || []).filter(c => !c.startsWith('svelte-') && !c.match(/^s-[A-Za-z0-9]/));
+  const classStr = classes.length > 0 ? '.' + classes.join('.') : '';
+  const tagDisplay = `<${node.tag}${node.id ? '#' + node.id : ''}${classStr}>`;
+
+  const detection = simulateGetFrameworkComponent(node);
+  const findSteps = simulateFindElement(node, fw);
+  const foundStep = findSteps.find(s => s.pass);
+
+  let detectionMethod = null;
+  let componentName = null;
+  let componentFile = null;
+
+  if (detection.winner) {
+    const r = detection.winner.result;
+    componentName = r.name;
+    componentFile = r.file;
+
+    // Determine detection method
+    if (detection.winner.framework === 'react') {
+      detectionMethod = '__reactFiber$ fiber walk';
+    } else if (detection.winner.framework === 'svelte' && node.svelteDetection) {
+      if (node.svelteDetection.method === '__svelte_meta') detectionMethod = '__svelte_meta';
+      else if (node.svelteDetection.method === 'data-component') detectionMethod = 'data-component attribute';
+      else if (node.svelteDetection.method === 'svelte-class') detectionMethod = 'svelte-class fallback';
+    } else if (detection.winner.framework === 'vue') {
+      const version = node.vueDetection ? node.vueDetection.version : '?';
+      detectionMethod = `Vue ${version} instance`;
+    }
+  }
+
+  let findElementResult = null;
+  if (foundStep) {
+    findElementResult = `${foundStep.label} (#${foundStep.num})`;
+  }
+
+  return {
+    fwLabel,
+    fwKey: fw,
+    tagDisplay,
+    componentName,
+    componentFile,
+    detectionMethod,
+    findElementResult,
+  };
+}
+
+function addFinding() {
+  const snapshot = captureFinding();
+  if (!snapshot) return;
+
+  const note = document.getElementById('findingNote').value.trim();
+
+  findings.push({
+    ...snapshot,
+    note: note || null,
   });
+
+  document.getElementById('findingNote').value = '';
+  renderFindings();
+}
+
+function removeFinding(i) {
+  findings.splice(i, 1);
+  renderFindings();
+}
+
+function clearFindings() {
+  if (findings.length > 0 && !confirm('Clear all findings?')) return;
+  findings.length = 0;
+  renderFindings();
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderFindings() {
+  const list = document.getElementById('findingsList');
+  const count = document.getElementById('findingCount');
+  const promptEl = document.getElementById('findingsPrompt');
+
+  count.textContent = findings.length > 0 ? `(${findings.length})` : '';
+
+  if (findings.length === 0) {
+    list.innerHTML = '<div style="color:var(--text-secondary);font-size:11px;padding:6px 0;">No findings yet. Select an element and click "+ Add" to record a finding.</div>';
+    promptEl.style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = findings.map((f, i) => {
+    // Framework CSS class for coloring
+    const fwCss = f.fwKey === 'react' ? 'react' :
+                  f.fwKey === 'vue3' || f.fwKey === 'vue2' ? 'vue' :
+                  f.fwKey === 'svelte' ? 'svelte' : 'html';
+
+    let detectionHtml;
+    if (f.componentName) {
+      const fileHtml = f.componentFile && f.componentFile !== 'Unknown'
+        ? ` <span style="opacity:0.6">(${f.componentFile})</span>` : '';
+      const methodHtml = f.detectionMethod
+        ? ` <span style="opacity:0.5">via ${f.detectionMethod}</span>` : '';
+      detectionHtml = `<span class="detection-result"><span class="comp-name">${f.componentName}</span>${fileHtml}${methodHtml}</span>`;
+    } else {
+      const feHtml = f.findElementResult
+        ? `. findElement: ${f.findElementResult}` : '';
+      detectionHtml = `<span class="detection-result"><span class="no-detect">No component detected</span>${feHtml}</span>`;
+    }
+
+    const noteHtml = f.note
+      ? `<div class="finding-note">Note: ${escapeHtml(f.note)}</div>` : '';
+
+    return `<div class="finding-item">
+      <span class="finding-num">${i + 1}.</span>
+      <div class="finding-summary">
+        <span class="fw-label ${fwCss}">[${f.fwLabel}]</span> ${escapeHtml(f.tagDisplay)} &rarr; ${detectionHtml}
+        ${noteHtml}
+      </div>
+      <button class="finding-remove" onclick="removeFinding(${i})" title="Remove">&times;</button>
+    </div>`;
+  }).join('');
+
+  // Build combined prompt
+  const lines = findings.map((f, i) => {
+    let line = `${i + 1}. [${f.fwLabel}] ${f.tagDisplay}`;
+    if (f.componentName) {
+      const filePart = f.componentFile && f.componentFile !== 'Unknown'
+        ? ` (${f.componentFile})` : '';
+      const viaPart = f.detectionMethod ? ` via ${f.detectionMethod}` : '';
+      line += ` \u2192 ${f.fwKey === 'react' ? 'React' : f.fwKey === 'vue3' || f.fwKey === 'vue2' ? 'Vue' : f.fwKey === 'svelte' ? 'Svelte' : ''} component "${f.componentName}"${filePart}${viaPart}`;
+    } else {
+      line += ` \u2192 No component detected`;
+      if (f.findElementResult) {
+        line += `. findElement: ${f.findElementResult}`;
+      }
+    }
+    if (f.note) {
+      line += `\n   Note: ${f.note}`;
+    }
+    return line;
+  });
+
+  const prompt = `I tested ${findings.length} element${findings.length === 1 ? '' : 's'} in the see-my-clicks framework detection playground.\n\n${lines.join('\n\n')}\n\n[playground:framework-detection]`;
+
+  promptEl.style.display = 'block';
+  promptEl.textContent = prompt;
+}
+
+function copyPrompt() {
+  const promptEl = document.getElementById('findingsPrompt');
+  const text = promptEl.textContent || 'No findings yet.';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyPromptBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy prompt'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// Enter in note textarea triggers add
+document.getElementById('findingNote').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!document.getElementById('addFindingBtn').disabled) addFinding();
+  }
 });
 
 // ── Init ──────────────────────────────────────────────────────────────
 
 updateAll();
+renderFindings();
 </script>
 </body>
 </html>
