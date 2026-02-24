@@ -1081,13 +1081,119 @@
         "recommendedSubtasks": 2,
         "expansionPrompt": "Break into: (1) create playwright.config.js with testDir: 'tests', browser settings, retries, and reporter config using Playwright best practices, (2) update package.json test script to use 'playwright test' for auto-discovery instead of hardcoded file path",
         "updatedAt": "2026-02-23T17:42:05.691Z"
+      },
+      {
+        "id": "19",
+        "title": "Create Overlay UI Theme & Layout Tuner playground",
+        "description": "Create a Design Playground that recreates the full see-my-clicks overlay UI as interactive mockups with fake data. No server needed — everything runs client-side.",
+        "details": "Use the /playground skill to create docs/playgrounds/overlay-design.html.\n\nControls: badge position (bottom-right/left, top-right/left), panel width slider (240-400px), modal width slider (280-440px), session/click count steppers with realistic fake data, marker opacity slider (0.1-1.0), font size scale (0.8x-1.3x).\n\nPresets: \"Current defaults\", \"Compact\", \"Accessible\".\n\nPreview: Mock page with 3-4 dummy elements, positioned markers, open review panel with 2 sessions, comment modal next to one element. All update live as controls change.\n\nReference source: src/client-source.js lines 51-96 (core elements), 725-802 (modal), 938-964 (session prompt). Extract actual colors (#1e1e2e, #cdd6f4, #8b5cf6, etc.), dimensions, and styles from the source.\n\nAudience: Contributors iterating on UI changes, maintainer evaluating design decisions. Currently the only way to see the UI is to run a full Vite dev server and Alt+Click elements.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-02-24T18:26:15.504Z"
+      },
+      {
+        "id": "20",
+        "title": "Create Capture Data Inspector & Config Simulator playground",
+        "description": "Create a Data Explorer playground that lets users explore the clicked.json data format and simulate how config options (maxEntries, expiryMinutes) affect stored data.",
+        "details": "Use the /playground skill to create docs/playgrounds/data-explorer.html.\n\nThree sections:\n\nA) Data Structure Explorer — Pre-populated clicked.json with 3 sessions/8 clicks. Collapsible tree view. Click any field for annotation (from src/index.d.ts interfaces). Presets: \"React app with components\", \"Svelte app with hash classes\", \"Vue 2 app\", \"Plain HTML\", \"Multiple sessions across pages\".\n\nB) Config Simulator — Sliders for maxEntries (1-50, default 10) and expiryMinutes (1-1440, default 60). Simulated timeline showing clicks arriving. Expired clicks visually fade out. \"Simulate 15 rapid clicks\" button. \"Advance clock by N minutes\" control. Mirrors filterExpiredSessions and slice(-maxEntries) behavior from server.js.\n\nC) AI Instruction Preview — Renders what the AI tool sees for the current data. Action dropdown: suggest-fixes, taskmaster, github-issues, just-report.\n\nReference source: src/index.d.ts (type definitions), src/server.js (filterExpiredSessions, maxEntries trimming), instructions/claude.md (instruction template), bin/cli.js (action modes).\n\nAudience: Users understanding the data format, contributors touching the data model, users writing custom AI instructions.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-02-24T18:26:15.518Z"
+      },
+      {
+        "id": "21",
+        "title": "Create Architecture & Data Flow code map playground",
+        "description": "Create a Code Map playground visualizing the see-my-clicks architecture: 6 source files, their exports, and how data flows from browser click to JSON file to AI tool.",
+        "details": "Use the /playground skill to create docs/playgrounds/architecture.html.\n\nNodes: client-source.js (browser, with sub-nodes for event listeners, element capture, framework detection, UI components, server communication), client.js (file reader/cache), plugin.js (Vite hooks: config, configureServer, transformIndexHtml), server.js (middleware handlers: handlePost, handleGet, handleDelete, handlePut, updateSessionColor, updateClickComment), index.js (entry re-exports), bin/cli.js (CLI tool detection, instruction templating), clicked.json (data file), AI tool instructions (5 templates).\n\nEdges/data flow: Browser Alt+Click -> client-source.js captureElement() -> fetch POST -> server.js handlePost() -> clicked.json. clicked.json -> AI reads file -> instruction template -> code suggestions. plugin.js -> server.js (creates middleware) + client.js (gets script for injection). cli.js -> instructions/*.md (templates).\n\nInteractive: Click node for exports/line count/role. Click edge for data shape. Toggle \"Vite mode\" vs \"Middleware mode\". Highlight paths: \"Click capture flow\", \"Data read flow\", \"CLI init flow\".\n\nAudience: Contributors onboarding to the codebase, potential adopters evaluating internals.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [],
+        "updatedAt": "2026-02-24T18:26:15.522Z"
+      },
+      {
+        "id": "22",
+        "title": "Create Framework Detection Demo playground",
+        "description": "Create a Design Playground demonstrating how see-my-clicks detects React, Vue 2/3, and Svelte components from DOM elements — the key differentiating feature.",
+        "details": "Use the /playground skill to create docs/playgrounds/framework-detection.html.\n\nLayout: Split view — left side has mock DOM tree with simulated framework internals, right side shows what see-my-clicks captures.\n\nFramework tabs: React, Vue 3, Vue 2, Svelte, Plain HTML. Each with 3-4 nested mock components.\n\nClick any element to see: which detection function fires (getSvelteComponent, getReactComponent, getVueComponent from client-source.js), the fiber/instance walk pattern, the resulting { framework, name, file } object, how findElement relocates elements using fallback strategies (exact selector -> stripped hash selector -> data-* attrs -> ID -> component+tag+text).\n\nEdge cases panel: Svelte hash class stripping (stripHashClasses), React without displayName, Vue 2 vs Vue 3 differences, elements with no framework detected.\n\nPresets: \"React Next.js app\", \"SvelteKit app\", \"Vue 3 Nuxt app\", \"Mixed micro-frontends\".\n\nReference source: src/client-source.js lines 1014-1086 (detection functions), 565-633 (findElement fallbacks).\n\nAudience: Users evaluating framework support, contributors adding new framework detection (Angular, Solid, etc.), users debugging \"Unknown\" component names.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [],
+        "updatedAt": "2026-02-24T18:26:15.524Z"
+      },
+      {
+        "id": "23",
+        "title": "Fix wrong GitHub URL in playground index footer",
+        "description": "The index.html playground footer links to https://github.com/anthropics/see-my-clicks which is wrong. Should link to the correct repository URL.",
+        "details": "In docs/playgrounds/index.html line 229, the footer contains: `<a href=\"https://github.com/anthropics/see-my-clicks\">see-my-clicks</a>`. The \"anthropics\" org is incorrect. Update to the correct GitHub repository URL.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [],
+        "updatedAt": "2026-02-24T18:28:20.193Z"
+      },
+      {
+        "id": "24",
+        "title": "Fix \"browser extension\" wording in data-explorer playground",
+        "description": "The data-explorer.html findings panel context blurb incorrectly calls see-my-clicks a \"browser extension\". It's a Vite plugin / Express middleware, not a browser extension.",
+        "details": "In docs/playgrounds/data-explorer.html line 409, the text reads: \"The clicked.json format is the contract between the browser extension and AI tools.\" Change \"browser extension\" to \"capture tool\" or \"Vite plugin\" to accurately describe see-my-clicks.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [],
+        "updatedAt": "2026-02-24T18:28:20.196Z"
+      },
+      {
+        "id": "25",
+        "title": "Fix Add button disabled state inconsistency across playgrounds",
+        "description": "The \"+ Add\" button in the findings panel has inconsistent disabled/enabled logic across the 4 playgrounds. Some disable based on note content, some on selected state, and some never disable at all.",
+        "details": "Issues found:\n\n1. **architecture.html**: The `add-finding-btn` is NEVER disabled. The `addGeneralFinding()` function silently returns on empty input, but the button stays visually enabled. Should disable when textarea is empty, matching overlay-design.html pattern.\n\n2. **data-explorer.html**: The `add-finding-btn` is disabled based on `totalClicks === 0` (line 1128-1130), not textarea content. This means with a preset loaded, the button stays enabled even with an empty textarea. `addFinding()` silently returns on empty note (line 1048). Should also check textarea content.\n\n3. **overlay-design.html**: Correctly disables based on textarea content via input event listener (line 1138-1142, 1152). This is the reference pattern.\n\n4. **framework-detection.html**: Disables based on `!state.selectedNode` (line 1718-1719). Note is optional here (allowed to be null). This is intentionally different but could confuse — consider requiring at least a note OR a selected node.\n\nFix: Add input event listeners to architecture.html and data-explorer.html finding textareas that disable the button when empty, matching the overlay-design.html pattern.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": "26",
+        "title": "Fix Mixed micro-frontends preset tab highlighting in framework-detection playground",
+        "description": "The \"Mixed micro-frontends\" preset sets `state.activeFramework = 'mixed'` but 'mixed' is not in the FRAMEWORKS array, so no framework tab highlights when this preset is active.",
+        "details": "In docs/playgrounds/framework-detection.html:\n\n1. Line 1451-1454: The mixed preset sets `state.activeFramework = 'mixed'`\n2. Line 755: `FRAMEWORKS = ['react', 'vue3', 'vue2', 'svelte', 'html']` — no 'mixed' entry\n3. Line 1420-1421: Tab rendering checks `state.activeFramework === fw` — no match for 'mixed'\n\nResult: When \"Mixed micro-frontends\" is selected, no framework tab is highlighted, creating a confusing UI state.\n\nFix options:\n- Add a 'mixed' entry to FRAMEWORKS with a tab\n- Or deselect all framework tabs explicitly when mixed is active (add visual indication like \"mixed\" badge in the tab bar)\n- Or render the mixed tree without changing the framework tabs (keep the last selected tab active)",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [],
+        "updatedAt": "2026-02-24T18:28:20.197Z"
+      },
+      {
+        "id": "27",
+        "title": "Unify CSS variable strategy across playgrounds",
+        "description": "The 4 playgrounds use inconsistent CSS strategies — some use :root custom properties, some hardcode hex values throughout. This makes palette changes error-prone.",
+        "details": "Current state:\n- **overlay-design.html**: Uses `:root` CSS variables (`--smc-purple`, `--smc-bg-dark`, etc.) for some styles, but hardcodes in JS-rendered elements\n- **data-explorer.html**: Hardcodes all hex colors everywhere (no CSS variables)\n- **architecture.html**: Hardcodes all hex colors (no CSS variables)\n- **framework-detection.html**: Uses `:root` CSS variables (`--bg`, `--text`, `--accent`, etc.) consistently in CSS\n\nRecommended: Adopt framework-detection.html's approach — define a shared `:root` variable set at the top of each playground. The variable names should be consistent across all playgrounds (e.g., `--bg`, `--text`, `--accent`, `--surface`, `--border`, framework-specific colors). This makes it easy to tweak the dark theme palette.\n\nLow priority since these are standalone HTML files, but improves maintainability.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-23T17:42:05.691Z",
-      "taskCount": 18,
-      "completedCount": 18,
+      "lastModified": "2026-02-24T18:28:20.197Z",
+      "taskCount": 27,
+      "completedCount": 25,
       "tags": [
         "master"
       ]
