@@ -60,57 +60,173 @@
     background: #f8f9fa;
   }
 
-  .prompt-output {
+  /* ── Findings panel ────────────────────────────────────── */
+
+  .findings-panel {
     background: #181825;
     border-top: 1px solid #313244;
     padding: 12px 16px;
+    max-height: 50vh;
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    min-height: 80px;
+    flex-direction: column;
   }
 
-  .prompt-text {
-    flex: 1;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  .findings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .findings-header h3 {
     font-size: 12px;
-    line-height: 1.6;
-    color: #a6adc8;
-    white-space: pre-wrap;
+    font-weight: 600;
+    color: var(--smc-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  .prompt-notes {
-    flex: 1;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 12px;
-    line-height: 1.6;
-    color: #cdd6f4;
-    background: transparent;
-    border: 1px solid #45475a;
-    border-radius: 6px;
-    padding: 8px;
-    resize: vertical;
-    min-height: 36px;
-    outline: none;
+  .finding-count {
+    font-size: 11px;
+    color: var(--smc-text-secondary);
+    font-weight: 400;
   }
-  .prompt-notes:focus { border-color: #8b5cf6; }
-  .prompt-notes::placeholder { color: #45475a; }
-  .prompt-sep { color: #45475a; font-size: 11px; padding: 4px 0; }
 
-  .copy-btn {
-    background: var(--smc-purple);
-    color: #fff;
-    border: none;
+  .findings-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .findings-btn {
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
     padding: 6px 14px;
     cursor: pointer;
     white-space: nowrap;
-    flex-shrink: 0;
     transition: opacity 0.15s;
+    border: 1px solid;
   }
-  .copy-btn:hover { opacity: 0.85; }
+  .findings-btn:hover { opacity: 0.85; }
+
+  .findings-btn-primary {
+    background: var(--smc-purple);
+    border-color: var(--smc-purple);
+    color: #fff;
+  }
+  .findings-btn-primary.copied {
+    background: #a6e3a1;
+    border-color: #a6e3a1;
+    color: #1e1e2e;
+  }
+
+  .findings-btn-danger {
+    background: transparent;
+    border-color: var(--smc-text-secondary);
+    color: var(--smc-text-secondary);
+  }
+  .findings-btn-danger:hover { border-color: var(--smc-delete-red); color: var(--smc-delete-red); opacity: 1; }
+
+  .add-finding-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .add-finding-row textarea {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--smc-border-subtle);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--smc-text-primary);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    resize: none;
+    min-height: 36px;
+    outline: none;
+  }
+  .add-finding-row textarea:focus { border-color: var(--smc-purple); }
+  .add-finding-row textarea::placeholder { color: var(--smc-border-subtle); }
+
+  .add-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--smc-purple);
+    border-radius: 6px;
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--smc-purple);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .add-btn:hover { background: var(--smc-purple); color: #fff; }
+  .add-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .findings-list {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .finding-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: var(--smc-bg-dark);
+    border-radius: 6px;
+    border: 1px solid var(--smc-border-subtle);
+    font-size: 12px;
+  }
+
+  .finding-summary {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    color: var(--smc-purple);
+    font-weight: 600;
+    font-size: 11px;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .finding-note {
+    color: var(--smc-text-primary);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .finding-remove {
+    background: none;
+    border: none;
+    color: var(--smc-text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .finding-remove:hover { color: var(--smc-delete-red); }
+
+  .findings-prompt {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--smc-bg-dark);
+    border-radius: 6px;
+    border: 1px solid var(--smc-border-subtle);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--smc-text-secondary);
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+  }
 
   /* ── Controls ───────────────────────────────────────────── */
 
@@ -424,13 +540,25 @@
       <!-- Overlay elements rendered here by JS -->
     </div>
 
-    <div class="prompt-output">
-      <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
-        <div class="prompt-text" id="prompt-text"></div>
-        <div class="prompt-sep">-- your notes --</div>
-        <textarea class="prompt-notes" id="prompt-notes" rows="2" placeholder="Add your own notes here..."></textarea>
+    <div class="findings-panel">
+      <div class="findings-header">
+        <h3>Findings <span class="finding-count" id="finding-count"></span></h3>
+        <div class="findings-actions">
+          <button class="findings-btn findings-btn-danger" id="clear-findings-btn" onclick="clearFindings()">Clear all</button>
+          <button class="findings-btn findings-btn-primary" id="copy-prompt-btn" onclick="copyPrompt()">Copy prompt</button>
+        </div>
       </div>
-      <button class="copy-btn" id="copy-btn">Copy</button>
+
+      <div style="color:#a6adc8;font-size:12px;line-height:1.5;padding:6px 0;border-bottom:1px solid #313244;margin-bottom:6px;">
+        Try the presets or drag the sliders to find a layout that feels right. The overlay sits on top of the user's page, so it needs to be visible without being intrusive. I'm looking for your gut feel on the balance between panel size, marker visibility, and font scaling — especially for accessibility.</div>
+      <div style="color:#6c7086;font-size:12px;padding:4px 0 2px;">What would you change about this overlay layout?</div>
+      <div class="add-finding-row">
+        <textarea id="finding-note" placeholder="e.g. Panel feels too wide at 400px, hard to see the page behind it" rows="1"></textarea>
+        <button class="add-btn" id="add-finding-btn" onclick="addFinding()" disabled>+ Add</button>
+      </div>
+
+      <div class="findings-list" id="findings-list"></div>
+      <div class="findings-prompt" id="findings-prompt" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -517,8 +645,6 @@ const state = { ...DEFAULTS };
 // ── DOM refs ───────────────────────────────────────────────
 
 const viewport = document.getElementById("preview-viewport");
-const promptText = document.getElementById("prompt-text");
-const copyBtn = document.getElementById("copy-btn");
 
 // Controls
 const ctrlBadgePos = document.getElementById("ctrl-badge-pos");
@@ -911,46 +1037,122 @@ function renderPreview() {
   renderColorPicker();
 }
 
-// ── Prompt output ──────────────────────────────────────────
+// ── Findings system ────────────────────────────────────────
 
-function updatePrompt() {
-  const parts = [];
+let findings = [];
 
-  if (state.badgePos !== DEFAULTS.badgePos) {
-    parts.push(`Move the badge to ${state.badgePos}`);
-  }
-
-  if (state.panelW !== DEFAULTS.panelW) {
-    const desc = state.panelW < 280 ? "narrower" : state.panelW > 360 ? "wider" : "slightly adjusted";
-    parts.push(`Set the panel width to ${state.panelW}px (${desc})`);
-  }
-
-  if (state.modalW !== DEFAULTS.modalW) {
-    const desc = state.modalW < 320 ? "narrower" : state.modalW > 400 ? "wider" : "slightly adjusted";
-    parts.push(`Set the modal width to ${state.modalW}px (${desc})`);
-  }
-
-  if (state.markerOpacity !== DEFAULTS.markerOpacity) {
-    const desc = state.markerOpacity >= 0.8 ? "highly visible" : state.markerOpacity >= 0.5 ? "moderately visible" : "subtle";
-    parts.push(`Change marker opacity to ${state.markerOpacity} (${desc})`);
-  }
-
-  if (state.fontScale !== DEFAULTS.fontScale) {
-    const desc = state.fontScale >= 1.2 ? "larger for accessibility" : state.fontScale <= 0.85 ? "more compact" : "slightly adjusted";
-    parts.push(`Scale all overlay font sizes by ${state.fontScale}x (${desc})`);
-  }
-
-  const tag = "\n\n[playground:overlay-design]";
-  if (parts.length === 0) {
-    promptText.textContent = "All values match the current defaults. Adjust the controls to generate a change description.";
-  } else {
-    promptText.textContent = `Update the see-my-clicks overlay UI:\n\n${parts.map((p, i) => `${i + 1}. ${p}`).join("\n")}` + tag;
-  }
+function getStateSnapshot() {
+  return {
+    badgePos: state.badgePos,
+    panelW: state.panelW,
+    modalW: state.modalW,
+    markerOpacity: state.markerOpacity,
+    fontScale: state.fontScale,
+  };
 }
+
+function describeDiffs(snap) {
+  const parts = [];
+  if (snap.badgePos !== DEFAULTS.badgePos) parts.push(`Badge ${snap.badgePos}`);
+  if (snap.panelW !== DEFAULTS.panelW) parts.push(`panel ${snap.panelW}px`);
+  if (snap.modalW !== DEFAULTS.modalW) parts.push(`modal ${snap.modalW}px`);
+  if (snap.markerOpacity !== DEFAULTS.markerOpacity) parts.push(`marker opacity ${snap.markerOpacity}`);
+  if (snap.fontScale !== DEFAULTS.fontScale) parts.push(`font scale ${snap.fontScale}x`);
+  return parts.length > 0 ? parts.join(", ") : "Default settings";
+}
+
+function addFinding() {
+  const noteEl = document.getElementById("finding-note");
+  const note = noteEl.value.trim();
+  if (!note) return;
+
+  findings.push({
+    snapshot: getStateSnapshot(),
+    note,
+  });
+
+  noteEl.value = "";
+  updateAddBtnState();
+  renderFindings();
+}
+
+function removeFinding(i) {
+  findings.splice(i, 1);
+  renderFindings();
+}
+
+function clearFindings() {
+  if (findings.length > 0 && !confirm("Clear all findings?")) return;
+  findings = [];
+  renderFindings();
+}
+
+function renderFindings() {
+  const list = document.getElementById("findings-list");
+  const count = document.getElementById("finding-count");
+  const promptEl = document.getElementById("findings-prompt");
+
+  count.textContent = findings.length > 0 ? `(${findings.length})` : "";
+
+  if (findings.length === 0) {
+    list.innerHTML = '<div style="color: #6c7086; font-size: 12px; padding: 8px 0;">No findings yet. Adjust controls and add a note to capture a finding.</div>';
+    promptEl.style.display = "none";
+    return;
+  }
+
+  list.innerHTML = findings.map((f, i) => {
+    const summary = describeDiffs(f.snapshot);
+    const noteHtml = f.note
+      ? `<span class="finding-note">${escapeHtml(f.note)}</span>`
+      : '<span class="finding-note" style="color:#6c7086; font-style:italic;">no note</span>';
+    return `<div class="finding-item">
+      <span class="finding-summary" title="${escapeHtml(summary)}">${escapeHtml(summary)}</span>
+      ${noteHtml}
+      <button class="finding-remove" onclick="removeFinding(${i})" title="Remove">\u00d7</button>
+    </div>`;
+  }).join("");
+
+  // Build combined prompt
+  const lines = findings.map((f, i) => {
+    const summary = describeDiffs(f.snapshot);
+    let line = `${i + 1}. ${summary}`;
+    if (f.note) line += `\n   Note: ${f.note}`;
+    return line;
+  });
+
+  promptEl.style.display = "block";
+  promptEl.textContent = `I tested ${findings.length} overlay configuration${findings.length === 1 ? "" : "s"} in the see-my-clicks design playground.\n\n${lines.join("\n\n")}\n\n[playground:overlay-design]`;
+}
+
+function copyPrompt() {
+  const promptEl = document.getElementById("findings-prompt");
+  const text = promptEl.textContent || "Add findings first.";
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("copy-prompt-btn");
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copy prompt"; btn.classList.remove("copied"); }, 1500);
+  });
+}
+
+function updateAddBtnState() {
+  const btn = document.getElementById("add-finding-btn");
+  const note = document.getElementById("finding-note").value.trim();
+  btn.disabled = !note;
+}
+
+// Enter key in note textarea triggers add
+document.getElementById("finding-note").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    if (!document.getElementById("add-finding-btn").disabled) addFinding();
+  }
+});
+
+document.getElementById("finding-note").addEventListener("input", updateAddBtnState);
 
 function updateAll() {
   renderPreview();
-  updatePrompt();
 }
 
 // ── Sync controls from state ───────────────────────────────
@@ -1043,19 +1245,6 @@ document.querySelectorAll(".preset-btn").forEach(btn => {
   });
 });
 
-// ── Copy button ────────────────────────────────────────────
-
-copyBtn.addEventListener("click", () => {
-  const notes = document.getElementById("prompt-notes").value.trim();
-  let text = promptText.textContent;
-  if (notes) text += "\n\n" + notes;
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = copyBtn.textContent;
-    copyBtn.textContent = "Copied!";
-    setTimeout(() => { copyBtn.textContent = orig; }, 1500);
-  });
-});
-
 // ── Resize observer for repositioning overlays ─────────────
 
 const resizeObserver = new ResizeObserver(() => {
@@ -1067,6 +1256,7 @@ resizeObserver.observe(viewport);
 
 syncControlsFromState();
 updateAll();
+renderFindings();
 </script>
 </body>
 </html>

@@ -214,49 +214,173 @@
   .modal-actions .btn { width: auto; }
   .modal-actions .btn.primary { background: #89b4fa; color: #1e1e2e; border-color: #89b4fa; font-weight: 600; }
 
-  /* ── Prompt bar ──────────────────────────────── */
-  .prompt-bar {
+  /* ── Findings panel ─────────────────────────── */
+  .findings-panel {
     background: #181825;
     border-top: 1px solid #45475a;
     padding: 12px 16px;
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    max-height: 140px;
+    flex-direction: column;
+    max-height: 260px;
   }
-  .prompt-bar .prompt-text {
-    flex: 1;
+
+  .findings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .findings-header h3 {
     font-size: 12px;
-    line-height: 1.5;
+    font-weight: 600;
     color: #a6adc8;
-    font-family: "SF Mono", "Fira Code", monospace;
-    white-space: pre-wrap;
-    overflow-y: auto;
-    max-height: 110px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
-  .prompt-notes {
-    flex: 1;
-    font-family: "SF Mono", "Fira Code", monospace;
-    font-size: 12px; line-height: 1.5; color: #cdd6f4;
-    background: transparent; border: 1px solid #45475a; border-radius: 6px;
-    padding: 8px; resize: vertical; min-height: 36px; outline: none;
+  .findings-header .finding-count {
+    font-weight: 400;
+    color: #6c7086;
+    font-size: 11px;
   }
-  .prompt-notes:focus { border-color: #89b4fa; }
-  .prompt-notes::placeholder { color: #45475a; }
-  .prompt-sep { color: #45475a; font-size: 11px; padding: 4px 0; }
-  .copy-btn {
-    flex-shrink: 0;
-    padding: 6px 14px;
+  .findings-actions { display: flex; gap: 6px; }
+  .findings-actions .fbtn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1px solid #45475a;
+    background: #313244;
+    color: #a6adc8;
+    transition: background .12s, border-color .12s;
+  }
+  .findings-actions .fbtn:hover { background: #45475a; }
+  .findings-actions .fbtn.primary {
     background: #89b4fa;
     color: #1e1e2e;
-    border: none;
+    border-color: #89b4fa;
+  }
+  .findings-actions .fbtn.primary:hover { background: #74c7ec; border-color: #74c7ec; }
+
+  .add-finding-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .add-finding-row textarea {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #45475a;
     border-radius: 6px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font-family: inherit;
+    font-size: 12px;
+    resize: none;
+    min-height: 32px;
+    outline: none;
+  }
+  .add-finding-row textarea:focus { border-color: #89b4fa; }
+  .add-finding-row textarea::placeholder { color: #45475a; }
+  .add-finding-row .add-btn {
+    padding: 6px 14px;
+    border: 1px solid #89b4fa;
+    border-radius: 6px;
+    background: rgba(137, 180, 250, 0.1);
+    color: #89b4fa;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
+    white-space: nowrap;
+    transition: background .12s;
   }
-  .copy-btn:hover { background: #74c7ec; }
+  .add-finding-row .add-btn:hover { background: rgba(137, 180, 250, 0.2); }
+  .add-finding-row .add-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .findings-list {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+  }
+
+  .finding-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 6px 8px;
+    background: #313244;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+  .finding-item .finding-label {
+    font-weight: 600;
+    color: #89b4fa;
+    min-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+  }
+  .finding-item .finding-tag {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .finding-item .finding-tag.node-tag {
+    background: rgba(137, 180, 250, 0.12);
+    color: #89b4fa;
+  }
+  .finding-item .finding-tag.general-tag {
+    background: rgba(166, 173, 200, 0.12);
+    color: #a6adc8;
+  }
+  .finding-item .finding-note {
+    color: #a6adc8;
+    flex: 1;
+    line-height: 1.4;
+  }
+  .finding-item .finding-remove {
+    background: none;
+    border: none;
+    color: #6c7086;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .finding-item .finding-remove:hover { color: #f38ba8; }
+
+  .findings-prompt {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #1e1e2e;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #6c7086;
+    white-space: pre-wrap;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+
+  .findings-empty {
+    font-size: 11px;
+    color: #6c7086;
+    padding: 4px 0;
+  }
 
   /* Edge label tooltip */
   .edge-tooltip {
@@ -362,14 +486,26 @@
   <div class="edge-tooltip" id="edge-tooltip"></div>
 </div>
 
-<!-- ═══════════ Prompt bar ═══════════ -->
-<div class="prompt-bar">
-  <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
-    <div class="prompt-text" id="prompt-text">Add comments to nodes to generate a prompt.</div>
-    <div class="prompt-sep">-- your notes --</div>
-    <textarea class="prompt-notes" id="prompt-notes" rows="2" placeholder="Add your own notes here..."></textarea>
+<!-- ═══════════ Findings panel ═══════════ -->
+<div class="findings-panel">
+  <div class="findings-header">
+    <h3>Findings <span class="finding-count" id="finding-count"></span></h3>
+    <div class="findings-actions">
+      <button class="fbtn" onclick="clearAllFindings()">Clear all</button>
+      <button class="fbtn primary" onclick="copyPrompt()">Copy prompt</button>
+    </div>
   </div>
-  <button class="copy-btn" onclick="copyPrompt()">Copy</button>
+
+  <div style="color:#a6adc8;font-size:12px;line-height:1.5;padding:6px 0;border-bottom:1px solid #45475a;margin-bottom:6px;">
+    This is the full architecture of see-my-clicks — 6 source files with dense client-server interaction. Click nodes for details, toggle between Vite and Middleware modes, and highlight specific data flows. Double-click a node to comment on it. I'm looking for feedback on whether the data flow is clear, if any component has too many responsibilities, or if the separation between browser and server feels right.</div>
+  <div style="color:#6c7086;font-size:12px;padding:4px 0 2px;">What stands out about this data flow or component?</div>
+  <div class="add-finding-row">
+    <textarea id="finding-input" placeholder="e.g. The click capture path has too many hops before data hits disk" rows="1"></textarea>
+    <button class="add-btn" id="add-finding-btn" onclick="addGeneralFinding()">+ Add</button>
+  </div>
+
+  <div class="findings-list" id="findings-list"></div>
+  <div class="findings-prompt" id="findings-prompt" style="display:none;"></div>
 </div>
 
 <!-- ═══════════ Comment modal ═══════════ -->
@@ -393,7 +529,8 @@ const state = {
   path: 'none',          // highlight path
   layers: { browser: true, server: true, filesystem: true, external: true },
   connTypes: { 'data-flow': true, 'function-call': true, 'file-io': true, 're-export': true },
-  comments: [],
+  comments: [],          // node-specific comments (from double-click modal)
+  findings: [],          // general findings (from findings panel input)
   zoom: 1,
   panX: 0, panY: 0,
   selectedNode: null,
@@ -942,14 +1079,14 @@ function saveComment() {
   });
   closeModal();
   renderComments();
-  updatePrompt();
+  renderFindings();
   render();
 }
 
 function deleteComment(id) {
   state.comments = state.comments.filter(c => c.id !== id);
   renderComments();
-  updatePrompt();
+  renderFindings();
   render();
 }
 
@@ -970,51 +1107,134 @@ function renderComments() {
 }
 
 // ═══════════════════════════════════════════
-//  Prompt output
+//  Findings system
 // ═══════════════════════════════════════════
-function updatePrompt() {
-  const el = document.getElementById('prompt-text');
-  if (state.comments.length === 0) {
-    el.textContent = 'Add comments to nodes to generate a prompt.';
+function addGeneralFinding() {
+  const input = document.getElementById('finding-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const pathNames = { 'none': null, 'click-capture': 'click capture', 'data-read': 'data read', 'plugin-wiring': 'plugin wiring', 'cli-init': 'CLI init' };
+  state.findings.push({
+    id: Date.now(),
+    text,
+    mode: state.mode,
+    path: pathNames[state.path] || null,
+  });
+
+  input.value = '';
+  renderFindings();
+}
+
+function removeFinding(id) {
+  state.findings = state.findings.filter(f => f.id !== id);
+  renderFindings();
+}
+
+function clearAllFindings() {
+  const total = state.comments.length + state.findings.length;
+  if (total === 0) return;
+  if (!confirm('Clear all findings and node comments?')) return;
+  state.comments = [];
+  state.findings = [];
+  renderComments();
+  renderFindings();
+  render();
+}
+
+function renderFindings() {
+  const list = document.getElementById('findings-list');
+  const countEl = document.getElementById('finding-count');
+  const promptEl = document.getElementById('findings-prompt');
+
+  const totalCount = state.comments.length + state.findings.length;
+  countEl.textContent = totalCount > 0 ? `(${totalCount})` : '';
+
+  if (totalCount === 0) {
+    list.innerHTML = '<div class="findings-empty">Double-click a node to comment, or type a general finding above.</div>';
+    promptEl.style.display = 'none';
     return;
   }
 
-  const parts = [];
-  parts.push(`This is the see-my-clicks architecture (${state.mode === 'vite' ? 'Vite plugin mode' : 'standalone middleware mode'}).`);
+  let html = '';
 
-  // Mention hidden layers
+  // Node comments as findings
+  for (const c of state.comments) {
+    html += `<div class="finding-item">
+      <span class="finding-tag node-tag">node</span>
+      <span class="finding-label" title="${escapeHtml(c.targetFile)}">${escapeHtml(c.targetLabel)}</span>
+      <span class="finding-note">${escapeHtml(c.text)}</span>
+      <button class="finding-remove" onclick="deleteComment(${c.id})" title="Remove">&times;</button>
+    </div>`;
+  }
+
+  // General findings
+  for (const f of state.findings) {
+    const context = f.path ? `${f.path}` : 'general';
+    html += `<div class="finding-item">
+      <span class="finding-tag general-tag">${escapeHtml(context)}</span>
+      <span class="finding-note">${escapeHtml(f.text)}</span>
+      <button class="finding-remove" onclick="removeFinding(${f.id})" title="Remove">&times;</button>
+    </div>`;
+  }
+
+  list.innerHTML = html;
+
+  // Build combined prompt text
+  const promptText = buildPromptText();
+  promptEl.style.display = 'block';
+  promptEl.textContent = promptText;
+}
+
+function buildPromptText() {
+  const parts = [];
+
+  // Header line with mode and focus
+  let header = `I reviewed the see-my-clicks architecture (${state.mode === 'vite' ? 'Vite plugin mode' : 'standalone middleware mode'})`;
+  if (state.path !== 'none') {
+    const pathNames = { 'click-capture': 'click capture flow', 'data-read': 'data read flow', 'plugin-wiring': 'plugin wiring', 'cli-init': 'CLI init path' };
+    header += `, focusing on ${pathNames[state.path]}`;
+  }
+  header += '.';
+  parts.push(header);
+
+  // Hidden layers note
   const hiddenLayers = Object.entries(state.layers).filter(([,v]) => !v).map(([k]) => k);
   if (hiddenLayers.length > 0) {
-    parts.push(`Currently viewing with ${hiddenLayers.join(', ')} layer(s) hidden.`);
+    parts.push(`(Viewing with ${hiddenLayers.join(', ')} layer(s) hidden.)`);
   }
 
-  if (state.path !== 'none') {
-    const pathNames = { 'click-capture': 'click capture', 'data-read': 'data read', 'plugin-wiring': 'plugin wiring', 'cli-init': 'CLI init' };
-    parts.push(`Focused on the ${pathNames[state.path]} flow.`);
-  }
-
-  parts.push('');
-  parts.push('Feedback on specific components:');
-  parts.push('');
-
-  for (const c of state.comments) {
-    parts.push(`**${c.targetLabel}** (${c.targetFile}):`);
-    parts.push(c.text);
+  // Node feedback
+  if (state.comments.length > 0) {
     parts.push('');
+    parts.push('Node feedback:');
+    for (const c of state.comments) {
+      parts.push(`- ${c.targetLabel} (${c.targetFile}): ${c.text}`);
+    }
   }
 
+  // General findings
+  if (state.findings.length > 0) {
+    parts.push('');
+    parts.push('General findings:');
+    state.findings.forEach((f, i) => {
+      let line = `${i + 1}. ${f.text}`;
+      if (f.path) line += ` [${f.path}]`;
+      parts.push(line);
+    });
+  }
+
+  parts.push('');
   parts.push('[playground:architecture]');
-  el.textContent = parts.join('\n');
+  return parts.join('\n');
 }
 
 function copyPrompt() {
-  let text = document.getElementById('prompt-text').textContent;
-  const notes = document.getElementById('prompt-notes').value.trim();
-  if (notes) text += '\n\n' + notes;
+  const text = buildPromptText();
   navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector('.copy-btn');
+    const btn = document.querySelector('.fbtn.primary');
     btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    setTimeout(() => { btn.textContent = 'Copy prompt'; }, 1500);
   });
 }
 
@@ -1024,20 +1244,20 @@ function copyPrompt() {
 function setMode(mode) {
   state.mode = mode;
   document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  updatePrompt();
+  renderFindings();
   render();
 }
 
 function setPath(path) {
   state.path = path;
   document.querySelectorAll('[data-path]').forEach(b => b.classList.toggle('active', b.dataset.path === path));
-  updatePrompt();
+  renderFindings();
   render();
 }
 
 function toggleLayer(layer) {
   state.layers[layer] = !state.layers[layer];
-  updatePrompt();
+  renderFindings();
   render();
 }
 
@@ -1108,7 +1328,15 @@ document.addEventListener('keydown', (ev) => {
 //  Init
 // ═══════════════════════════════════════════
 render();
-updatePrompt();
+renderFindings();
+
+// Allow Enter in finding input to add finding
+document.getElementById('finding-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    addGeneralFinding();
+  }
+});
 </script>
 </body>
 </html>
