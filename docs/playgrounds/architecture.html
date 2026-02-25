@@ -544,35 +544,35 @@ const NODES = [
   {
     id: 'client-source', label: 'client-source.js', subtitle: 'Browser Runtime',
     x: 120, y: 60, w: 170, h: 54, layer: 'browser', color: '#8b5cf6',
-    lines: 1480,
+    lines: 1481,
     role: 'Runs in the browser. Captures clicks via Alt+Click, detects frameworks (React, Vue, Svelte), renders the full overlay UI, and POSTs captured data to the server.',
     exports: ['captureElement(el) → CapturedElementData', 'Alt+Click event listener', 'Overlay UI (badge, panel, modal, markers, tooltip, highlight, session prompt, color picker)'],
   },
   {
     id: 'client', label: 'client.js', subtitle: 'File Reader',
     x: 420, y: 60, w: 140, h: 54, layer: 'server', color: '#a6e3a1',
-    lines: 25,
+    lines: 21,
     role: 'Reads client-source.js from disk and returns it as a raw JS string. Caches after first read.',
     exports: ['getClientScript() → string (cached)'],
   },
   {
     id: 'plugin', label: 'plugin.js', subtitle: 'Vite Plugin',
     x: 310, y: 180, w: 150, h: 54, layer: 'server', color: '#a6e3a1',
-    lines: 90,
+    lines: 52,
     role: 'Hooks into the Vite dev server. Only active during serve (not build). Mounts middleware, injects client script.',
     exports: ['seeMyClicks(opts?) → VitePlugin', 'config hook: adds .see-my-clicks/** to watch ignore', 'configureServer hook: mounts middleware', 'transformIndexHtml hook: injects <script>'],
   },
   {
     id: 'server', label: 'server.js', subtitle: 'Middleware / Handlers',
     x: 120, y: 180, w: 155, h: 54, layer: 'server', color: '#a6e3a1',
-    lines: 280,
-    role: 'HTTP API + file I/O. Handles GET/POST/DELETE/PUT at /__see-my-clicks. Manages sessions, filters expired data, writes atomically via tmp+rename with a serialized Promise queue.',
-    exports: ['createMiddleware(opts) → connect middleware', 'GET → read + filter expired → JSON', 'POST → validate + session manage → write', 'DELETE → clear / remove click', 'PUT → update color / comment', 'filterExpiredSessions()'],
+    lines: 315,
+    role: 'HTTP API + file I/O. Handles GET/POST/DELETE/PUT at /__see-my-clicks. Manages sessions, filters expired data, writes atomically via tmp+rename with a serialized Promise queue. Also serves client.js at GET /__see-my-clicks/client.js (middleware mode).',
+    exports: ['createMiddleware(opts) → connect middleware', 'GET → read + filter expired → JSON', 'POST → validate + session manage → write', 'DELETE → clear / remove click', 'PUT → update color / comment'],
   },
   {
     id: 'index', label: 'index.js', subtitle: 'Entry Point',
     x: 310, y: 310, w: 140, h: 54, layer: 'server', color: '#a6e3a1',
-    lines: 10,
+    lines: 3,
     role: 'Package entry point. Re-exports the public API from plugin.js, server.js, and client.js.',
     exports: ['seeMyClicks (from plugin.js)', 'createMiddleware (from server.js)', 'getClientScript (from client.js)'],
   },
@@ -581,14 +581,14 @@ const NODES = [
     x: 560, y: 180, w: 155, h: 54, layer: 'filesystem', color: '#fab387',
     lines: null,
     role: 'JSON data file storing captured sessions. Written atomically by server.js, read by AI tool instructions.',
-    exports: ['{ sessions: CaptureSession[] }', 'Each session: { id, color, clicks[], createdAt }', 'Each click: { selector, tagName, text, rect, timestamp, ... }'],
+    exports: ['{ sessions: CaptureSession[] }', 'Each session: { id, name, color, clicks[], startedAt }', 'Each click: { selector, tagName, text, rect, timestamp, ... }'],
   },
   {
     id: 'cli', label: 'bin/cli.js', subtitle: 'CLI Command',
     x: 560, y: 310, w: 145, h: 54, layer: 'server', color: '#a6e3a1',
-    lines: 60,
-    role: 'The `see-my-clicks` CLI command. Copies AI instruction templates into the project and initializes the .see-my-clicks/ directory.',
-    exports: ['see-my-clicks init', 'Copies instruction templates', 'Creates .see-my-clicks/ directory'],
+    lines: 329,
+    role: 'The `see-my-clicks` CLI command. Installs AI instruction templates into target tool config files. Supports multiple tool targets (claude, cursor, codex, windsurf, copilot, all) and --action presets (suggest-fixes, taskmaster, github-issues, just-report). Auto-detects and patches SvelteKit src/app.html.',
+    exports: ['see-my-clicks init [tools...] [--action=preset]', 'Targets: claude, cursor, codex, windsurf, copilot, all', 'Actions: suggest-fixes, taskmaster, github-issues, just-report', 'copy vs append per target; auto-patches SvelteKit'],
   },
   {
     id: 'instructions', label: 'AI Instructions', subtitle: 'instructions/ directory',
@@ -610,7 +610,7 @@ const EDGES = [
   // Click capture flow
   { id: 'e1', from: 'client-source', to: 'server', type: 'data-flow', label: 'POST /__see-my-clicks',
     path: 'click-capture',
-    dataShape: 'POST body: { selector, tagName, textContent, boundingRect, attributes, computedStyles, framework, componentName }' },
+    dataShape: 'POST body: { data: { clickId, timestamp, tagName, elementId, classList, selector, textContent, boundingBox, component: { framework, name, file }, parentChain, attributes, url, viewportSize }, newSession, sessionName }' },
   { id: 'e2', from: 'server', to: 'clicked-json', type: 'file-io', label: 'atomic write',
     path: 'click-capture',
     dataShape: 'Atomic write: tmp file → rename. Serialized via Promise queue. Full store: { sessions: CaptureSession[] }' },
@@ -646,14 +646,15 @@ const EDGES = [
   { id: 'e11', from: 'cli', to: 'instructions', type: 'file-io', label: 'copies templates',
     path: 'cli-init',
     dataShape: 'CLI copies instruction template files from the package\'s instructions/ directory into the user\'s project.' },
-  { id: 'e12', from: 'cli', to: 'clicked-json', type: 'file-io', label: 'creates dir',
-    path: 'cli-init',
-    dataShape: 'CLI creates .see-my-clicks/ directory and initializes empty clicked.json if not present.' },
-
   // Server reads file on GET
   { id: 'e13', from: 'clicked-json', to: 'server', type: 'file-io', label: 'reads on GET',
     path: 'click-capture',
     dataShape: 'GET /__see-my-clicks: server reads clicked.json, calls filterExpiredSessions(), returns filtered store as JSON.' },
+
+  // Middleware mode: server serves client script
+  { id: 'e14', from: 'server', to: 'client', type: 'function-call', label: 'getClientScript()',
+    path: 'plugin-wiring', modeOnly: 'middleware',
+    dataShape: 'server.js imports getClientScript() from client.js. Serves client-source.js at GET /__see-my-clicks/client.js in middleware (non-Vite) mode.' },
 ];
 
 // ═══════════════════════════════════════════
