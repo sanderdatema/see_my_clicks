@@ -5,25 +5,47 @@ export interface SeeMyClicksOptions {
 }
 
 export interface CapturedComponentInfo {
-  name?: string;
-  file?: string;
-  framework?: string;
-  [key: string]: unknown;
+  name: string;
+  file: string;
+  framework: string;
+}
+
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ParentChainEntry {
+  tagName: string;
+  id: string | null;
+  classList: string[];
+  component: CapturedComponentInfo | null;
 }
 
 export interface CapturedElementData {
   clickId: string;
+  timestamp: string;
   tagName: string;
+  elementId: string | null;
+  classList: string[];
+  selector: string;
+  textContent: string;
+  boundingBox: BoundingBox;
+  component: CapturedComponentInfo | null;
+  parentChain: ParentChainEntry[];
+  attributes: Record<string, string>;
+  url: string;
+  viewportSize: { width: number; height: number };
   comment?: string | null;
-  component?: CapturedComponentInfo | null;
-  [key: string]: unknown;
 }
 
 export interface CaptureSession {
   id: string;
   name: string;
-  color?: string;
-  startedAt?: string;
+  color: string;
+  startedAt: string;
   clicks: CapturedElementData[];
 }
 

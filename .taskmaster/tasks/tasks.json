@@ -1187,13 +1187,69 @@
         "dependencies": [],
         "priority": "low",
         "subtasks": []
+      },
+      {
+        "id": "28",
+        "title": "Complete index.d.ts type definitions",
+        "description": "index.d.ts only declares 4 of 13 fields in CapturedElementData. Missing fields: clickId, timestamp, elementId, classList, boundingBox, component, parentChain, url, viewportSize. Also missing CaptureSession shape (id, name, color, startedAt, clicks[]) and CaptureStore shape ({ sessions: CaptureSession[] }).",
+        "details": "Discovered by comparing data-explorer playground against real code. The playground documents the full data shape accurately but index.d.ts is severely behind.\n\nCurrent state (src/index.d.ts): Only declares selector, tagName, textContent, attributes in CapturedElementData.\n\nMissing fields to add:\n- clickId: string\n- timestamp: string (ISO 8601)\n- elementId: string\n- classList: string[]\n- boundingBox: { x: number, y: number, width: number, height: number }\n- component: { name: string, file: string, framework: string } | null\n- parentChain: Array<{ tagName: string, id: string, classList: string[], component: { name: string, file: string, framework: string } | null }>\n- url: string\n- viewportSize: { width: number, height: number }\n\nAlso add/fix:\n- CaptureSession: { id: string, name: string, color: string, startedAt: string, clicks: CapturedElementData[] }\n- CaptureStore: { sessions: CaptureSession[] }\n\nReference: src/client-source.js:1149-1195 (captureElement), src/server.js:143-151 (session creation)",
+        "testStrategy": "Run tsc --noEmit on a test file that imports and uses all exported types. Verify all fields from a real clicked.json match the declared types.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-02-25T07:43:30.091Z"
+      },
+      {
+        "id": "29",
+        "title": "Update architecture playground after refactoring",
+        "description": "The architecture playground is significantly outdated after recent refactoring. Line counts, CLI role, POST body shape, session schema fields, and edges are all wrong.",
+        "details": "Discrepancies found by comparing architecture.html against actual source:\n\n1. **Line counts wrong for all 6 files**:\n   - client-source.js: playground says 1480, actual 1481\n   - client.js: says 25, actual 21\n   - plugin.js: says 90, actual 52\n   - server.js: says 280, actual 315\n   - index.js: says 10, actual 3\n   - bin/cli.js: says 60, actual 329 (!!!)\n   Location: docs/playgrounds/architecture.html:547-589\n\n2. **CLI node role severely outdated**: Playground says \"copies AI instruction templates and initializes .see-my-clicks/ directory\". Real CLI now supports --action presets (suggest-fixes, taskmaster, github-issues, just-report), multiple tool targets, copy vs append modes, and SvelteKit SSR auto-patching. Line 590-591.\n\n3. **POST body shape wrong** (edge e1, line 613): Shows flat `{ selector, tagName, textContent, boundingRect, attributes, computedStyles, framework, componentName }`. Real shape is `{ data: { clickId, timestamp, tagName, elementId, classList, selector, textContent, boundingBox, component, parentChain, attributes, url, viewportSize }, newSession, sessionName }`. computedStyles doesn't exist, framework/componentName are inside component object.\n\n4. **Session schema wrong**: Field is `startedAt` not `createdAt`, missing `name` field. Line 584.\n\n5. **Edge e12 wrong**: Says CLI creates .see-my-clicks/ dir — actually server.js does this via ensureOutputFile(). \n\n6. **Missing edge**: server.js imports getClientScript from client.js and serves it at GET /__see-my-clicks/client.js (middleware mode). Not shown.\n\n7. **server.js exports**: Lists filterExpiredSessions() as export but it's internal-only. Only createMiddleware is exported.",
+        "testStrategy": "Open architecture.html in browser, verify line counts match wc -l output, verify POST body shape matches captureElement() return, verify all edges reflect actual import/serve relationships.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "30",
+        "title": "Update framework-detection playground: add parent-walking, displayName, verifyElement",
+        "description": "The framework-detection playground is missing 3 key behaviors from the real code: getFrameworkComponentFromChain() parent-walking, React displayName check, and verifyElement() rejection simulation.",
+        "details": "Discrepancies found by comparing framework-detection.html against src/client-source.js:\n\n1. **getFrameworkComponentFromChain() entirely absent** (HIGH): Real code at client-source.js:1131-1139 walks UP parent elements calling getFrameworkComponent() at each level. Used during click capture (line 1190) and findElement step 5 (line 621). The playground only simulates single-element detection. This is a core behavior users need to understand.\n\n2. **React displayName check missing** (MEDIUM): Real code checks `node.type.displayName || node.type.name` (client-source.js:1087). Playground only checks `name`. Means playground can't demo detection of React.memo/React.forwardRef wrapped components.\n\n3. **verifyElement() not functionally simulated** (MEDIUM): Real code calls verifyElement(el, data) at EVERY findElement step (client-source.js:555-563, 574, 583, 600, 609, 625). It compares truncateText(el.innerText, 100) with stored textContent. Playground marks it cosmetically but doesn't model text-match rejection causing fallback.\n\n4. **findElement step 3 only tries first data-* attr** (LOW): Playground line 1338 only checks dataAttrs[0]. Real code iterates ALL data-* attributes (client-source.js:593-601).\n\n5. **_debugSource.fileName not modeled** (LOW): Real React detection reads node._debugSource.fileName (only in dev mode). Playground uses flat file property on mock data.",
+        "testStrategy": "Open playground, click elements with no direct framework markers — parent-walking should find component on ancestor. Click a React.memo wrapped component — displayName should be found. Test findElement with multiple data-* attrs — all should be tried.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "31",
+        "title": "Update overlay playground: add missing interactive states and behaviors",
+        "description": "The overlay playground is missing several real UI behaviors: off-route dimming, hidden session opacity, marker-row hover linking, edit-on-click, empty state, and ARIA attributes.",
+        "details": "Discrepancies found by comparing overlay-design.html against src/client-source.js:\n\n**Medium severity:**\n- Panel missing off-route click entry dimming (real uses color:#6c7086 for text, #45475a for numbers — client-source.js:397-400)\n- Panel missing hidden session opacity:0.4 (client-source.js:343)\n- Marker z-index stacking wrong: playground markers have no z-index container; real markers inherit 999997 from __smc-markers parent (client-source.js:101)\n- Modal max-height uses 100% instead of 100vh (overlay-design.html:856 vs client-source.js:735)\n\n**Low severity:**\n- No \"No captures yet\" empty state (client-source.js:223-224)\n- No hidden eye icon variant / slashed eye SVG (client-source.js:344-350)\n- Row hover only toggles row background; real code also highlights corresponding marker with scale 1.5 + glow (client-source.js:274-278)\n- Click rows not clickable for editing — real code opens edit modal (client-source.js:261-268)\n- Modal always shows Delete button; real code hides it for new clicks, only shows in edit mode (client-source.js:749, 917)\n- Component access pattern: playground uses c.component (string), real uses c.component.name (object) (client-source.js:385-387)\n- Missing ARIA attributes on modal and session prompt (role=\"dialog\", aria-modal, aria-label — client-source.js:728-730, 939-941)\n- Missing modal focus trap / Tab cycling (client-source.js:783-799)\n\n**Info (by design for playground tuning):**\n- fontScale slider is playground-only (real code has no font scaling)\n- Badge position configurable in playground but hardcoded to bottom-right in real code",
+        "testStrategy": "Open playground, verify off-route entries are dimmed, hidden sessions show at 0.4 opacity with slashed eye, row hover highlights marker, clicking row opens modal, empty state shown when no captures.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "32",
+        "title": "Fix data-explorer playground: maxEntries trimming and phantom action modes",
+        "description": "The data-explorer playground shows wrong maxEntries trimming behavior and lists AI action modes that don't exist in the actual instruction templates.",
+        "details": "Discrepancies found by comparing data-explorer.html against src/server.js and instructions/:\n\n1. **maxEntries trimming scope wrong** (HIGH): Playground shows maxEntries trimming ALL sessions at read-time (per-session limit applied when data is read). Real server.js only trims the ACTIVE session at write-time (src/server.js:153-157) — when a new click is added, only that session's clicks are trimmed to maxEntries. Historical sessions keep all their clicks. The algorithm box in the playground conflates filterExpiredSessions() and maxEntries trimming into one function.\n\n2. **Phantom action modes** (HIGH): Playground shows 4 AI action modes: suggest-fixes, taskmaster, github-issues, just-report. The actual instruction templates in instructions/ only implement suggest-fixes. The other 3 (taskmaster, github-issues, just-report) exist as CLI --action presets but don't have corresponding instruction template content.\n\n3. **parentChain missing component field** (MEDIUM): Playground preset data omits the component field in parentChain entries. Real code at client-source.js:1149-1154 always includes component (either the detection result or null).\n\n4. **Algorithm display**: The \"How It Works\" box conflates filterExpiredSessions and maxEntries into a single function. In reality, filterExpiredSessions (server.js) handles expiry and maxEntries trimming is a separate step in handlePost.",
+        "testStrategy": "Open data-explorer, load a preset, verify the algorithm explanation matches actual server.js behavior. Check that only suggest-fixes mode is shown (or clearly mark others as planned/future).",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-24T18:28:20.197Z",
-      "taskCount": 27,
-      "completedCount": 25,
+      "lastModified": "2026-02-25T07:43:30.092Z",
+      "taskCount": 32,
+      "completedCount": 26,
       "tags": [
         "master"
       ]
