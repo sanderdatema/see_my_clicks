@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Fix race condition in concurrent POST requests",
         "description": "Concurrent POST requests to /__see-my-clicks can silently lose clicks. Both callbacks can execute readData before either calls writeData, causing the second write to clobber the first.",
         "details": "In src/server.js:129-191, the POST handler reads the request body asynchronously via req.on(\"end\", ...). If two Alt+Clicks fire in rapid succession, both callbacks can read clicked.json before either writes, so the second write overwrites the first. Fix by serializing writes with a simple promise queue, or accumulate pending writes and flush at end of turn.",
@@ -64,7 +64,7 @@
         "updatedAt": "2026-02-23T17:36:41.992Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Handle RegExp and function values in Vite plugin watch.ignored",
         "description": "The Vite plugin's config() hook only handles Array and string for server.watch.ignored. RegExp or function values fall into the else branch and are silently replaced, discarding the user's existing ignored pattern.",
         "details": "In src/plugin.js:24-32, the else branch replaces the entire ignored value with [\"**/.see-my-clicks/**\"]. Fix by handling RegExp and function cases explicitly — wrap them in an array alongside the new entry. Example: if ignored is a RegExp, convert to [ignored, entry]. If it's a function, wrap both in an array or compose them.",
@@ -114,7 +114,7 @@
         "updatedAt": "2026-02-23T17:37:34.067Z"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Prevent accidental data loss on plain GET to /__see-my-clicks",
         "description": "A plain GET /__see-my-clicks (no query param) writes { sessions: [] } to disk and returns the data, permanently clearing all click data. Any browser, curl, or proxy that fetches the endpoint directly will destroy all stored sessions silently.",
         "details": "In src/server.js:193-207, the consume-and-clear semantic is invisible and undocumented. Fix options: (1) require an explicit ?clear=true param to clear data, (2) remove the consume behavior from GET entirely and use DELETE for clearing, or (3) document it prominently. Option 1 or 2 preferred.",
@@ -164,7 +164,7 @@
         "updatedAt": "2026-02-23T17:37:34.069Z"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Add cross-reference comments for duplicate color palette",
         "description": "COLOR_PALETTE in server.js:5-13 and SESSION_COLORS in client-source.js:26-35 are byte-for-byte identical 8-element arrays. Changes to one must be mirrored in the other.",
         "details": "Since client-source.js is a self-contained browser IIFE that cannot import from Node modules, the duplication is structural. Add explicit comments in both files: \"// Keep in sync with COLOR_PALETTE in src/server.js\" and \"// Keep in sync with SESSION_COLORS in src/client-source.js\".",
@@ -240,7 +240,7 @@
         "updatedAt": "2026-02-23T17:37:34.070Z"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Extract shared helpers from showModal and showEditModal",
         "description": "showModal (client-source.js:780-808) and showEditModal (client-source.js:887-911) duplicate a 9-line header-building block and an 8-line modal positioning block.",
         "details": "Extract a positionModal(modal, x, y) helper that positions the modal off-screen, measures it, then constrains to viewport. Extract a setModalHeader(modal, data) helper for the header text construction. Both functions should call these shared helpers instead of duplicating the logic.",
@@ -289,7 +289,7 @@
         "updatedAt": "2026-02-23T17:39:11.386Z"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Eliminate O(n*m) loop in updateSessionColor",
         "description": "In client-source.js:516-529, for every marker ID, the code linearly scans all of allClickData to find the matching entry. This nested loop is unnecessary.",
         "details": "Since markers[clickId] already stores the full data object, attach sessionId to the marker when it is created in addMarker (one-line change). Then the inner loop scanning allClickData can be removed entirely, simplifying the code and improving readability.",
@@ -327,7 +327,7 @@
         "updatedAt": "2026-02-23T17:39:11.388Z"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Cache client script in server.js middleware",
         "description": "getClientScript() in server.js:125 does fs.readFileSync on every GET to /client.js. In plugin.js the script is read once and cached, but middleware-mode users (Express, Webpack, SvelteKit) re-read from disk on every page load.",
         "details": "Cache the result of getClientScript() in a module-level variable inside client.js, or move the caching into createMiddleware. The script content doesn't change at runtime so there's no reason to re-read it.",
@@ -401,7 +401,7 @@
         "updatedAt": "2026-02-23T17:39:11.389Z"
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Remove unused currentRoute state variable",
         "description": "currentRoute in client-source.js:121 is declared, set on init (line 1456), and updated on navigation (line 1418), but is never read anywhere. Route matching uses getRoute() directly via routeMatches().",
         "details": "Remove the variable declaration at line 121, the assignment at line 1456, and the update at line 1418. This is dead code.",
@@ -477,7 +477,7 @@
         "updatedAt": "2026-02-23T17:39:11.390Z"
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Fix package.json test script to run existing tests",
         "description": "The test script in package.json:24 says \"No tests yet\" but tests/regression/modal-resize.spec.mjs exists.",
         "details": "Change the \"test\" script to run existing tests, e.g. point it at the same command as test:regression, or use \"playwright test tests/\" to auto-discover all tests as the suite grows.",
@@ -551,7 +551,7 @@
         "updatedAt": "2026-02-23T17:40:19.132Z"
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Remove or document unused clickCount field in POST response",
         "description": "The server sends clickCount: active.clicks.length in the POST response at server.js:183, but the client never reads this field.",
         "details": "Either remove clickCount from the response object, or add it to index.d.ts if it is intended as part of the public API for external consumers.",
@@ -589,7 +589,7 @@
         "updatedAt": "2026-02-23T17:40:19.134Z"
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Fix wrong GitHub username in 4 instruction files",
         "description": "instructions/codex.md:4, copilot.md:4, cursor.md:9, and windsurf.md:4 all link to https://github.com/sandervanhooff/see-my-clicks but the actual repo is github.com/sanderdatema/see_my_clicks.",
         "details": "Update all 4 URLs to point to the correct repository: https://github.com/sanderdatema/see_my_clicks. The claude.md instruction file is unaffected.",
@@ -660,7 +660,7 @@
         "updatedAt": "2026-02-23T17:40:19.135Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Add cross-reference comments for duplicate ID generation",
         "description": "The same Date.now().toString(36) + Math.random().toString(36).slice(2, 7) expression appears in both server.js:27 (inside generateId()) and client-source.js:1157 (inlined in captureElement).",
         "details": "Add comments in both locations cross-referencing the other. Consider whether client-generated IDs could clash with server-generated IDs and document the decision.",
@@ -698,7 +698,7 @@
         "updatedAt": "2026-02-23T17:40:19.137Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Add comment explaining single-letter vars in getVueComponent",
         "description": "In client-source.js:1091-1097, the Vue2 branch uses var n/var f to avoid reusing hoisted name/file from the Vue3 branch. This is non-obvious.",
         "details": "Add a comment explaining why single-letter variable names are used: \"// Use n/f instead of name/file to avoid conflict with hoisted var declarations from the Vue3 branch above. Can't use let/const since the file avoids ES6+ for transpilation-free delivery.\"",
@@ -772,7 +772,7 @@
         "updatedAt": "2026-02-23T17:40:19.139Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Add knip.json to silence false positive for client-source.js",
         "description": "knip reports src/client-source.js as unused because it's loaded via fs.readFileSync at runtime, not via a static import.",
         "details": "Create a knip.json (or add to existing config) with \"ignore\": [\"src/client-source.js\"] to silence the false positive and prevent future contributors from deleting the file.",
@@ -846,7 +846,7 @@
         "updatedAt": "2026-02-23T17:40:19.140Z"
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Extract HTTP verb handlers from server.js middleware",
         "description": "seeMyClicksMiddleware in server.js:110-307 handles POST, GET, DELETE, and PUT in one 200-line if/else chain with 4x duplicated error handling (try/catch with writeHead(500) pattern).",
         "details": "Extract handlePost, handleGet, handleDelete, handlePut functions and a shared sendJson(res, status, body) helper. Replace the cascading if/else with a dispatch table. This reduces the function from ~200 lines to a clear dispatcher and eliminates the 4-way duplicated error pattern.",
@@ -908,7 +908,7 @@
         "updatedAt": "2026-02-23T17:42:05.686Z"
       },
       {
-        "id": "16",
+        "id": 16,
         "title": "Split PUT handler into separate session and click operations",
         "description": "The PUT handler in server.js:242-302 conflates \"update session color\" (sessionId + color) and \"update click comment\" (clickId) into one endpoint with branching logic.",
         "details": "Split into separate sub-routes (e.g. PUT /__see-my-clicks/session and PUT /__see-my-clicks/click) or at minimum extract named helper functions (updateSessionColor, updateClickComment) to make the code self-documenting. Update the client-source.js fetch calls accordingly if routes change.",
@@ -971,7 +971,7 @@
         "updatedAt": "2026-02-23T17:42:05.687Z"
       },
       {
-        "id": "17",
+        "id": 17,
         "title": "Group client-source.js state declarations by concern",
         "description": "The 24 state variables in client-source.js:103-126 are declared in a single block mixing session, UI, marker, and modal state.",
         "details": "Group the variables with comment banners: session state (currentSessionId, sessionColors, etc.), UI state (flashTimer, isDragging, etc.), marker state (markers, allClickData, etc.), modal state (lastClickX, lastClickY, colorPickerSessionId, etc.). Low urgency but improves debuggability.",
@@ -1045,7 +1045,7 @@
         "updatedAt": "2026-02-23T17:42:05.689Z"
       },
       {
-        "id": "18",
+        "id": 18,
         "title": "Add playwright.config.js for test auto-discovery",
         "description": "The test:regression script runs a single file path directly. As tests are added, each one will need to be added to the script manually.",
         "details": "Create a playwright.config.js with testDir: 'tests', plus browser settings, retries, and reporter config. Update package.json scripts to use plain \"playwright test\" so all tests are discovered automatically.",
@@ -1083,7 +1083,7 @@
         "updatedAt": "2026-02-23T17:42:05.691Z"
       },
       {
-        "id": "19",
+        "id": 19,
         "title": "Create Overlay UI Theme & Layout Tuner playground",
         "description": "Create a Design Playground that recreates the full see-my-clicks overlay UI as interactive mockups with fake data. No server needed — everything runs client-side.",
         "details": "Use the /playground skill to create docs/playgrounds/overlay-design.html.\n\nControls: badge position (bottom-right/left, top-right/left), panel width slider (240-400px), modal width slider (280-440px), session/click count steppers with realistic fake data, marker opacity slider (0.1-1.0), font size scale (0.8x-1.3x).\n\nPresets: \"Current defaults\", \"Compact\", \"Accessible\".\n\nPreview: Mock page with 3-4 dummy elements, positioned markers, open review panel with 2 sessions, comment modal next to one element. All update live as controls change.\n\nReference source: src/client-source.js lines 51-96 (core elements), 725-802 (modal), 938-964 (session prompt). Extract actual colors (#1e1e2e, #cdd6f4, #8b5cf6, etc.), dimensions, and styles from the source.\n\nAudience: Contributors iterating on UI changes, maintainer evaluating design decisions. Currently the only way to see the UI is to run a full Vite dev server and Alt+Click elements.",
@@ -1095,7 +1095,7 @@
         "updatedAt": "2026-02-24T18:26:15.504Z"
       },
       {
-        "id": "20",
+        "id": 20,
         "title": "Create Capture Data Inspector & Config Simulator playground",
         "description": "Create a Data Explorer playground that lets users explore the clicked.json data format and simulate how config options (maxEntries, expiryMinutes) affect stored data.",
         "details": "Use the /playground skill to create docs/playgrounds/data-explorer.html.\n\nThree sections:\n\nA) Data Structure Explorer — Pre-populated clicked.json with 3 sessions/8 clicks. Collapsible tree view. Click any field for annotation (from src/index.d.ts interfaces). Presets: \"React app with components\", \"Svelte app with hash classes\", \"Vue 2 app\", \"Plain HTML\", \"Multiple sessions across pages\".\n\nB) Config Simulator — Sliders for maxEntries (1-50, default 10) and expiryMinutes (1-1440, default 60). Simulated timeline showing clicks arriving. Expired clicks visually fade out. \"Simulate 15 rapid clicks\" button. \"Advance clock by N minutes\" control. Mirrors filterExpiredSessions and slice(-maxEntries) behavior from server.js.\n\nC) AI Instruction Preview — Renders what the AI tool sees for the current data. Action dropdown: suggest-fixes, taskmaster, github-issues, just-report.\n\nReference source: src/index.d.ts (type definitions), src/server.js (filterExpiredSessions, maxEntries trimming), instructions/claude.md (instruction template), bin/cli.js (action modes).\n\nAudience: Users understanding the data format, contributors touching the data model, users writing custom AI instructions.",
@@ -1107,7 +1107,7 @@
         "updatedAt": "2026-02-24T18:26:15.518Z"
       },
       {
-        "id": "21",
+        "id": 21,
         "title": "Create Architecture & Data Flow code map playground",
         "description": "Create a Code Map playground visualizing the see-my-clicks architecture: 6 source files, their exports, and how data flows from browser click to JSON file to AI tool.",
         "details": "Use the /playground skill to create docs/playgrounds/architecture.html.\n\nNodes: client-source.js (browser, with sub-nodes for event listeners, element capture, framework detection, UI components, server communication), client.js (file reader/cache), plugin.js (Vite hooks: config, configureServer, transformIndexHtml), server.js (middleware handlers: handlePost, handleGet, handleDelete, handlePut, updateSessionColor, updateClickComment), index.js (entry re-exports), bin/cli.js (CLI tool detection, instruction templating), clicked.json (data file), AI tool instructions (5 templates).\n\nEdges/data flow: Browser Alt+Click -> client-source.js captureElement() -> fetch POST -> server.js handlePost() -> clicked.json. clicked.json -> AI reads file -> instruction template -> code suggestions. plugin.js -> server.js (creates middleware) + client.js (gets script for injection). cli.js -> instructions/*.md (templates).\n\nInteractive: Click node for exports/line count/role. Click edge for data shape. Toggle \"Vite mode\" vs \"Middleware mode\". Highlight paths: \"Click capture flow\", \"Data read flow\", \"CLI init flow\".\n\nAudience: Contributors onboarding to the codebase, potential adopters evaluating internals.",
@@ -1119,7 +1119,7 @@
         "updatedAt": "2026-02-24T18:26:15.522Z"
       },
       {
-        "id": "22",
+        "id": 22,
         "title": "Create Framework Detection Demo playground",
         "description": "Create a Design Playground demonstrating how see-my-clicks detects React, Vue 2/3, and Svelte components from DOM elements — the key differentiating feature.",
         "details": "Use the /playground skill to create docs/playgrounds/framework-detection.html.\n\nLayout: Split view — left side has mock DOM tree with simulated framework internals, right side shows what see-my-clicks captures.\n\nFramework tabs: React, Vue 3, Vue 2, Svelte, Plain HTML. Each with 3-4 nested mock components.\n\nClick any element to see: which detection function fires (getSvelteComponent, getReactComponent, getVueComponent from client-source.js), the fiber/instance walk pattern, the resulting { framework, name, file } object, how findElement relocates elements using fallback strategies (exact selector -> stripped hash selector -> data-* attrs -> ID -> component+tag+text).\n\nEdge cases panel: Svelte hash class stripping (stripHashClasses), React without displayName, Vue 2 vs Vue 3 differences, elements with no framework detected.\n\nPresets: \"React Next.js app\", \"SvelteKit app\", \"Vue 3 Nuxt app\", \"Mixed micro-frontends\".\n\nReference source: src/client-source.js lines 1014-1086 (detection functions), 565-633 (findElement fallbacks).\n\nAudience: Users evaluating framework support, contributors adding new framework detection (Angular, Solid, etc.), users debugging \"Unknown\" component names.",
@@ -1131,7 +1131,7 @@
         "updatedAt": "2026-02-24T18:26:15.524Z"
       },
       {
-        "id": "23",
+        "id": 23,
         "title": "Fix wrong GitHub URL in playground index footer",
         "description": "The index.html playground footer links to https://github.com/anthropics/see-my-clicks which is wrong. Should link to the correct repository URL.",
         "details": "In docs/playgrounds/index.html line 229, the footer contains: `<a href=\"https://github.com/anthropics/see-my-clicks\">see-my-clicks</a>`. The \"anthropics\" org is incorrect. Update to the correct GitHub repository URL.",
@@ -1143,7 +1143,7 @@
         "updatedAt": "2026-02-24T18:28:20.193Z"
       },
       {
-        "id": "24",
+        "id": 24,
         "title": "Fix \"browser extension\" wording in data-explorer playground",
         "description": "The data-explorer.html findings panel context blurb incorrectly calls see-my-clicks a \"browser extension\". It's a Vite plugin / Express middleware, not a browser extension.",
         "details": "In docs/playgrounds/data-explorer.html line 409, the text reads: \"The clicked.json format is the contract between the browser extension and AI tools.\" Change \"browser extension\" to \"capture tool\" or \"Vite plugin\" to accurately describe see-my-clicks.",
@@ -1155,18 +1155,21 @@
         "updatedAt": "2026-02-24T18:28:20.196Z"
       },
       {
-        "id": "25",
+        "id": 25,
         "title": "Fix Add button disabled state inconsistency across playgrounds",
         "description": "The \"+ Add\" button in the findings panel has inconsistent disabled/enabled logic across the 4 playgrounds. Some disable based on note content, some on selected state, and some never disable at all.",
         "details": "Issues found:\n\n1. **architecture.html**: The `add-finding-btn` is NEVER disabled. The `addGeneralFinding()` function silently returns on empty input, but the button stays visually enabled. Should disable when textarea is empty, matching overlay-design.html pattern.\n\n2. **data-explorer.html**: The `add-finding-btn` is disabled based on `totalClicks === 0` (line 1128-1130), not textarea content. This means with a preset loaded, the button stays enabled even with an empty textarea. `addFinding()` silently returns on empty note (line 1048). Should also check textarea content.\n\n3. **overlay-design.html**: Correctly disables based on textarea content via input event listener (line 1138-1142, 1152). This is the reference pattern.\n\n4. **framework-detection.html**: Disables based on `!state.selectedNode` (line 1718-1719). Note is optional here (allowed to be null). This is intentionally different but could confuse — consider requiring at least a note OR a selected node.\n\nFix: Add input event listeners to architecture.html and data-explorer.html finding textareas that disable the button when empty, matching the overlay-design.html pattern.",
         "testStrategy": "",
         "status": "pending",
-        "dependencies": [],
+        "dependencies": [
+          "30",
+          "31"
+        ],
         "priority": "low",
         "subtasks": []
       },
       {
-        "id": "26",
+        "id": 26,
         "title": "Fix Mixed micro-frontends preset tab highlighting in framework-detection playground",
         "description": "The \"Mixed micro-frontends\" preset sets `state.activeFramework = 'mixed'` but 'mixed' is not in the FRAMEWORKS array, so no framework tab highlights when this preset is active.",
         "details": "In docs/playgrounds/framework-detection.html:\n\n1. Line 1451-1454: The mixed preset sets `state.activeFramework = 'mixed'`\n2. Line 755: `FRAMEWORKS = ['react', 'vue3', 'vue2', 'svelte', 'html']` — no 'mixed' entry\n3. Line 1420-1421: Tab rendering checks `state.activeFramework === fw` — no match for 'mixed'\n\nResult: When \"Mixed micro-frontends\" is selected, no framework tab is highlighted, creating a confusing UI state.\n\nFix options:\n- Add a 'mixed' entry to FRAMEWORKS with a tab\n- Or deselect all framework tabs explicitly when mixed is active (add visual indication like \"mixed\" badge in the tab bar)\n- Or render the mixed tree without changing the framework tabs (keep the last selected tab active)",
@@ -1178,18 +1181,22 @@
         "updatedAt": "2026-02-24T18:28:20.197Z"
       },
       {
-        "id": "27",
+        "id": 27,
         "title": "Unify CSS variable strategy across playgrounds",
         "description": "The 4 playgrounds use inconsistent CSS strategies — some use :root custom properties, some hardcode hex values throughout. This makes palette changes error-prone.",
         "details": "Current state:\n- **overlay-design.html**: Uses `:root` CSS variables (`--smc-purple`, `--smc-bg-dark`, etc.) for some styles, but hardcodes in JS-rendered elements\n- **data-explorer.html**: Hardcodes all hex colors everywhere (no CSS variables)\n- **architecture.html**: Hardcodes all hex colors (no CSS variables)\n- **framework-detection.html**: Uses `:root` CSS variables (`--bg`, `--text`, `--accent`, etc.) consistently in CSS\n\nRecommended: Adopt framework-detection.html's approach — define a shared `:root` variable set at the top of each playground. The variable names should be consistent across all playgrounds (e.g., `--bg`, `--text`, `--accent`, `--surface`, `--border`, framework-specific colors). This makes it easy to tweak the dark theme palette.\n\nLow priority since these are standalone HTML files, but improves maintainability.",
         "testStrategy": "",
         "status": "pending",
-        "dependencies": [],
+        "dependencies": [
+          "30",
+          "31",
+          "32"
+        ],
         "priority": "low",
         "subtasks": []
       },
       {
-        "id": "28",
+        "id": 28,
         "title": "Complete index.d.ts type definitions",
         "description": "index.d.ts only declares 4 of 13 fields in CapturedElementData. Missing fields: clickId, timestamp, elementId, classList, boundingBox, component, parentChain, url, viewportSize. Also missing CaptureSession shape (id, name, color, startedAt, clicks[]) and CaptureStore shape ({ sessions: CaptureSession[] }).",
         "details": "Discovered by comparing data-explorer playground against real code. The playground documents the full data shape accurately but index.d.ts is severely behind.\n\nCurrent state (src/index.d.ts): Only declares selector, tagName, textContent, attributes in CapturedElementData.\n\nMissing fields to add:\n- clickId: string\n- timestamp: string (ISO 8601)\n- elementId: string\n- classList: string[]\n- boundingBox: { x: number, y: number, width: number, height: number }\n- component: { name: string, file: string, framework: string } | null\n- parentChain: Array<{ tagName: string, id: string, classList: string[], component: { name: string, file: string, framework: string } | null }>\n- url: string\n- viewportSize: { width: number, height: number }\n\nAlso add/fix:\n- CaptureSession: { id: string, name: string, color: string, startedAt: string, clicks: CapturedElementData[] }\n- CaptureStore: { sessions: CaptureSession[] }\n\nReference: src/client-source.js:1149-1195 (captureElement), src/server.js:143-151 (session creation)",
@@ -1201,7 +1208,7 @@
         "updatedAt": "2026-02-25T07:43:30.091Z"
       },
       {
-        "id": "29",
+        "id": 29,
         "title": "Update architecture playground after refactoring",
         "description": "The architecture playground is significantly outdated after recent refactoring. Line counts, CLI role, POST body shape, session schema fields, and edges are all wrong.",
         "details": "Discrepancies found by comparing architecture.html against actual source:\n\n1. **Line counts wrong for all 6 files**:\n   - client-source.js: playground says 1480, actual 1481\n   - client.js: says 25, actual 21\n   - plugin.js: says 90, actual 52\n   - server.js: says 280, actual 315\n   - index.js: says 10, actual 3\n   - bin/cli.js: says 60, actual 329 (!!!)\n   Location: docs/playgrounds/architecture.html:547-589\n\n2. **CLI node role severely outdated**: Playground says \"copies AI instruction templates and initializes .see-my-clicks/ directory\". Real CLI now supports --action presets (suggest-fixes, taskmaster, github-issues, just-report), multiple tool targets, copy vs append modes, and SvelteKit SSR auto-patching. Line 590-591.\n\n3. **POST body shape wrong** (edge e1, line 613): Shows flat `{ selector, tagName, textContent, boundingRect, attributes, computedStyles, framework, componentName }`. Real shape is `{ data: { clickId, timestamp, tagName, elementId, classList, selector, textContent, boundingBox, component, parentChain, attributes, url, viewportSize }, newSession, sessionName }`. computedStyles doesn't exist, framework/componentName are inside component object.\n\n4. **Session schema wrong**: Field is `startedAt` not `createdAt`, missing `name` field. Line 584.\n\n5. **Edge e12 wrong**: Says CLI creates .see-my-clicks/ dir — actually server.js does this via ensureOutputFile(). \n\n6. **Missing edge**: server.js imports getClientScript from client.js and serves it at GET /__see-my-clicks/client.js (middleware mode). Not shown.\n\n7. **server.js exports**: Lists filterExpiredSessions() as export but it's internal-only. Only createMiddleware is exported.",
@@ -1213,7 +1220,7 @@
         "updatedAt": "2026-02-25T07:53:46.870Z"
       },
       {
-        "id": "30",
+        "id": 30,
         "title": "Update framework-detection playground: add parent-walking, displayName, verifyElement",
         "description": "The framework-detection playground is missing 3 key behaviors from the real code: getFrameworkComponentFromChain() parent-walking, React displayName check, and verifyElement() rejection simulation.",
         "details": "Discrepancies found by comparing framework-detection.html against src/client-source.js:\n\n1. **getFrameworkComponentFromChain() entirely absent** (HIGH): Real code at client-source.js:1131-1139 walks UP parent elements calling getFrameworkComponent() at each level. Used during click capture (line 1190) and findElement step 5 (line 621). The playground only simulates single-element detection. This is a core behavior users need to understand.\n\n2. **React displayName check missing** (MEDIUM): Real code checks `node.type.displayName || node.type.name` (client-source.js:1087). Playground only checks `name`. Means playground can't demo detection of React.memo/React.forwardRef wrapped components.\n\n3. **verifyElement() not functionally simulated** (MEDIUM): Real code calls verifyElement(el, data) at EVERY findElement step (client-source.js:555-563, 574, 583, 600, 609, 625). It compares truncateText(el.innerText, 100) with stored textContent. Playground marks it cosmetically but doesn't model text-match rejection causing fallback.\n\n4. **findElement step 3 only tries first data-* attr** (LOW): Playground line 1338 only checks dataAttrs[0]. Real code iterates ALL data-* attributes (client-source.js:593-601).\n\n5. **_debugSource.fileName not modeled** (LOW): Real React detection reads node._debugSource.fileName (only in dev mode). Playground uses flat file property on mock data.",
@@ -1224,7 +1231,7 @@
         "subtasks": []
       },
       {
-        "id": "31",
+        "id": 31,
         "title": "Update overlay playground: add missing interactive states and behaviors",
         "description": "The overlay playground is missing several real UI behaviors: off-route dimming, hidden session opacity, marker-row hover linking, edit-on-click, empty state, and ARIA attributes.",
         "details": "Discrepancies found by comparing overlay-design.html against src/client-source.js:\n\n**Medium severity:**\n- Panel missing off-route click entry dimming (real uses color:#6c7086 for text, #45475a for numbers — client-source.js:397-400)\n- Panel missing hidden session opacity:0.4 (client-source.js:343)\n- Marker z-index stacking wrong: playground markers have no z-index container; real markers inherit 999997 from __smc-markers parent (client-source.js:101)\n- Modal max-height uses 100% instead of 100vh (overlay-design.html:856 vs client-source.js:735)\n\n**Low severity:**\n- No \"No captures yet\" empty state (client-source.js:223-224)\n- No hidden eye icon variant / slashed eye SVG (client-source.js:344-350)\n- Row hover only toggles row background; real code also highlights corresponding marker with scale 1.5 + glow (client-source.js:274-278)\n- Click rows not clickable for editing — real code opens edit modal (client-source.js:261-268)\n- Modal always shows Delete button; real code hides it for new clicks, only shows in edit mode (client-source.js:749, 917)\n- Component access pattern: playground uses c.component (string), real uses c.component.name (object) (client-source.js:385-387)\n- Missing ARIA attributes on modal and session prompt (role=\"dialog\", aria-modal, aria-label — client-source.js:728-730, 939-941)\n- Missing modal focus trap / Tab cycling (client-source.js:783-799)\n\n**Info (by design for playground tuning):**\n- fontScale slider is playground-only (real code has no font scaling)\n- Badge position configurable in playground but hardcoded to bottom-right in real code",
@@ -1235,7 +1242,7 @@
         "subtasks": []
       },
       {
-        "id": "32",
+        "id": 32,
         "title": "Fix data-explorer playground: maxEntries trimming and phantom action modes",
         "description": "The data-explorer playground shows wrong maxEntries trimming behavior and lists AI action modes that don't exist in the actual instruction templates.",
         "details": "Discrepancies found by comparing data-explorer.html against src/server.js and instructions/:\n\n1. **maxEntries trimming scope wrong** (HIGH): Playground shows maxEntries trimming ALL sessions at read-time (per-session limit applied when data is read). Real server.js only trims the ACTIVE session at write-time (src/server.js:153-157) — when a new click is added, only that session's clicks are trimmed to maxEntries. Historical sessions keep all their clicks. The algorithm box in the playground conflates filterExpiredSessions() and maxEntries trimming into one function.\n\n2. **Phantom action modes** (HIGH): Playground shows 4 AI action modes: suggest-fixes, taskmaster, github-issues, just-report. The actual instruction templates in instructions/ only implement suggest-fixes. The other 3 (taskmaster, github-issues, just-report) exist as CLI --action presets but don't have corresponding instruction template content.\n\n3. **parentChain missing component field** (MEDIUM): Playground preset data omits the component field in parentChain entries. Real code at client-source.js:1149-1154 always includes component (either the detection result or null).\n\n4. **Algorithm display**: The \"How It Works\" box conflates filterExpiredSessions and maxEntries into a single function. In reality, filterExpiredSessions (server.js) handles expiry and maxEntries trimming is a separate step in handlePost.",
@@ -1253,7 +1260,9 @@
       "completedCount": 27,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2026-02-25T10:19:57.394Z",
+      "description": "Tasks for master context"
     }
   }
 }
