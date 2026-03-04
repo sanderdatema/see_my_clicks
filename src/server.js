@@ -15,8 +15,6 @@ const COLOR_PALETTE = [
 ];
 
 const DEFAULTS = {
-  maxEntries: 10,
-  expiryMinutes: 60,
   outputFile: ".see-my-clicks/clicked.json",
 };
 
@@ -69,17 +67,6 @@ function readData(outputFile) {
   }
 }
 
-function filterExpiredSessions(store, expiryMs) {
-  const now = Date.now();
-  for (const session of store.sessions) {
-    session.clicks = session.clicks.filter(
-      (c) => now - new Date(c.timestamp).getTime() < expiryMs,
-    );
-  }
-  store.sessions = store.sessions.filter((s) => s.clicks.length > 0);
-  return store;
-}
-
 function countTotalClicks(store) {
   let total = 0;
   for (const session of store.sessions) {
@@ -99,13 +86,8 @@ function validateClickData(data) {
  * Connect-style middleware that handles the /__see-my-clicks endpoint.
  */
 export function createMiddleware(opts = {}) {
-  const {
-    maxEntries,
-    expiryMinutes,
-    outputFile: relPath,
-  } = resolveOptions(opts);
+  const { outputFile: relPath } = resolveOptions(opts);
   const outputFile = path.resolve(process.cwd(), relPath);
-  const expiryMs = expiryMinutes * 60 * 1000;
 
   ensureOutputFile(outputFile);
 
@@ -138,7 +120,7 @@ export function createMiddleware(opts = {}) {
           return;
         }
 
-        const store = filterExpiredSessions(readData(outputFile), expiryMs);
+        const store = readData(outputFile);
 
         if (newSession || store.sessions.length === 0) {
           const name = sessionName || "Session " + (store.sessions.length + 1);
@@ -152,9 +134,6 @@ export function createMiddleware(opts = {}) {
         } else {
           const active = store.sessions[store.sessions.length - 1];
           active.clicks.push(data);
-          if (active.clicks.length > maxEntries) {
-            active.clicks = active.clicks.slice(-maxEntries);
-          }
         }
 
         writeData(outputFile, store);
@@ -181,7 +160,7 @@ export function createMiddleware(opts = {}) {
   function handleGet(res, url) {
     writeQueue = writeQueue.then(() => {
       try {
-        const store = filterExpiredSessions(readData(outputFile), expiryMs);
+        const store = readData(outputFile);
         const clear = url.searchParams.get("clear") === "true";
 
         // Persist filtered result; only clear data when explicitly requested
@@ -199,7 +178,7 @@ export function createMiddleware(opts = {}) {
     writeQueue = writeQueue.then(() => {
       try {
         const clickId = url.searchParams.get("clickId");
-        const store = filterExpiredSessions(readData(outputFile), expiryMs);
+        const store = readData(outputFile);
 
         if (clickId) {
           for (const session of store.sessions) {
