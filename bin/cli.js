@@ -2,9 +2,9 @@
 
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import * as sveltekitPatch from "./patches/sveltekit.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const INSTRUCTIONS_DIR = path.resolve(__dirname, "..", "instructions");
 
 const START_MARKER = "<!-- see-my-clicks:start -->";
@@ -16,15 +16,6 @@ const ACTION_END = "<!-- action:end -->";
 
 const ACTIONS = {
   "suggest-fixes": `4. If comments are present, suggest concrete fixes based on the component, selector, and comment. Group related clicks (same component, same page, same concern) together. Respect session boundaries — each session is a separate batch of feedback.
-
-5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
-
-  taskmaster: `4. For each captured click that has a comment, create a Task Master task using the add_task MCP tool. Include in the task description:
-   - The element selector and tag
-   - The component name and source file (if detected)
-   - The page URL
-   - The user's comment verbatim
-   Group related clicks (same component, same page, same concern) into a single task. Respect session boundaries — each session is a separate batch of feedback.
 
 5. If no comments are present on any click, present the element info and ask the user what they'd like to do with it.`,
 
@@ -160,83 +151,15 @@ function install(key, actionKey) {
 
 // ── SSR framework patching ──────────────────────────────────────────
 
-const SCRIPT_TAG = '<script src="/__see-my-clicks/client.js"></script>';
-const SCRIPT_MARKER = "see-my-clicks/client.js";
+// Framework patch modules live in bin/patches/. Each exports detect() and patch().
+const frameworkPatches = [sveltekitPatch];
 
 function detectSSRFramework() {
-  // Check cwd and common subdirectories for SvelteKit
-  const candidates = [
-    "package.json",
-    "frontend/package.json",
-    "client/package.json",
-    "web/package.json",
-    "app/package.json",
-  ];
-  for (const rel of candidates) {
-    const pkgPath = path.resolve(process.cwd(), rel);
-    if (!fs.existsSync(pkgPath)) continue;
-    try {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if (allDeps["@sveltejs/kit"]) return "sveltekit";
-    } catch (e) {}
+  for (const mod of frameworkPatches) {
+    const result = mod.detect();
+    if (result) return result;
   }
   return null;
-}
-
-function findAppHtml() {
-  // Check cwd first, then common subdirectories
-  const candidates = [
-    "src/app.html",
-    "frontend/src/app.html",
-    "client/src/app.html",
-    "web/src/app.html",
-    "app/src/app.html",
-  ];
-  for (const rel of candidates) {
-    const abs = path.resolve(process.cwd(), rel);
-    if (fs.existsSync(abs)) return { abs, rel };
-  }
-  return null;
-}
-
-function patchSvelteKit() {
-  const found = findAppHtml();
-  if (!found) {
-    console.warn(
-      "  \u26a0 SvelteKit detected but src/app.html not found.\n" +
-        "  Add this to your app.html manually:\n" +
-        `  ${SCRIPT_TAG}`,
-    );
-    return;
-  }
-  const { abs, rel } = found;
-  const html = fs.readFileSync(abs, "utf-8");
-  if (html.includes(SCRIPT_MARKER)) {
-    console.log(`  ${rel} already has the client script, skipping.`);
-    return;
-  }
-  if (!html.includes("</body>")) {
-    console.warn(
-      `  \u26a0 ${rel} has no </body> tag — add the script tag manually:\n` +
-        `  ${SCRIPT_TAG}`,
-    );
-    return;
-  }
-  const patched = html.replace("</body>", `  ${SCRIPT_TAG}\n</body>`);
-  fs.writeFileSync(abs, patched);
-
-  // Verify the write succeeded
-  const verify = fs.readFileSync(abs, "utf-8");
-  if (verify.includes(SCRIPT_MARKER)) {
-    console.log(`  Patched ${rel} with client script tag (SvelteKit).`);
-  } else {
-    console.warn(
-      `  \u26a0 Wrote to ${rel} but the script tag was not found after writing.\n` +
-        `  Add it manually:\n` +
-        `  ${SCRIPT_TAG}`,
-    );
-  }
 }
 
 // ── Main ────────────────────────────────────────────────────────────
@@ -259,13 +182,12 @@ Tools:
 
 Actions:
   --action=suggest-fixes    Suggest code fixes (default)
-  --action=taskmaster       Create Task Master tasks
   --action=github-issues    Create GitHub issues
   --action=just-report      Just report clicks, no action
 
 Examples:
   npx see-my-clicks init claude
-  npx see-my-clicks init claude cursor --action=taskmaster
+  npx see-my-clicks init claude cursor --action=github-issues
   npx see-my-clicks init all --action=github-issues
 
 Setup:
@@ -321,7 +243,7 @@ for (const key of keys) {
 const framework = detectSSRFramework();
 if (framework === "sveltekit") {
   console.log();
-  patchSvelteKit();
+  sveltekitPatch.patch();
 }
 
 console.log(
