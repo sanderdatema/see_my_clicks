@@ -24,6 +24,7 @@
   }
 
   // Keep in sync with COLOR_PALETTE in src/server.js
+  // Enforced by tests/static/color-palette-sync.spec.mjs
   var SESSION_COLORS = [
     "#8b5cf6",
     "#f38ba8",
@@ -632,9 +633,9 @@
     return null;
   }
 
-  function addMarker(data, color) {
-    markerNumber++;
+  function addMarker(data, color, number) {
     var markerColor = color || "#8b5cf6";
+    var displayNumber = number || ++markerNumber;
     var target = findElement(data);
     if (!target) return false;
 
@@ -650,7 +651,7 @@
       "font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;" +
       "font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);" +
       "pointer-events:auto;cursor:pointer;opacity:0.4;transition:opacity .15s ease;";
-    dot.textContent = String(markerNumber);
+    dot.textContent = String(displayNumber);
     dot.style.left = Math.round(rect.right - 10) + "px";
     dot.style.top = Math.round(rect.top - 10) + "px";
 
@@ -675,7 +676,7 @@
     markers[data.clickId] = {
       el: dot,
       target: target,
-      number: markerNumber,
+      number: displayNumber,
       data: data,
       color: markerColor,
     };
@@ -1173,7 +1174,7 @@
   function captureElement(el) {
     var rect = el.getBoundingClientRect();
     return {
-      // Keep in sync with generateId() in src/server.js
+      // Generates click IDs. Independent from session ID generation in src/server.js.
       clickId: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       timestamp: new Date().toISOString(),
       tagName: el.tagName.toLowerCase(),
@@ -1217,14 +1218,15 @@
         updateBadge(res.totalClicks || 0);
         // Track in allClickData so syncMarkers knows about it
         var sColor = res.sessionColor || "#8b5cf6";
+        var clickNumber = allClickData.length + 1;
         allClickData.push({
           data: data,
-          index: allClickData.length + 1,
+          index: clickNumber,
           clickId: data.clickId,
           sessionId: res.sessionId,
           sessionColor: sColor,
         });
-        addMarker(data, sColor);
+        addMarker(data, sColor, clickNumber);
         lastClickId = data.clickId;
       })
       .catch(function (err) {
@@ -1384,11 +1386,9 @@
           delete markers[cd.clickId];
         }
       } else if (onThisRoute && !isHidden) {
-        markerNumber = cd.index - 1;
-        addMarker(cd.data, cd.sessionColor);
+        addMarker(cd.data, cd.sessionColor, cd.index);
       }
     }
-    markerNumber = allClickData.length;
   }
 
   function scheduleSyncMarkers() {
@@ -1425,7 +1425,6 @@
             }
           }
         }
-        markerNumber = allClickData.length;
         updateBadge(allClickData.length);
         syncMarkersForCurrentRoute();
       })
