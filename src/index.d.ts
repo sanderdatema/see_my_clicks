@@ -56,12 +56,12 @@ export interface CaptureStore {
 export interface SeeMyClicksRequest {
   url?: string;
   method?: string;
-  on(event: string, listener: (...args: unknown[]) => void): unknown;
+  on(event: string, listener: (...args: unknown[]) => void): void;
 }
 
 export interface SeeMyClicksResponse {
-  writeHead(statusCode: number, headers?: Record<string, string>): unknown;
-  end(body?: string): unknown;
+  writeHead(statusCode: number, headers?: Record<string, string>): void;
+  end(body?: string): void;
 }
 
 export type SeeMyClicksMiddleware = (
@@ -80,5 +80,7 @@ export interface SeeMyClicksPlugin {
 }
 
 export function seeMyClicks(opts?: SeeMyClicksOptions): SeeMyClicksPlugin;
-export function createMiddleware(opts?: SeeMyClicksOptions): SeeMyClicksMiddleware;
+export function createMiddleware(
+  opts?: SeeMyClicksOptions,
+): SeeMyClicksMiddleware;
 export function getClientScript(): string;

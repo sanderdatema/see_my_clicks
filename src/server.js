@@ -3,6 +3,7 @@ import path from "path";
 import { getClientScript } from "./client.js";
 
 // Keep in sync with SESSION_COLORS in src/client-source.js
+// Enforced by tests/static/color-palette-sync.spec.mjs
 const COLOR_PALETTE = [
   "#8b5cf6",
   "#f38ba8",
@@ -22,7 +23,7 @@ function resolveOptions(opts = {}) {
   return { ...DEFAULTS, ...opts };
 }
 
-// Keep in sync with ID generation in src/client-source.js (captureElement)
+// Generates session IDs. Independent from click ID generation in src/client-source.js.
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -157,15 +158,10 @@ export function createMiddleware(opts = {}) {
     });
   }
 
-  function handleGet(res, url) {
+  function handleGet(res) {
     writeQueue = writeQueue.then(() => {
       try {
         const store = readData(outputFile);
-        const clear = url.searchParams.get("clear") === "true";
-
-        // Persist filtered result; only clear data when explicitly requested
-        writeData(outputFile, clear ? { sessions: [] } : store);
-
         sendJson(res, 200, store);
       } catch (err) {
         console.error("[see-my-clicks] GET error:", err);
@@ -283,7 +279,7 @@ export function createMiddleware(opts = {}) {
     }
 
     if (req.method === "POST") handlePost(req, res);
-    else if (req.method === "GET") handleGet(res, url);
+    else if (req.method === "GET") handleGet(res);
     else if (req.method === "DELETE") handleDelete(res, url);
     else if (req.method === "PUT") handlePut(req, res);
     else {

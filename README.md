@@ -157,8 +157,6 @@ Component name and source file are included in the capture when available.
 
 ```js
 seeMyClicks({
-  maxEntries: 10,                              // max clicks per session (default: 10)
-  expiryMinutes: 60,                           // auto-expire after N minutes (default: 60)
   outputFile: '.see-my-clicks/clicked.json',   // output path relative to cwd
 })
 ```

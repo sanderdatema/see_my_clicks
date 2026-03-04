@@ -10,7 +10,6 @@ import { getClientScript } from "./client.js";
  */
 export function seeMyClicks(opts = {}) {
   const middleware = createMiddleware(opts);
-  const clientScript = getClientScript();
 
   return {
     name: "see-my-clicks",
@@ -41,7 +40,7 @@ export function seeMyClicks(opts = {}) {
       return [
         {
           tag: "script",
-          children: clientScript,
+          children: getClientScript(),
           injectTo: "body",
         },
       ];
