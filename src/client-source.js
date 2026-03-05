@@ -215,9 +215,14 @@
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
         html +=
           '<span style="color:#cdd6f4;font-size:13px;font-weight:600;">Captures</span>';
+        html += '<div style="display:flex;gap:6px;">';
+        html +=
+          '<button id="__smc-purge-btn" style="background:none;border:1px solid #f38ba8;border-radius:6px;' +
+          'color:#f38ba8;font-size:11px;padding:3px 8px;cursor:pointer;" title="Purge all clicks">\u{1F5D1}</button>';
         html +=
           '<button id="__smc-new-session-btn" style="background:#8b5cf6;border:none;border-radius:6px;' +
           'color:#fff;font-size:11px;padding:3px 10px;cursor:pointer;">+ New Session</button>';
+        html += "</div>";
         html += "</div>";
 
         if (sessions.length === 0) {
@@ -314,6 +319,27 @@
               toggleSessionVisibility(btn.getAttribute("data-smc-toggle"));
             });
           })(toggleBtns[j]);
+        }
+
+        // Attach purge handler
+        var purgeBtn = panel.querySelector("#__smc-purge-btn");
+        if (purgeBtn) {
+          purgeBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (!confirm("Purge all click data? This cannot be undone."))
+              return;
+            fetch("/__see-my-clicks", { method: "DELETE" })
+              .then(function (r) {
+                return r.json();
+              })
+              .then(function () {
+                allClickData = [];
+                var ids = Object.keys(markers);
+                for (var k = 0; k < ids.length; k++) removeMarker(ids[k]);
+                updateBadge(0);
+                refreshPanel();
+              });
+          });
         }
 
         // Attach new session handler
