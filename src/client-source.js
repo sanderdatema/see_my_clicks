@@ -352,6 +352,10 @@
             showSessionPrompt(sessions.length, function (name) {
               forceNewSession = true;
               forceSessionName = name;
+              for (var si = 0; si < sessions.length; si++) {
+                hiddenSessions[sessions[si].id] = true;
+              }
+              syncMarkersForCurrentRoute();
               flash(
                 "New session: " +
                   (name || "Unnamed") +
