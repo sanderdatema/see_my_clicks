@@ -29,8 +29,11 @@ jobs:
 
       - name: Publish
         run: |
+          VERSION=$(node -p "require('./package.json').version")
           if [ "${{ github.ref_type }}" = "tag" ]; then
             npm publish --provenance
-          else
+          elif echo "$VERSION" | grep -q "alpha"; then
             npm publish --provenance --tag alpha
+          else
+            echo "Skipping publish: version $VERSION is not alpha (stable publishes via v* tag)"
           fi
