@@ -162,15 +162,82 @@ function detectSSRFramework() {
   return null;
 }
 
+// ── Retrieve & Purge ────────────────────────────────────────────────
+
+const OUTPUT_FILE = path.resolve(process.cwd(), ".see-my-clicks/clicked.json");
+
+function readStore() {
+  if (!fs.existsSync(OUTPUT_FILE)) return { sessions: [] };
+  try {
+    const raw = JSON.parse(fs.readFileSync(OUTPUT_FILE, "utf-8"));
+    return raw && raw.sessions ? raw : { sessions: [] };
+  } catch {
+    return { sessions: [] };
+  }
+}
+
+function writeStore(data) {
+  const dir = path.dirname(OUTPUT_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmp = `${OUTPUT_FILE}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, OUTPUT_FILE);
+}
+
+function handleRetrieve() {
+  const store = readStore();
+  const marker = store.lastRetrievedAt || null;
+
+  // Filter sessions to only include clicks after the marker
+  const filtered = [];
+  for (const session of store.sessions) {
+    const newClicks = marker
+      ? session.clicks.filter((c) => c.timestamp > marker)
+      : session.clicks;
+    if (newClicks.length > 0) {
+      filtered.push({ ...session, clicks: newClicks });
+    }
+  }
+
+  // Update the read marker
+  store.lastRetrievedAt = new Date().toISOString();
+  writeStore(store);
+
+  // Output filtered result to stdout
+  process.stdout.write(JSON.stringify({ sessions: filtered }, null, 2) + "\n");
+}
+
+function handlePurge() {
+  writeStore({ sessions: [], lastRetrievedAt: null });
+  process.stderr.write("Purged all click data.\n");
+}
+
 // ── Main ────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
+
+if (args[0] === "retrieve") {
+  handleRetrieve();
+  process.exit(0);
+}
+
+if (args[0] === "purge") {
+  handlePurge();
+  process.exit(0);
+}
 
 if (args[0] !== "init") {
   console.log(`see-my-clicks — Alt+Click elements to capture info for AI coding assistants
 
 Usage:
   npx see-my-clicks init [tools...] [--action=<preset>]
+  npx see-my-clicks retrieve
+  npx see-my-clicks purge
+
+Commands:
+  init        Install AI tool instructions
+  retrieve    Get new clicks since last retrieve (JSON to stdout)
+  purge       Delete all click data and reset read marker
 
 Tools:
   claude      Claude Code (.claude/commands/clicked.md)

@@ -190,7 +190,7 @@ export function createMiddleware(opts = {}) {
             sessions: store.sessions,
           });
         } else {
-          writeData(outputFile, { sessions: [] });
+          writeData(outputFile, { sessions: [], lastRetrievedAt: null });
           sendJson(res, 200, { success: true, totalClicks: 0 });
         }
       } catch (err) {
