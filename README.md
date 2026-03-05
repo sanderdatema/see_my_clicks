@@ -104,14 +104,13 @@ You can also pass multiple: `npx see-my-clicks init claude cursor`
 By default, your AI suggests code fixes. You can change this with `--action`:
 
 ```bash
-npx see-my-clicks init claude --action=taskmaster
-npx see-my-clicks init all --action=github-issues
+npx see-my-clicks init claude --action=github-issues
+npx see-my-clicks init all --action=just-report
 ```
 
 | Action | What it does |
 |---|---|
 | `suggest-fixes` | Suggest code fixes based on clicks and comments (default) |
-| `taskmaster` | Create Task Master tasks via MCP |
 | `github-issues` | Create GitHub issues via `gh` CLI |
 | `just-report` | Just show what was clicked, take no action |
 
@@ -124,6 +123,7 @@ You can also edit the generated instruction file directly — the action is in a
 - Add an optional comment describing what should change, or press Esc to cancel
 - A purple badge in the corner shows your capture count — click it to review, manage, or delete captures
 - Use the **+ New Session** button in the review panel to start a named session
+- Use the **purge button** (🗑) in the review panel to clear all click data
 - Tell your AI to "check my clicks" (or run `/clicked` in Claude Code)
 
 ## How it works
@@ -133,7 +133,7 @@ You can also edit the generated instruction file directly — the action is in a
 - Alt+Click captures the element's tag, selector, text, bounding box, attributes, and framework component info
 - Captured elements get numbered purple markers so you can see what you've annotated
 - Clicks are saved to `.see-my-clicks/clicked.json` via a local dev server endpoint, grouped into sessions
-- Your AI reads that file from disk and clears it after processing
+- Your AI retrieves new clicks via `npx see-my-clicks retrieve` — a read marker ensures each click is only returned once
 
 ## Sessions
 
@@ -160,6 +160,16 @@ seeMyClicks({
   outputFile: '.see-my-clicks/clicked.json',   // output path relative to cwd
 })
 ```
+
+## CLI commands
+
+```bash
+npx see-my-clicks retrieve   # Get new clicks since last retrieve (JSON to stdout)
+npx see-my-clicks purge       # Delete all click data and reset the read marker
+npx see-my-clicks init [...]  # Install AI tool instructions
+```
+
+The `retrieve` command uses a read marker — each call returns only clicks captured since the previous retrieve, so clicks are never lost or duplicated.
 
 ## Keyboard shortcuts
 
