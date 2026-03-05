@@ -349,7 +349,7 @@
             e.stopPropagation();
             panel.style.display = "none";
             panelOpen = false;
-            showSessionPrompt(function (name) {
+            showSessionPrompt(sessions.length, function (name) {
               forceNewSession = true;
               forceSessionName = name;
               flash(
@@ -990,10 +990,12 @@
     return p;
   }
 
-  function showSessionPrompt(callback) {
+  function showSessionPrompt(sessionCount, callback) {
     if (!sessionPrompt) sessionPrompt = createSessionPrompt();
     var input = sessionPrompt.querySelector("#__smc-session-name");
+    var defaultName = "Session " + (sessionCount + 1);
     input.value = "";
+    input.placeholder = defaultName;
     sessionPrompt.style.display = "block";
     setTimeout(function () {
       input.focus();
@@ -1013,7 +1015,7 @@
       input.removeEventListener("keydown", onKey);
     }
     function onOk() {
-      finish(input.value.trim() || null);
+      finish(input.value.trim() || defaultName);
     }
     function onCancel() {
       finish(null);
