@@ -161,8 +161,11 @@ Component name and source file are included in the capture when available.
 ```js
 seeMyClicks({
   outputFile: '.see-my-clicks/clicked.json',   // output path relative to cwd
+  modifier: 'alt',                              // 'alt' (default), 'ctrl', or 'meta'
 })
 ```
+
+The `modifier` option changes the key used for capture clicks. Use `'ctrl'` on Linux (where Alt+Click may be captured by the window manager) or `'meta'` to use Cmd on macOS.
 
 ## CLI commands
 

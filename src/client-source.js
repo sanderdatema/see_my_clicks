@@ -2,6 +2,30 @@
   if (window.__seeMyClicksInitialized) return;
   window.__seeMyClicksInitialized = true;
 
+  // ── Modifier key ─────────────────────────────────────────────────
+
+  var MODIFIER = window.__smcModifier || "alt";
+  var MODIFIER_LABEL =
+    MODIFIER === "alt"
+      ? "Alt"
+      : MODIFIER === "ctrl"
+        ? "Ctrl"
+        : MODIFIER === "meta"
+          ? "Cmd"
+          : "Alt";
+
+  function isModifierHeld(e) {
+    if (MODIFIER === "ctrl") return e.ctrlKey;
+    if (MODIFIER === "meta") return e.metaKey;
+    return e.altKey;
+  }
+
+  function isModifierKey(key) {
+    if (MODIFIER === "ctrl") return key === "Control";
+    if (MODIFIER === "meta") return key === "Meta";
+    return key === "Alt";
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────
 
   function truncateText(text, max) {
@@ -80,6 +104,9 @@
 
   var badge = document.createElement("div");
   badge.id = "__smc-badge";
+  badge.setAttribute("role", "button");
+  badge.setAttribute("tabindex", "0");
+  badge.setAttribute("aria-label", "See my clicks: 0 captures");
   badge.style.cssText =
     "position:fixed;bottom:20px;right:20px;width:36px;height:36px;border-radius:50%;" +
     "background:#8b5cf6;color:#fff;font-family:system-ui,sans-serif;font-size:14px;" +
@@ -163,8 +190,21 @@
 
   // ── Badge ────────────────────────────────────────────────────────
 
-  function updateBadge(count) {
+  function countUnread() {
+    var n = 0;
+    for (var i = 0; i < allClickData.length; i++) {
+      if (!allClickData[i].seen) n++;
+    }
+    return n;
+  }
+
+  function updateBadge() {
+    var count = countUnread();
     badge.style.display = "flex";
+    badge.setAttribute(
+      "aria-label",
+      "See my clicks: " + count + " unread capture" + (count !== 1 ? "s" : ""),
+    );
     if (count > 0) {
       badge.textContent = count > 99 ? "99+" : String(count);
     } else {
@@ -175,19 +215,24 @@
     }
   }
 
+  function togglePanel(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    panelOpen = !panelOpen;
+    if (panelOpen) {
+      refreshPanel();
+      panel.style.display = "block";
+    } else {
+      panel.style.display = "none";
+    }
+  }
+
+  badge.addEventListener("click", togglePanel, true);
   badge.addEventListener(
-    "click",
+    "keydown",
     function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      panelOpen = !panelOpen;
-      if (panelOpen) {
-        refreshPanel();
-        panel.style.display = "block";
-      } else {
-        panel.style.display = "none";
-      }
+      if (e.key === "Enter" || e.key === " ") togglePanel(e);
     },
     true,
   );
@@ -219,11 +264,13 @@
         html += '<div style="display:flex;gap:6px;">';
         html +=
           '<button id="__smc-purge-btn" style="background:none;border:1px solid #f38ba8;border-radius:6px;' +
-          'color:#f38ba8;font-size:11px;padding:3px 8px;cursor:pointer;" title="Purge all clicks">\u{1F5D1}</button>';
+          'color:#f38ba8;font-size:11px;padding:3px 8px;cursor:pointer;" title="Purge all clicks">' +
+          "\u{1F5D1} Purge</button>";
         if (store.lastRetrievedAt) {
           html +=
             '<button id="__smc-unread-btn" style="background:none;border:1px solid #6c7086;border-radius:6px;' +
-            'color:#6c7086;font-size:11px;padding:3px 8px;cursor:pointer;" title="Mark all as unread">↺</button>';
+            'color:#6c7086;font-size:11px;padding:3px 8px;cursor:pointer;" title="Mark all as unread">' +
+            "↺ Unread</button>";
         }
         html +=
           '<button id="__smc-new-session-btn" style="background:#8b5cf6;border:none;border-radius:6px;' +
@@ -233,7 +280,9 @@
 
         if (sessions.length === 0) {
           html +=
-            '<div style="color:#6c7086;font-size:12px;padding:8px 0;">No captures yet. Alt+Click an element.</div>';
+            '<div style="color:#6c7086;font-size:12px;padding:8px 0;">No captures yet. ' +
+            MODIFIER_LABEL +
+            "+Click an element.</div>";
         }
 
         // Build global click numbering (oldest session first)
@@ -293,7 +342,7 @@
               row.style.background = "none";
               var m = markers[clickId];
               if (m) {
-                m.el.style.opacity = "0.4";
+                m.el.style.opacity = "0.7";
                 m.el.style.transform = "";
                 m.el.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
               }
@@ -342,7 +391,7 @@
                 allClickData = [];
                 var ids = Object.keys(markers);
                 for (var k = 0; k < ids.length; k++) removeMarker(ids[k]);
-                updateBadge(0);
+                updateBadge();
                 refreshPanel();
               });
           });
@@ -385,7 +434,9 @@
               flash(
                 "New session: " +
                   (name || "Unnamed") +
-                  " \u2014 Alt+Click to capture",
+                  " \u2014 " +
+                  MODIFIER_LABEL +
+                  "+Click to capture",
               );
             });
           });
@@ -415,10 +466,15 @@
       escapeHtml(session.id) +
       '" data-smc-current-color="' +
       escapeHtml(sessionColor) +
-      '" style="width:12px;height:12px;border-radius:50%;background:' +
+      '" style="width:14px;height:14px;border-radius:50%;background:' +
       escapeHtml(sessionColor) +
       ";cursor:pointer;flex-shrink:0;" +
-      'border:2px solid rgba(255,255,255,.15);" title="Change color"></div>' +
+      "border:2px solid rgba(255,255,255,.15);" +
+      "display:flex;align-items:center;justify-content:center;" +
+      'font-size:8px;font-weight:700;color:#fff;font-family:system-ui,sans-serif;" ' +
+      'title="Change color">' +
+      escapeHtml(session.name ? session.name.charAt(0).toUpperCase() : "S") +
+      "</div>" +
       '<span style="color:' +
       escapeHtml(sessionColor) +
       ';font-size:11px;font-weight:600;flex:1;">' +
@@ -498,7 +554,7 @@
         allClickData = allClickData.filter(function (cd) {
           return cd.clickId !== clickId;
         });
-        updateBadge(res.totalClicks || 0);
+        updateBadge();
         if (panelOpen) refreshPanel();
       });
   }
@@ -700,14 +756,27 @@
     var dot = document.createElement("div");
     dot.className = "__smc-marker";
     dot.setAttribute("data-click-id", data.clickId);
-    var baseOpacity = seen ? "0.2" : "0.4";
-    var hoverOpacity = seen ? "0.6" : "1";
+    dot.setAttribute("role", "button");
+    dot.setAttribute("tabindex", "0");
+    dot.setAttribute(
+      "aria-label",
+      "Capture " +
+        displayNumber +
+        ": <" +
+        data.tagName +
+        ">" +
+        (data.comment ? " — " + data.comment : "") +
+        " — click to edit",
+    );
+    var baseOpacity = seen ? "0.4" : "0.7";
+    var hoverOpacity = seen ? "0.7" : "1";
     dot.style.cssText =
       "position:fixed;width:20px;height:20px;border-radius:50%;background:" +
       markerColor +
       ";color:#fff;" +
       "font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;" +
       "font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);" +
+      "outline:2px solid rgba(255,255,255,0.5);outline-offset:-2px;" +
       "pointer-events:auto;cursor:pointer;opacity:" +
       baseOpacity +
       ";transition:opacity .15s ease;" +
@@ -723,6 +792,18 @@
         e.stopPropagation();
         e.stopImmediatePropagation();
         showEditModal(data, e.clientX, e.clientY);
+      },
+      true,
+    );
+    dot.addEventListener(
+      "keydown",
+      function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          var r = dot.getBoundingClientRect();
+          showEditModal(data, r.left, r.bottom);
+        }
       },
       true,
     );
@@ -1278,7 +1359,7 @@
         var name = (data.component && data.component.name) || data.tagName;
         var sessionLabel = res.sessionName ? " [" + res.sessionName + "]" : "";
         flash("Clicked: " + name + sessionLabel);
-        updateBadge(res.totalClicks || 0);
+        updateBadge();
         // Track in allClickData so syncMarkers knows about it
         var sColor = res.sessionColor || "#8b5cf6";
         var clickNumber = allClickData.length + 1;
@@ -1303,6 +1384,15 @@
   document.addEventListener(
     "mousedown",
     function (e) {
+      // Prevent browser-native modifier+Click behaviors (Firefox Alt+Click download, Linux WM drag)
+      if (
+        isModifierHeld(e) &&
+        !isSmcElement(e.target) &&
+        !isModalOpen() &&
+        !isSessionPromptOpen()
+      ) {
+        e.preventDefault();
+      }
       if (!isModalOpen() || !modal) return;
       modal.__smcMouseDownInside = modal.contains(e.target);
     },
@@ -1321,7 +1411,7 @@
           // Ignore outside clicks created by drags/resizes that started inside.
           if (startedInsideModal) return;
           cancelModal();
-          if (!e.altKey) return;
+          if (!isModifierHeld(e)) return;
         } else {
           return;
         }
@@ -1330,7 +1420,7 @@
       // Ignore clicks while session prompt is open
       if (isSessionPromptOpen()) return;
 
-      if (!e.altKey) return;
+      if (!isModifierHeld(e)) return;
       if (isSmcElement(e.target)) return;
 
       e.preventDefault();
@@ -1361,7 +1451,12 @@
     rafId = requestAnimationFrame(function () {
       rafId = null;
       var ev = latestMouseEvent;
-      if (!ev || !ev.altKey || isModalOpen() || isSessionPromptOpen()) {
+      if (
+        !ev ||
+        !isModifierHeld(ev) ||
+        isModalOpen() ||
+        isSessionPromptOpen()
+      ) {
         highlight.style.display = "none";
         tooltip.style.display = "none";
         return;
@@ -1390,13 +1485,13 @@
   });
 
   document.addEventListener("keyup", function (e) {
-    if (e.key === "Alt") {
+    if (isModifierKey(e.key)) {
       highlight.style.display = "none";
       tooltip.style.display = "none";
     }
   });
 
-  // Undo: Ctrl+Alt+Z / Cmd+Alt+Z
+  // Undo: Ctrl+Alt+Z / Cmd+Alt+Z (uses Alt regardless of modifier setting)
   document.addEventListener("keydown", function (e) {
     if (
       e.altKey &&
@@ -1496,7 +1591,7 @@
             }
           }
         }
-        updateBadge(allClickData.length);
+        updateBadge();
         syncMarkersForCurrentRoute();
       })
       .catch(function () {});
@@ -1511,8 +1606,18 @@
       .then(function (store) {
         var retrieved = (store && store.lastRetrievedAt) || null;
         if (retrieved !== _pollLastRetrievedAt) {
+          var wasNull = _pollLastRetrievedAt === null;
           _pollLastRetrievedAt = retrieved;
           loadAndSync();
+          if (!wasNull && retrieved) {
+            flash(
+              "Your AI retrieved clicks \u2014 next " +
+                MODIFIER_LABEL +
+                "+Click starts a new session",
+              4000,
+            );
+            forceNewSession = true;
+          }
         }
       })
       .catch(function () {});
@@ -1556,12 +1661,76 @@
     subtree: true,
   });
 
+  // ── Reduced motion ───────────────────────────────────────────────
+
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function applyReducedMotion() {
+    if (reducedMotion.matches) {
+      highlight.style.transition = "none";
+    } else {
+      highlight.style.transition = "all .05s ease";
+    }
+  }
+  applyReducedMotion();
+  if (reducedMotion.addEventListener) {
+    reducedMotion.addEventListener("change", applyReducedMotion);
+  }
+
+  // ── Onboarding ──────────────────────────────────────────────────
+
+  function showOnboarding() {
+    if (localStorage.getItem("__smc-onboarded")) return;
+    var tip = document.createElement("div");
+    tip.id = "__smc-onboarding";
+    tip.style.cssText =
+      "position:fixed;bottom:64px;right:16px;background:#1e1e2e;color:#cdd6f4;" +
+      "border:1px solid #8b5cf6;border-radius:8px;padding:12px 16px;z-index:999999;" +
+      "font-family:system-ui,-apple-system,sans-serif;font-size:13px;max-width:260px;" +
+      "box-shadow:0 8px 24px rgba(0,0,0,.4);";
+    tip.innerHTML =
+      '<div style="font-weight:600;margin-bottom:4px;">see-my-clicks</div>' +
+      '<div style="color:#a6adc8;font-size:12px;line-height:1.5;">' +
+      "<strong>" +
+      MODIFIER_LABEL +
+      "+Click</strong> any element to capture it for your AI assistant.<br>" +
+      'Then tell your AI to "check my clicks".</div>' +
+      '<div style="display:flex;gap:6px;margin-top:8px;">' +
+      '<button id="__smc-onboard-dismiss" style="background:#8b5cf6;border:none;border-radius:4px;' +
+      'color:#fff;padding:4px 12px;cursor:pointer;font-size:12px;">Got it</button>' +
+      '<button id="__smc-onboard-shortcuts" style="background:transparent;border:1px solid #45475a;' +
+      'border-radius:4px;color:#6c7086;padding:4px 8px;cursor:pointer;font-size:11px;">Shortcuts</button>' +
+      "</div>" +
+      '<div id="__smc-shortcuts-detail" style="display:none;margin-top:8px;color:#6c7086;font-size:11px;line-height:1.6;">' +
+      "<strong>Enter</strong> save comment<br>" +
+      "<strong>Esc</strong> cancel<br>" +
+      "<strong>Shift+Enter</strong> multiline<br>" +
+      "<strong>Ctrl+Alt+Z</strong> undo last click</div>";
+    document.body.appendChild(tip);
+
+    tip
+      .querySelector("#__smc-onboard-dismiss")
+      .addEventListener("click", function () {
+        tip.remove();
+        localStorage.setItem("__smc-onboarded", "1");
+      });
+    tip
+      .querySelector("#__smc-onboard-shortcuts")
+      .addEventListener("click", function () {
+        var detail = tip.querySelector("#__smc-shortcuts-detail");
+        detail.style.display =
+          detail.style.display === "none" ? "block" : "none";
+      });
+  }
+
   // ── Init ─────────────────────────────────────────────────────────
 
   setTimeout(loadAndSync, 300);
 
-  flash("See My Clicks ready \u2014 Alt+Click to capture");
+  flash("See My Clicks ready \u2014 " + MODIFIER_LABEL + "+Click to capture");
+  showOnboarding();
   console.log(
-    "[see-my-clicks] Initialized. Alt+Click any element to capture it.",
+    "[see-my-clicks] Initialized. " +
+      MODIFIER_LABEL +
+      "+Click any element to capture it.",
   );
 })();
