@@ -1,0 +1,10 @@
+# TESTING Domain Rules
+# ====================
+# Testing patterns for see-my-clicks.
+
+TESTING_RULE_0=Playwright is the primary test framework - use playwright-cli skill for browser automation
+TESTING_RULE_1=Test overlay UI changes in both Chrome and Firefox at minimum
+TESTING_RULE_2=Playground HTML files (docs/playgrounds/) must work standalone with no server - open directly in browser to verify
+TESTING_RULE_3=Test framework detection against mock DOM trees - don't require actual React/Vue/Svelte to be installed
+TESTING_RULE_4=Verify data format changes against both the POST handler (server.js) and AI instruction templates (instructions/)
+TESTING_RULE_5=After changing client-source.js, verify all overlay components still render correctly (badge, panel, modal, markers, tooltip, highlight)

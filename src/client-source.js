@@ -107,6 +107,7 @@
   var forceSessionName = null;
   var allClickData = [];
   var hiddenSessions = {};
+  var lastRetrievedAt = null;
 
   // ── State: markers ─────────────────────────────────────────────
   var markers = {};
@@ -203,7 +204,7 @@
   var panelClickData = {};
 
   function refreshPanel() {
-    fetch("/__see-my-clicks")
+    fetch("/__see-my-clicks?source=browser")
       .then(function (r) {
         return r.json();
       })
@@ -219,6 +220,11 @@
         html +=
           '<button id="__smc-purge-btn" style="background:none;border:1px solid #f38ba8;border-radius:6px;' +
           'color:#f38ba8;font-size:11px;padding:3px 8px;cursor:pointer;" title="Purge all clicks">\u{1F5D1}</button>';
+        if (store.lastRetrievedAt) {
+          html +=
+            '<button id="__smc-unread-btn" style="background:none;border:1px solid #6c7086;border-radius:6px;' +
+            'color:#6c7086;font-size:11px;padding:3px 8px;cursor:pointer;" title="Mark all as unread">↺</button>';
+        }
         html +=
           '<button id="__smc-new-session-btn" style="background:#8b5cf6;border:none;border-radius:6px;' +
           'color:#fff;font-size:11px;padding:3px 10px;cursor:pointer;">+ New Session</button>';
@@ -337,6 +343,26 @@
                 var ids = Object.keys(markers);
                 for (var k = 0; k < ids.length; k++) removeMarker(ids[k]);
                 updateBadge(0);
+                refreshPanel();
+              });
+          });
+        }
+
+        // Attach unread handler
+        var unreadBtn = panel.querySelector("#__smc-unread-btn");
+        if (unreadBtn) {
+          unreadBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            fetch("/__see-my-clicks", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resetRead: true }),
+            })
+              .then(function (r) {
+                return r.json();
+              })
+              .then(function () {
+                loadAndSync();
                 refreshPanel();
               });
           });
@@ -663,7 +689,7 @@
     return null;
   }
 
-  function addMarker(data, color, number) {
+  function addMarker(data, color, number, seen) {
     var markerColor = color || "#8b5cf6";
     var displayNumber = number || ++markerNumber;
     var target = findElement(data);
@@ -674,13 +700,18 @@
     var dot = document.createElement("div");
     dot.className = "__smc-marker";
     dot.setAttribute("data-click-id", data.clickId);
+    var baseOpacity = seen ? "0.2" : "0.4";
+    var hoverOpacity = seen ? "0.6" : "1";
     dot.style.cssText =
       "position:fixed;width:20px;height:20px;border-radius:50%;background:" +
       markerColor +
       ";color:#fff;" +
       "font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;" +
       "font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);" +
-      "pointer-events:auto;cursor:pointer;opacity:0.4;transition:opacity .15s ease;";
+      "pointer-events:auto;cursor:pointer;opacity:" +
+      baseOpacity +
+      ";transition:opacity .15s ease;" +
+      (seen ? "filter:grayscale(0.4);" : "");
     dot.textContent = String(displayNumber);
     dot.style.left = Math.round(rect.right - 10) + "px";
     dot.style.top = Math.round(rect.top - 10) + "px";
@@ -696,10 +727,10 @@
       true,
     );
     dot.addEventListener("mouseenter", function () {
-      dot.style.opacity = "1";
+      dot.style.opacity = hoverOpacity;
     });
     dot.addEventListener("mouseleave", function () {
-      dot.style.opacity = "0.4";
+      dot.style.opacity = baseOpacity;
     });
 
     markerContainer.appendChild(dot);
@@ -1418,7 +1449,7 @@
           delete markers[cd.clickId];
         }
       } else if (onThisRoute && !isHidden) {
-        addMarker(cd.data, cd.sessionColor, cd.index);
+        addMarker(cd.data, cd.sessionColor, cd.index, cd.seen);
       }
     }
   }
@@ -1433,11 +1464,12 @@
   }
 
   function loadAndSync() {
-    fetch("/__see-my-clicks")
+    fetch("/__see-my-clicks?source=browser")
       .then(function (r) {
         return r.json();
       })
       .then(function (store) {
+        lastRetrievedAt = (store && store.lastRetrievedAt) || null;
         allClickData = [];
         var clickIndex = 0;
         if (store && store.sessions) {
@@ -1447,12 +1479,19 @@
             var clicks = session.clicks || [];
             for (var j = 0; j < clicks.length; j++) {
               clickIndex++;
+              var click = clicks[j];
+              var seen = !!(
+                lastRetrievedAt &&
+                click.timestamp &&
+                click.timestamp <= lastRetrievedAt
+              );
               allClickData.push({
-                data: clicks[j],
+                data: click,
                 index: clickIndex,
-                clickId: clicks[j].clickId,
+                clickId: click.clickId,
                 sessionId: session.id,
                 sessionColor: sessionColor,
+                seen: seen,
               });
             }
           }
@@ -1462,6 +1501,22 @@
       })
       .catch(function () {});
   }
+
+  var _pollLastRetrievedAt = lastRetrievedAt;
+  setInterval(function () {
+    fetch("/__see-my-clicks?source=browser")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (store) {
+        var retrieved = (store && store.lastRetrievedAt) || null;
+        if (retrieved !== _pollLastRetrievedAt) {
+          _pollLastRetrievedAt = retrieved;
+          loadAndSync();
+        }
+      })
+      .catch(function () {});
+  }, 4000);
 
   // ── Navigation detection ───────────────────────────────────────────
 

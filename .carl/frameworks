@@ -1,0 +1,13 @@
+# FRAMEWORKS Domain Rules
+# =======================
+# Framework detection rules for React, Vue, and Svelte.
+
+FRAMEWORKS_RULE_0=Detection order: Svelte -> React -> Vue (getFrameworkComponent tries all three, returns first non-null)
+FRAMEWORKS_RULE_1=getFrameworkComponentFromChain walks el.parentElement up to document.body, returns first component found
+FRAMEWORKS_RULE_2=Svelte detection cascade: __svelte_meta -> data-component attribute -> svelte-* CSS class
+FRAMEWORKS_RULE_3=React detection: find __reactFiber$ or __reactInternalInstance$ key, walk node.return chain for named function/object types
+FRAMEWORKS_RULE_4=Vue detection: Vue 3 via __vueParentComponent (type.name/type.__name), Vue 2 via __vue__ ($options.name/$options._componentTag)
+FRAMEWORKS_RULE_5=findElement fallback order: full selector -> hash-stripped selector -> data-* attributes -> ID -> component file+tag+text
+FRAMEWORKS_RULE_6=Hash stripping regex: \.(?:s-|svelte-)[A-Za-z0-9_-]+ - only runs if cleaned selector differs from original
+FRAMEWORKS_RULE_7=verifyElement compares truncated textContent (100 chars) - returns true if data.textContent is falsy
+FRAMEWORKS_RULE_8=When adding a new framework, add detection function, update getFrameworkComponent order, and add findElement support if needed

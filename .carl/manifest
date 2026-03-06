@@ -1,0 +1,46 @@
+# CARL Manifest - see-my-clicks
+# ==============================
+# Project-level domains. Global domains (GLOBAL, CONTEXT, COMMANDS) are inherited.
+#
+# Format:
+#   {DOMAIN}_STATE=active|inactive
+#   {DOMAIN}_ALWAYS_ON=true|false
+#   {DOMAIN}_RECALL=keyword1,keyword2
+#   {DOMAIN}_EXCLUDE=
+
+DEVMODE=false
+
+# ============================================================================
+# PUBLISHING - Version management and npm release workflow
+# ============================================================================
+PUBLISHING_STATE=active
+PUBLISHING_RECALL=push,publish,release,version,bump,tag,alpha,stable,npm
+PUBLISHING_ALWAYS_ON=false
+
+# ============================================================================
+# CLIENTUI - Overlay UI development (client-source.js)
+# ============================================================================
+CLIENTUI_STATE=active
+CLIENTUI_RECALL=overlay,badge,panel,modal,tooltip,marker,highlight,ui,client-source,style,css,theme
+CLIENTUI_ALWAYS_ON=false
+
+# ============================================================================
+# DATAFORMAT - clicked.json data model and server handlers
+# ============================================================================
+DATAFORMAT_STATE=active
+DATAFORMAT_RECALL=clicked.json,session,click,data,schema,type,interface,maxEntries,expiry,capture
+DATAFORMAT_ALWAYS_ON=false
+
+# ============================================================================
+# FRAMEWORKS - Framework detection (React/Vue/Svelte)
+# ============================================================================
+FRAMEWORKS_STATE=active
+FRAMEWORKS_RECALL=framework,react,vue,svelte,fiber,component,detection,getReactComponent,getVueComponent,getSvelteComponent
+FRAMEWORKS_ALWAYS_ON=false
+
+# ============================================================================
+# TESTING - Test patterns and verification
+# ============================================================================
+TESTING_STATE=active
+TESTING_RECALL=test,spec,playwright,e2e,coverage,assert
+TESTING_ALWAYS_ON=false

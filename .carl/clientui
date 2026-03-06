@@ -1,0 +1,12 @@
+# CLIENTUI Domain Rules
+# =====================
+# Overlay UI development rules for client-source.js (~1,480 lines of inline-styled vanilla JS).
+
+CLIENTUI_RULE_0=All UI styles are inline in client-source.js - no external CSS files. Keep it that way.
+CLIENTUI_RULE_1=Color palette (SESSION_COLORS): #8b5cf6, #f38ba8, #fab387, #f9e2af, #a6e3a1, #89dceb, #74c7ec, #cba6f7 - keep in sync with server.js COLOR_PALETTE
+CLIENTUI_RULE_2=Primary purple #8b5cf6, dark bg #1e1e2e, text #cdd6f4, secondary #6c7086, surface #313244, border #45475a, delete red #f38ba8
+CLIENTUI_RULE_3=Z-index stack: markers 999997, highlight 999998, overlay/tooltip/status/badge/panel 999999, modal 1000000, session-prompt/color-picker 1000001
+CLIENTUI_RULE_4=Font stack: system-ui, -apple-system, sans-serif everywhere. No external fonts.
+CLIENTUI_RULE_5=All element IDs prefixed with __smc- to avoid collisions with host page
+CLIENTUI_RULE_6=pointer-events: none on overlay/highlight/markers container - only badge, panel, modal, marker dots are interactive
+CLIENTUI_RULE_7=Test UI changes against all overlay components: badge, panel, modal, markers, tooltip, highlight, session prompt, color picker, status flash

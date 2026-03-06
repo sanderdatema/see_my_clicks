@@ -1,0 +1,12 @@
+# PUBLISHING Domain Rules
+# =======================
+# Version management, npm releases, and git tagging for see-my-clicks.
+
+PUBLISHING_RULE_0=Use alpha versioning during development: next unreleased version with -alpha.N suffix, increment build number on each push
+PUBLISHING_RULE_1=Follow semver strictly: patch=bug fixes only, minor=new features/UI/behavior, major=breaking plugin API or config changes
+PUBLISHING_RULE_2=If alpha series started as patch but new features were added, bump to next minor for stable release
+PUBLISHING_RULE_3=NEVER push or publish unless user explicitly says "push", "release", or similar - commit locally only
+PUBLISHING_RULE_4=Alpha publishes automatically on push to main via GitHub Actions (--tag alpha dist-tag)
+PUBLISHING_RULE_5=Stable release: drop alpha suffix, commit, git tag v{version}, push tag - triggers publish with latest dist-tag
+PUBLISHING_RULE_6=Authentication uses npm Trusted Publishing (OIDC) - no npm tokens needed
+PUBLISHING_RULE_7=Check current version in package.json before bumping - never guess the version number
