@@ -6,10 +6,12 @@ import { getClientScript } from "./client.js";
  *
  * @param {Object} [opts]
  * @param {string} [opts.outputFile=".see-my-clicks/clicked.json"]  Path relative to cwd
+ * @param {"alt"|"ctrl"|"meta"} [opts.modifier="alt"]  Modifier key for capture clicks
  * @returns {import('vite').Plugin}
  */
 export function seeMyClicks(opts = {}) {
   const middleware = createMiddleware(opts);
+  const modifier = opts.modifier || "alt";
 
   return {
     name: "see-my-clicks",
@@ -40,7 +42,11 @@ export function seeMyClicks(opts = {}) {
       return [
         {
           tag: "script",
-          children: getClientScript(),
+          children:
+            "window.__smcModifier=" +
+            JSON.stringify(modifier) +
+            ";" +
+            getClientScript(),
           injectTo: "body",
         },
       ];
