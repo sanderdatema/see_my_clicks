@@ -125,6 +125,8 @@ You can also edit the generated instruction file directly — the action is in a
 - Use the **+ New Session** button in the review panel to start a named session
 - Use the **purge button** (🗑) in the review panel to clear all click data
 - Tell your AI to "check my clicks" (or run `/clicked` in Claude Code)
+- After your AI retrieves clicks, markers **dim automatically** to show they've been seen — the next Alt+Click starts a fresh session
+- Use the **↺ button** in the review panel to mark all clicks as unread again
 
 ## How it works
 
@@ -142,6 +144,7 @@ Clicks are organized into **sessions** — named groups of related captures.
 - Your first Alt+Click auto-creates a default session
 - Use the **+ New Session** button in the review panel to start a named session (e.g. "Header fixes", "Mobile layout")
 - When your AI processes clicks, it sees them grouped by session, making it easier to understand context
+- After your AI retrieves clicks, the **next Alt+Click automatically starts a new session** — no manual action needed
 
 ## Framework detection
 
@@ -186,7 +189,8 @@ The `retrieve` command uses a read marker — each call returns only clicks capt
 - **Highlight tooltip** — when hovering with Alt held, shows the element tag and component name
 - **Click counter badge** — persistent purple badge showing capture count; click to expand the review panel
 - **Review panel** — lists all captures grouped by session, with delete buttons for each item
-- **Element markers** — numbered purple dots on captured elements so you can see what's been annotated; click a marker to edit its comment
+- **Element markers** — numbered purple dots on captured elements so you can see what's been annotated; click a marker to edit its comment. Markers **dim** after your AI retrieves them to indicate they've been seen
+- **↺ Mark unread button** — appears in the review panel after a retrieve; resets the read state so all markers become active again
 - **Element info in modal** — the comment modal shows which element you clicked (tag, text, component)
 
 ## Regression test
