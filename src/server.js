@@ -123,7 +123,13 @@ export function createMiddleware(opts = {}) {
 
         const store = readData(outputFile);
 
-        if (newSession || store.sessions.length === 0) {
+        // Auto-start a new session if clicks were retrieved since the last one started
+        const lastSession = store.sessions[store.sessions.length - 1];
+        const retrieved = store.lastRetrievedAt;
+        const autoNew =
+          retrieved && lastSession && lastSession.startedAt <= retrieved;
+
+        if (newSession || autoNew || store.sessions.length === 0) {
           const name = sessionName || "Session " + (store.sessions.length + 1);
           store.sessions.push({
             id: generateId(),
@@ -158,10 +164,15 @@ export function createMiddleware(opts = {}) {
     });
   }
 
-  function handleGet(res) {
+  function handleGet(res, url) {
     writeQueue = writeQueue.then(() => {
       try {
         const store = readData(outputFile);
+        const isExternalRead = url.searchParams.get("source") !== "browser";
+        if (isExternalRead) {
+          store.lastRetrievedAt = new Date().toISOString();
+          writeData(outputFile, store);
+        }
         sendJson(res, 200, store);
       } catch (err) {
         console.error("[see-my-clicks] GET error:", err);
@@ -248,7 +259,12 @@ export function createMiddleware(opts = {}) {
     collectBody(req, (body) => {
       try {
         const parsed = JSON.parse(body);
-        if (parsed.sessionId && parsed.color && !parsed.clickId) {
+        if (parsed.resetRead) {
+          const store = readData(outputFile);
+          store.lastRetrievedAt = null;
+          writeData(outputFile, store);
+          sendJson(res, 200, { success: true });
+        } else if (parsed.sessionId && parsed.color && !parsed.clickId) {
           updateSessionColor(res, parsed);
         } else {
           updateClickComment(res, parsed);
@@ -279,7 +295,7 @@ export function createMiddleware(opts = {}) {
     }
 
     if (req.method === "POST") handlePost(req, res);
-    else if (req.method === "GET") handleGet(res);
+    else if (req.method === "GET") handleGet(res, url);
     else if (req.method === "DELETE") handleDelete(res, url);
     else if (req.method === "PUT") handlePut(req, res);
     else {
