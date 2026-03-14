@@ -2,3 +2,4 @@ node_modules/
 .DS_Store
 *.log
 .see-my-clicks/clicked.json
+host_folders/
