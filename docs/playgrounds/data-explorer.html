@@ -391,9 +391,6 @@
           <span class="control-label">Action preset:</span>
           <select id="ai-action" onchange="renderAIPreview()">
             <option value="suggest-fixes">suggest-fixes</option>
-            <option value="taskmaster">taskmaster</option>
-            <option value="github-issues">github-issues</option>
-            <option value="just-report">just-report</option>
           </select>
         </div>
         <div id="ai-preview" class="ai-preview"></div>
@@ -449,7 +446,7 @@ const ANNOTATIONS = {
   'boundingBox.y': { type: 'number', desc: 'Top edge of the element in viewport pixels (Math.round(rect.y)).' },
   'boundingBox.width': { type: 'number', desc: 'Element width in viewport pixels (Math.round(rect.width)).' },
   'boundingBox.height': { type: 'number', desc: 'Element height in viewport pixels (Math.round(rect.height)).' },
-  'parentChain': { type: 'Array<{ tagName, id?, classList? }>', desc: 'Up to 5 parent elements above the clicked element. Each may include component info.' },
+  'parentChain': { type: 'Array<{ tagName, id?, classList, component }>', desc: 'Up to 5 parent elements above the clicked element. Each entry includes component info if a framework component was detected at that level.' },
   'attributes': { type: 'Record<string, string>', desc: 'All HTML attributes on the element (excluding data-v- prefixes from Vue scoping).' },
   'url': { type: 'string', desc: 'Full page URL at capture time. Used to match markers to the correct route on SPA navigation.' },
   'viewportSize': { type: '{ width, height }', desc: 'Browser viewport dimensions at capture time. Useful for responsive layout debugging.' },
@@ -474,26 +471,26 @@ function buildPresetData(preset) {
         id: generateId(), name: 'Header issues', color: COLORS[0],
         startedAt: makeTimestamp(45),
         clicks: [
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(44), comment: 'Login button too small on mobile', component: { name: 'NavBar', file: 'src/components/NavBar.tsx', framework: 'react' }, elementId: 'login-btn', classList: ['btn', 'btn-primary'], selector: 'header > nav > button.btn.btn-primary', textContent: 'Sign In', boundingBox: { x: 1200, y: 12, width: 80, height: 36 }, parentChain: [{ tagName: 'nav', classList: ['main-nav'] }, { tagName: 'header', id: 'site-header', classList: [] }], attributes: { type: 'button', 'data-testid': 'login-btn' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(42), comment: null, component: { name: 'NavBar', file: 'src/components/NavBar.tsx', framework: 'react' }, elementId: null, classList: ['nav-link', 'active'], selector: 'header > nav > ul > li:nth-of-type(2) > a.nav-link.active', textContent: 'Products', boundingBox: { x: 300, y: 16, width: 70, height: 24 }, parentChain: [{ tagName: 'li', classList: [] }, { tagName: 'ul', classList: ['nav-list'] }], attributes: { href: '/products' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'img', timestamp: makeTimestamp(40), comment: 'Logo is blurry on retina', component: { name: 'Logo', file: 'src/components/Logo.tsx', framework: 'react' }, elementId: 'site-logo', classList: ['logo'], selector: 'header > a > img.logo', textContent: null, boundingBox: { x: 20, y: 8, width: 120, height: 40 }, parentChain: [{ tagName: 'a', classList: ['logo-link'] }, { tagName: 'header', id: 'site-header', classList: [] }], attributes: { src: '/logo.png', alt: 'Acme Inc' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(44), comment: 'Login button too small on mobile', component: { name: 'NavBar', file: 'src/components/NavBar.tsx', framework: 'react' }, elementId: 'login-btn', classList: ['btn', 'btn-primary'], selector: 'header > nav > button.btn.btn-primary', textContent: 'Sign In', boundingBox: { x: 1200, y: 12, width: 80, height: 36 }, parentChain: [{ tagName: 'nav', classList: ['main-nav'], component: null }, { tagName: 'header', id: 'site-header', classList: [], component: null }], attributes: { type: 'button', 'data-testid': 'login-btn' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(42), comment: null, component: { name: 'NavBar', file: 'src/components/NavBar.tsx', framework: 'react' }, elementId: null, classList: ['nav-link', 'active'], selector: 'header > nav > ul > li:nth-of-type(2) > a.nav-link.active', textContent: 'Products', boundingBox: { x: 300, y: 16, width: 70, height: 24 }, parentChain: [{ tagName: 'li', classList: [], component: null }, { tagName: 'ul', classList: ['nav-list'], component: null }], attributes: { href: '/products' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'img', timestamp: makeTimestamp(40), comment: 'Logo is blurry on retina', component: { name: 'Logo', file: 'src/components/Logo.tsx', framework: 'react' }, elementId: 'site-logo', classList: ['logo'], selector: 'header > a > img.logo', textContent: null, boundingBox: { x: 20, y: 8, width: 120, height: 40 }, parentChain: [{ tagName: 'a', classList: ['logo-link'], component: null }, { tagName: 'header', id: 'site-header', classList: [], component: null }], attributes: { src: '/logo.png', alt: 'Acme Inc' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
         id: generateId(), name: 'Product page fixes', color: COLORS[1],
         startedAt: makeTimestamp(30),
         clicks: [
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(28), comment: 'Add to cart does not show loading state', component: { name: 'ProductCard', file: 'src/components/ProductCard.tsx', framework: 'react' }, elementId: null, classList: ['add-cart-btn'], selector: 'main > div.grid > div.card:nth-of-type(1) > button.add-cart-btn', textContent: 'Add to Cart', boundingBox: { x: 150, y: 420, width: 140, height: 40 }, parentChain: [{ tagName: 'div', classList: ['card'] }, { tagName: 'div', classList: ['grid'] }], attributes: { 'data-product-id': '42' }, url: 'http://localhost:5173/products', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'span', timestamp: makeTimestamp(26), comment: 'Price should show currency symbol', component: { name: 'ProductCard', file: 'src/components/ProductCard.tsx', framework: 'react' }, elementId: null, classList: ['price'], selector: 'main > div.grid > div.card:nth-of-type(1) > span.price', textContent: '29.99', boundingBox: { x: 150, y: 380, width: 60, height: 20 }, parentChain: [{ tagName: 'div', classList: ['card'] }], attributes: {}, url: 'http://localhost:5173/products', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(28), comment: 'Add to cart does not show loading state', component: { name: 'ProductCard', file: 'src/components/ProductCard.tsx', framework: 'react' }, elementId: null, classList: ['add-cart-btn'], selector: 'main > div.grid > div.card:nth-of-type(1) > button.add-cart-btn', textContent: 'Add to Cart', boundingBox: { x: 150, y: 420, width: 140, height: 40 }, parentChain: [{ tagName: 'div', classList: ['card'], component: null }, { tagName: 'div', classList: ['grid'], component: null }], attributes: { 'data-product-id': '42' }, url: 'http://localhost:5173/products', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'span', timestamp: makeTimestamp(26), comment: 'Price should show currency symbol', component: { name: 'ProductCard', file: 'src/components/ProductCard.tsx', framework: 'react' }, elementId: null, classList: ['price'], selector: 'main > div.grid > div.card:nth-of-type(1) > span.price', textContent: '29.99', boundingBox: { x: 150, y: 380, width: 60, height: 20 }, parentChain: [{ tagName: 'div', classList: ['card'], component: null }], attributes: {}, url: 'http://localhost:5173/products', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
         id: generateId(), name: 'Footer cleanup', color: COLORS[2],
         startedAt: makeTimestamp(15),
         clicks: [
-          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(14), comment: 'Link goes to 404', component: { name: 'Footer', file: 'src/components/Footer.tsx', framework: 'react' }, elementId: null, classList: ['footer-link'], selector: 'footer > div > a.footer-link:nth-of-type(3)', textContent: 'Privacy Policy', boundingBox: { x: 600, y: 850, width: 100, height: 18 }, parentChain: [{ tagName: 'div', classList: ['footer-links'] }, { tagName: 'footer', classList: [] }], attributes: { href: '/privacy' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'p', timestamp: makeTimestamp(12), comment: 'Copyright year is 2023, should be 2026', component: { name: 'Footer', file: 'src/components/Footer.tsx', framework: 'react' }, elementId: null, classList: ['copyright'], selector: 'footer > p.copyright', textContent: '(c) 2023 Acme Inc. All rights reserved.', boundingBox: { x: 400, y: 880, width: 300, height: 16 }, parentChain: [{ tagName: 'footer', classList: [] }], attributes: {}, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(10), comment: null, component: { name: 'Newsletter', file: 'src/components/Newsletter.tsx', framework: 'react' }, elementId: 'newsletter-signup', classList: ['newsletter-box'], selector: 'footer > div.newsletter-box', textContent: 'Subscribe to our newsletter', boundingBox: { x: 200, y: 820, width: 400, height: 60 }, parentChain: [{ tagName: 'footer', classList: [] }], attributes: { role: 'region', 'aria-label': 'Newsletter signup' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(14), comment: 'Link goes to 404', component: { name: 'Footer', file: 'src/components/Footer.tsx', framework: 'react' }, elementId: null, classList: ['footer-link'], selector: 'footer > div > a.footer-link:nth-of-type(3)', textContent: 'Privacy Policy', boundingBox: { x: 600, y: 850, width: 100, height: 18 }, parentChain: [{ tagName: 'div', classList: ['footer-links'], component: null }, { tagName: 'footer', classList: [], component: null }], attributes: { href: '/privacy' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'p', timestamp: makeTimestamp(12), comment: 'Copyright year is 2023, should be 2026', component: { name: 'Footer', file: 'src/components/Footer.tsx', framework: 'react' }, elementId: null, classList: ['copyright'], selector: 'footer > p.copyright', textContent: '(c) 2023 Acme Inc. All rights reserved.', boundingBox: { x: 400, y: 880, width: 300, height: 16 }, parentChain: [{ tagName: 'footer', classList: [], component: null }], attributes: {}, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(10), comment: null, component: { name: 'Newsletter', file: 'src/components/Newsletter.tsx', framework: 'react' }, elementId: 'newsletter-signup', classList: ['newsletter-box'], selector: 'footer > div.newsletter-box', textContent: 'Subscribe to our newsletter', boundingBox: { x: 200, y: 820, width: 400, height: 60 }, parentChain: [{ tagName: 'footer', classList: [], component: null }], attributes: { role: 'region', 'aria-label': 'Newsletter signup' }, url: 'http://localhost:5173/', viewportSize: { width: 1440, height: 900 } },
         ]
       }
     ];
@@ -503,26 +500,26 @@ function buildPresetData(preset) {
         id: generateId(), name: 'Dashboard bugs', color: COLORS[3],
         startedAt: makeTimestamp(50),
         clicks: [
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(48), comment: 'Dropdown does not close on outside click', component: { name: 'Sidebar', file: 'src/lib/components/Sidebar.svelte', framework: 'svelte' }, elementId: null, classList: ['menu-toggle', 'svelte-1abc123'], selector: 'aside.sidebar.svelte-1abc123 > button.menu-toggle.svelte-1abc123', textContent: 'Menu', boundingBox: { x: 10, y: 60, width: 200, height: 40 }, parentChain: [{ tagName: 'aside', classList: ['sidebar', 'svelte-1abc123'] }], attributes: { 'aria-expanded': 'false' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(46), comment: 'Chart does not resize on window change', component: { name: 'StatsChart', file: 'src/lib/components/StatsChart.svelte', framework: 'svelte' }, elementId: 'chart-container', classList: ['chart-wrapper', 'svelte-9def456'], selector: 'main > section > div.chart-wrapper.svelte-9def456', textContent: null, boundingBox: { x: 250, y: 100, width: 800, height: 400 }, parentChain: [{ tagName: 'section', classList: ['dashboard-main'] }, { tagName: 'main', classList: [] }], attributes: { role: 'img', 'aria-label': 'Monthly stats' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(44), comment: null, component: { name: 'SearchBar', file: 'src/lib/components/SearchBar.svelte', framework: 'svelte' }, elementId: 'search-input', classList: ['search', 'svelte-7ghi789'], selector: 'header > div.search-container > input.search.svelte-7ghi789', textContent: null, boundingBox: { x: 400, y: 12, width: 300, height: 36 }, parentChain: [{ tagName: 'div', classList: ['search-container'] }, { tagName: 'header', classList: [] }], attributes: { type: 'search', placeholder: 'Search...' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(48), comment: 'Dropdown does not close on outside click', component: { name: 'Sidebar', file: 'src/lib/components/Sidebar.svelte', framework: 'svelte' }, elementId: null, classList: ['menu-toggle', 'svelte-1abc123'], selector: 'aside.sidebar.svelte-1abc123 > button.menu-toggle.svelte-1abc123', textContent: 'Menu', boundingBox: { x: 10, y: 60, width: 200, height: 40 }, parentChain: [{ tagName: 'aside', classList: ['sidebar', 'svelte-1abc123'], component: null }], attributes: { 'aria-expanded': 'false' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(46), comment: 'Chart does not resize on window change', component: { name: 'StatsChart', file: 'src/lib/components/StatsChart.svelte', framework: 'svelte' }, elementId: 'chart-container', classList: ['chart-wrapper', 'svelte-9def456'], selector: 'main > section > div.chart-wrapper.svelte-9def456', textContent: null, boundingBox: { x: 250, y: 100, width: 800, height: 400 }, parentChain: [{ tagName: 'section', classList: ['dashboard-main'], component: null }, { tagName: 'main', classList: [], component: null }], attributes: { role: 'img', 'aria-label': 'Monthly stats' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(44), comment: null, component: { name: 'SearchBar', file: 'src/lib/components/SearchBar.svelte', framework: 'svelte' }, elementId: 'search-input', classList: ['search', 'svelte-7ghi789'], selector: 'header > div.search-container > input.search.svelte-7ghi789', textContent: null, boundingBox: { x: 400, y: 12, width: 300, height: 36 }, parentChain: [{ tagName: 'div', classList: ['search-container'], component: null }, { tagName: 'header', classList: [], component: null }], attributes: { type: 'search', placeholder: 'Search...' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
         id: generateId(), name: 'Settings page', color: COLORS[4],
         startedAt: makeTimestamp(20),
         clicks: [
-          { clickId: generateId(), tagName: 'select', timestamp: makeTimestamp(18), comment: 'Theme selector has no dark option', component: { name: 'SettingsForm', file: 'src/routes/settings/+page.svelte', framework: 'svelte' }, elementId: 'theme-select', classList: ['form-control', 'svelte-klm012'], selector: 'form > div.field > select.form-control.svelte-klm012', textContent: 'Light', boundingBox: { x: 300, y: 200, width: 200, height: 36 }, parentChain: [{ tagName: 'div', classList: ['field'] }, { tagName: 'form', classList: ['settings-form'] }], attributes: { name: 'theme' }, url: 'http://localhost:5173/settings', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(16), comment: 'Save button stays disabled after changes', component: { name: 'SettingsForm', file: 'src/routes/settings/+page.svelte', framework: 'svelte' }, elementId: 'save-settings', classList: ['btn-save', 'svelte-klm012'], selector: 'form > button.btn-save.svelte-klm012', textContent: 'Save Changes', boundingBox: { x: 300, y: 400, width: 140, height: 40 }, parentChain: [{ tagName: 'form', classList: ['settings-form'] }], attributes: { type: 'submit', disabled: '' }, url: 'http://localhost:5173/settings', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'select', timestamp: makeTimestamp(18), comment: 'Theme selector has no dark option', component: { name: 'SettingsForm', file: 'src/routes/settings/+page.svelte', framework: 'svelte' }, elementId: 'theme-select', classList: ['form-control', 'svelte-klm012'], selector: 'form > div.field > select.form-control.svelte-klm012', textContent: 'Light', boundingBox: { x: 300, y: 200, width: 200, height: 36 }, parentChain: [{ tagName: 'div', classList: ['field'], component: null }, { tagName: 'form', classList: ['settings-form'], component: null }], attributes: { name: 'theme' }, url: 'http://localhost:5173/settings', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(16), comment: 'Save button stays disabled after changes', component: { name: 'SettingsForm', file: 'src/routes/settings/+page.svelte', framework: 'svelte' }, elementId: 'save-settings', classList: ['btn-save', 'svelte-klm012'], selector: 'form > button.btn-save.svelte-klm012', textContent: 'Save Changes', boundingBox: { x: 300, y: 400, width: 140, height: 40 }, parentChain: [{ tagName: 'form', classList: ['settings-form'], component: null }], attributes: { type: 'submit', disabled: '' }, url: 'http://localhost:5173/settings', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
         id: generateId(), name: 'Navigation', color: COLORS[5],
         startedAt: makeTimestamp(8),
         clicks: [
-          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(6), comment: null, component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['nav-item', 'svelte-abc999'], selector: 'nav > ul > li:nth-of-type(4) > a.nav-item.svelte-abc999', textContent: 'Analytics', boundingBox: { x: 50, y: 200, width: 180, height: 32 }, parentChain: [{ tagName: 'li', classList: [] }, { tagName: 'ul', classList: [] }, { tagName: 'nav', classList: ['side-nav'] }], attributes: { href: '/analytics' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(4), comment: 'Collapse button icon flipped wrong way', component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['collapse-btn', 'svelte-abc999'], selector: 'nav > button.collapse-btn.svelte-abc999', textContent: null, boundingBox: { x: 50, y: 860, width: 180, height: 32 }, parentChain: [{ tagName: 'nav', classList: ['side-nav'] }], attributes: { 'aria-label': 'Collapse sidebar' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'span', timestamp: makeTimestamp(2), comment: 'Badge count is wrong', component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['badge', 'svelte-abc999'], selector: 'nav > ul > li:nth-of-type(3) > a > span.badge.svelte-abc999', textContent: '99+', boundingBox: { x: 200, y: 164, width: 28, height: 18 }, parentChain: [{ tagName: 'a', classList: ['nav-item'] }, { tagName: 'li', classList: [] }], attributes: {}, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(6), comment: null, component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['nav-item', 'svelte-abc999'], selector: 'nav > ul > li:nth-of-type(4) > a.nav-item.svelte-abc999', textContent: 'Analytics', boundingBox: { x: 50, y: 200, width: 180, height: 32 }, parentChain: [{ tagName: 'li', classList: [], component: null }, { tagName: 'ul', classList: [], component: null }, { tagName: 'nav', classList: ['side-nav'], component: null }], attributes: { href: '/analytics' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(4), comment: 'Collapse button icon flipped wrong way', component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['collapse-btn', 'svelte-abc999'], selector: 'nav > button.collapse-btn.svelte-abc999', textContent: null, boundingBox: { x: 50, y: 860, width: 180, height: 32 }, parentChain: [{ tagName: 'nav', classList: ['side-nav'], component: null }], attributes: { 'aria-label': 'Collapse sidebar' }, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'span', timestamp: makeTimestamp(2), comment: 'Badge count is wrong', component: { name: 'Nav', file: 'src/lib/components/Nav.svelte', framework: 'svelte' }, elementId: null, classList: ['badge', 'svelte-abc999'], selector: 'nav > ul > li:nth-of-type(3) > a > span.badge.svelte-abc999', textContent: '99+', boundingBox: { x: 200, y: 164, width: 28, height: 18 }, parentChain: [{ tagName: 'a', classList: ['nav-item'], component: null }, { tagName: 'li', classList: [], component: null }], attributes: {}, url: 'http://localhost:5173/dashboard', viewportSize: { width: 1440, height: 900 } },
         ]
       }
     ];
@@ -532,9 +529,9 @@ function buildPresetData(preset) {
         id: generateId(), name: 'Form validation', color: COLORS[6],
         startedAt: makeTimestamp(35),
         clicks: [
-          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(33), comment: 'Email field accepts invalid format', component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: 'email-field', classList: ['v-input', 'error'], selector: 'form.contact-form > div.field-group > input.v-input.error', textContent: null, boundingBox: { x: 200, y: 300, width: 400, height: 40 }, parentChain: [{ tagName: 'div', classList: ['field-group'] }, { tagName: 'form', classList: ['contact-form'] }], attributes: { type: 'email', name: 'email', required: '' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(31), comment: 'Submit shows success even on error', component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: null, classList: ['submit-btn'], selector: 'form.contact-form > button.submit-btn', textContent: 'Send Message', boundingBox: { x: 200, y: 500, width: 160, height: 44 }, parentChain: [{ tagName: 'form', classList: ['contact-form'] }], attributes: { type: 'submit' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'textarea', timestamp: makeTimestamp(29), comment: null, component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: null, classList: ['v-textarea'], selector: 'form.contact-form > div.field-group:nth-of-type(3) > textarea.v-textarea', textContent: null, boundingBox: { x: 200, y: 400, width: 400, height: 80 }, parentChain: [{ tagName: 'div', classList: ['field-group'] }, { tagName: 'form', classList: ['contact-form'] }], attributes: { name: 'message', rows: '4', placeholder: 'Your message...' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(33), comment: 'Email field accepts invalid format', component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: 'email-field', classList: ['v-input', 'error'], selector: 'form.contact-form > div.field-group > input.v-input.error', textContent: null, boundingBox: { x: 200, y: 300, width: 400, height: 40 }, parentChain: [{ tagName: 'div', classList: ['field-group'], component: null }, { tagName: 'form', classList: ['contact-form'], component: null }], attributes: { type: 'email', name: 'email', required: '' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(31), comment: 'Submit shows success even on error', component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: null, classList: ['submit-btn'], selector: 'form.contact-form > button.submit-btn', textContent: 'Send Message', boundingBox: { x: 200, y: 500, width: 160, height: 44 }, parentChain: [{ tagName: 'form', classList: ['contact-form'], component: null }], attributes: { type: 'submit' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'textarea', timestamp: makeTimestamp(29), comment: null, component: { name: 'ContactForm', file: 'src/components/ContactForm.vue', framework: 'vue' }, elementId: null, classList: ['v-textarea'], selector: 'form.contact-form > div.field-group:nth-of-type(3) > textarea.v-textarea', textContent: null, boundingBox: { x: 200, y: 400, width: 400, height: 80 }, parentChain: [{ tagName: 'div', classList: ['field-group'], component: null }, { tagName: 'form', classList: ['contact-form'], component: null }], attributes: { name: 'message', rows: '4', placeholder: 'Your message...' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
@@ -542,16 +539,16 @@ function buildPresetData(preset) {
         startedAt: makeTimestamp(18),
         clicks: [
           { clickId: generateId(), tagName: 'div', timestamp: makeTimestamp(16), comment: 'Modal backdrop does not close on click', component: { name: 'BaseModal', file: 'src/components/BaseModal.vue', framework: 'vue' }, elementId: null, classList: ['modal-backdrop'], selector: 'div.modal-backdrop', textContent: null, boundingBox: { x: 0, y: 0, width: 1440, height: 900 }, parentChain: [], attributes: { role: 'dialog', 'aria-modal': 'true' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(14), comment: 'Close X button focus ring missing', component: { name: 'BaseModal', file: 'src/components/BaseModal.vue', framework: 'vue' }, elementId: null, classList: ['close-btn'], selector: 'div.modal-backdrop > div.modal-content > button.close-btn', textContent: null, boundingBox: { x: 900, y: 150, width: 32, height: 32 }, parentChain: [{ tagName: 'div', classList: ['modal-content'] }, { tagName: 'div', classList: ['modal-backdrop'] }], attributes: { 'aria-label': 'Close' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(14), comment: 'Close X button focus ring missing', component: { name: 'BaseModal', file: 'src/components/BaseModal.vue', framework: 'vue' }, elementId: null, classList: ['close-btn'], selector: 'div.modal-backdrop > div.modal-content > button.close-btn', textContent: null, boundingBox: { x: 900, y: 150, width: 32, height: 32 }, parentChain: [{ tagName: 'div', classList: ['modal-content'], component: null }, { tagName: 'div', classList: ['modal-backdrop'], component: null }], attributes: { 'aria-label': 'Close' }, url: 'http://localhost:5173/contact', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
         id: generateId(), name: 'Table component', color: COLORS[0],
         startedAt: makeTimestamp(5),
         clicks: [
-          { clickId: generateId(), tagName: 'th', timestamp: makeTimestamp(4), comment: 'Sort indicator arrow missing', component: { name: 'DataTable', file: 'src/components/DataTable.vue', framework: 'vue' }, elementId: null, classList: ['sortable'], selector: 'table.data-table > thead > tr > th.sortable:nth-of-type(2)', textContent: 'Name', boundingBox: { x: 300, y: 200, width: 200, height: 36 }, parentChain: [{ tagName: 'tr', classList: [] }, { tagName: 'thead', classList: [] }, { tagName: 'table', classList: ['data-table'] }], attributes: { 'data-sort': 'name' }, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'td', timestamp: makeTimestamp(3), comment: null, component: { name: 'DataTable', file: 'src/components/DataTable.vue', framework: 'vue' }, elementId: null, classList: [], selector: 'table.data-table > tbody > tr:nth-of-type(1) > td:nth-of-type(2)', textContent: 'Jane Doe', boundingBox: { x: 300, y: 240, width: 200, height: 36 }, parentChain: [{ tagName: 'tr', classList: [] }, { tagName: 'tbody', classList: [] }], attributes: {}, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(1), comment: 'Pagination resets filters', component: { name: 'Pagination', file: 'src/components/Pagination.vue', framework: 'vue' }, elementId: null, classList: ['page-btn', 'active'], selector: 'nav.pagination > button.page-btn.active:nth-of-type(3)', textContent: '2', boundingBox: { x: 680, y: 600, width: 36, height: 36 }, parentChain: [{ tagName: 'nav', classList: ['pagination'] }], attributes: { 'data-page': '2' }, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'th', timestamp: makeTimestamp(4), comment: 'Sort indicator arrow missing', component: { name: 'DataTable', file: 'src/components/DataTable.vue', framework: 'vue' }, elementId: null, classList: ['sortable'], selector: 'table.data-table > thead > tr > th.sortable:nth-of-type(2)', textContent: 'Name', boundingBox: { x: 300, y: 200, width: 200, height: 36 }, parentChain: [{ tagName: 'tr', classList: [], component: null }, { tagName: 'thead', classList: [], component: null }, { tagName: 'table', classList: ['data-table'], component: null }], attributes: { 'data-sort': 'name' }, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'td', timestamp: makeTimestamp(3), comment: null, component: { name: 'DataTable', file: 'src/components/DataTable.vue', framework: 'vue' }, elementId: null, classList: [], selector: 'table.data-table > tbody > tr:nth-of-type(1) > td:nth-of-type(2)', textContent: 'Jane Doe', boundingBox: { x: 300, y: 240, width: 200, height: 36 }, parentChain: [{ tagName: 'tr', classList: [], component: null }, { tagName: 'tbody', classList: [], component: null }], attributes: {}, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(1), comment: 'Pagination resets filters', component: { name: 'Pagination', file: 'src/components/Pagination.vue', framework: 'vue' }, elementId: null, classList: ['page-btn', 'active'], selector: 'nav.pagination > button.page-btn.active:nth-of-type(3)', textContent: '2', boundingBox: { x: 680, y: 600, width: 36, height: 36 }, parentChain: [{ tagName: 'nav', classList: ['pagination'], component: null }], attributes: { 'data-page': '2' }, url: 'http://localhost:5173/users', viewportSize: { width: 1440, height: 900 } },
         ]
       }
     ];
@@ -561,26 +558,26 @@ function buildPresetData(preset) {
         id: generateId(), name: 'Homepage review', color: COLORS[0],
         startedAt: makeTimestamp(25),
         clicks: [
-          { clickId: generateId(), tagName: 'h1', timestamp: makeTimestamp(24), comment: 'Heading font too large on mobile', component: null, elementId: 'main-heading', classList: ['hero-title'], selector: 'main > section.hero > h1.hero-title', textContent: 'Welcome to Our Site', boundingBox: { x: 100, y: 200, width: 600, height: 60 }, parentChain: [{ tagName: 'section', classList: ['hero'] }, { tagName: 'main', classList: [] }], attributes: {}, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(22), comment: 'CTA link color has poor contrast', component: null, elementId: null, classList: ['cta-link'], selector: 'main > section.hero > a.cta-link', textContent: 'Get Started', boundingBox: { x: 100, y: 280, width: 140, height: 44 }, parentChain: [{ tagName: 'section', classList: ['hero'] }], attributes: { href: '/signup' }, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'img', timestamp: makeTimestamp(20), comment: null, component: null, elementId: null, classList: ['hero-image'], selector: 'main > section.hero > img.hero-image', textContent: null, boundingBox: { x: 700, y: 160, width: 500, height: 300 }, parentChain: [{ tagName: 'section', classList: ['hero'] }], attributes: { src: '/hero.jpg', alt: 'Hero illustration', loading: 'lazy' }, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'h1', timestamp: makeTimestamp(24), comment: 'Heading font too large on mobile', component: null, elementId: 'main-heading', classList: ['hero-title'], selector: 'main > section.hero > h1.hero-title', textContent: 'Welcome to Our Site', boundingBox: { x: 100, y: 200, width: 600, height: 60 }, parentChain: [{ tagName: 'section', classList: ['hero'], component: null }, { tagName: 'main', classList: [], component: null }], attributes: {}, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'a', timestamp: makeTimestamp(22), comment: 'CTA link color has poor contrast', component: null, elementId: null, classList: ['cta-link'], selector: 'main > section.hero > a.cta-link', textContent: 'Get Started', boundingBox: { x: 100, y: 280, width: 140, height: 44 }, parentChain: [{ tagName: 'section', classList: ['hero'], component: null }], attributes: { href: '/signup' }, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'img', timestamp: makeTimestamp(20), comment: null, component: null, elementId: null, classList: ['hero-image'], selector: 'main > section.hero > img.hero-image', textContent: null, boundingBox: { x: 700, y: 160, width: 500, height: 300 }, parentChain: [{ tagName: 'section', classList: ['hero'], component: null }], attributes: { src: '/hero.jpg', alt: 'Hero illustration', loading: 'lazy' }, url: 'http://localhost:3000/', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
         id: generateId(), name: 'About page', color: COLORS[1],
         startedAt: makeTimestamp(10),
         clicks: [
-          { clickId: generateId(), tagName: 'p', timestamp: makeTimestamp(9), comment: 'Typo in second paragraph', component: null, elementId: null, classList: [], selector: 'main > article > p:nth-of-type(2)', textContent: 'We are a team of pasionate developers building tools for the web.', boundingBox: { x: 100, y: 340, width: 700, height: 48 }, parentChain: [{ tagName: 'article', classList: [] }, { tagName: 'main', classList: [] }], attributes: {}, url: 'http://localhost:3000/about', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'ul', timestamp: makeTimestamp(7), comment: 'List bullets not aligned with text', component: null, elementId: null, classList: ['team-list'], selector: 'main > article > ul.team-list', textContent: 'Alice Bob Charlie Diana', boundingBox: { x: 100, y: 420, width: 400, height: 120 }, parentChain: [{ tagName: 'article', classList: [] }], attributes: {}, url: 'http://localhost:3000/about', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'p', timestamp: makeTimestamp(9), comment: 'Typo in second paragraph', component: null, elementId: null, classList: [], selector: 'main > article > p:nth-of-type(2)', textContent: 'We are a team of pasionate developers building tools for the web.', boundingBox: { x: 100, y: 340, width: 700, height: 48 }, parentChain: [{ tagName: 'article', classList: [], component: null }, { tagName: 'main', classList: [], component: null }], attributes: {}, url: 'http://localhost:3000/about', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'ul', timestamp: makeTimestamp(7), comment: 'List bullets not aligned with text', component: null, elementId: null, classList: ['team-list'], selector: 'main > article > ul.team-list', textContent: 'Alice Bob Charlie Diana', boundingBox: { x: 100, y: 420, width: 400, height: 120 }, parentChain: [{ tagName: 'article', classList: [], component: null }], attributes: {}, url: 'http://localhost:3000/about', viewportSize: { width: 1440, height: 900 } },
         ]
       },
       {
         id: generateId(), name: 'Contact form', color: COLORS[2],
         startedAt: makeTimestamp(3),
         clicks: [
-          { clickId: generateId(), tagName: 'form', timestamp: makeTimestamp(2), comment: 'Form has no client-side validation', component: null, elementId: 'contact-form', classList: ['form'], selector: 'main > form.form', textContent: null, boundingBox: { x: 200, y: 200, width: 600, height: 400 }, parentChain: [{ tagName: 'main', classList: [] }], attributes: { action: '/api/contact', method: 'post' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(1), comment: 'Phone field should use tel input type', component: null, elementId: 'phone', classList: ['form-input'], selector: 'main > form.form > div > input.form-input#phone', textContent: null, boundingBox: { x: 220, y: 340, width: 400, height: 36 }, parentChain: [{ tagName: 'div', classList: ['field'] }, { tagName: 'form', classList: ['form'] }], attributes: { type: 'text', name: 'phone', placeholder: '(555) 123-4567' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
-          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(0.5), comment: null, component: null, elementId: 'submit-btn', classList: ['btn', 'btn-primary'], selector: 'main > form.form > button.btn.btn-primary', textContent: 'Send', boundingBox: { x: 220, y: 540, width: 120, height: 44 }, parentChain: [{ tagName: 'form', classList: ['form'] }], attributes: { type: 'submit' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'form', timestamp: makeTimestamp(2), comment: 'Form has no client-side validation', component: null, elementId: 'contact-form', classList: ['form'], selector: 'main > form.form', textContent: null, boundingBox: { x: 200, y: 200, width: 600, height: 400 }, parentChain: [{ tagName: 'main', classList: [], component: null }], attributes: { action: '/api/contact', method: 'post' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'input', timestamp: makeTimestamp(1), comment: 'Phone field should use tel input type', component: null, elementId: 'phone', classList: ['form-input'], selector: 'main > form.form > div > input.form-input#phone', textContent: null, boundingBox: { x: 220, y: 340, width: 400, height: 36 }, parentChain: [{ tagName: 'div', classList: ['field'], component: null }, { tagName: 'form', classList: ['form'], component: null }], attributes: { type: 'text', name: 'phone', placeholder: '(555) 123-4567' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
+          { clickId: generateId(), tagName: 'button', timestamp: makeTimestamp(0.5), comment: null, component: null, elementId: 'submit-btn', classList: ['btn', 'btn-primary'], selector: 'main > form.form > button.btn.btn-primary', textContent: 'Send', boundingBox: { x: 220, y: 540, width: 120, height: 44 }, parentChain: [{ tagName: 'form', classList: ['form'], component: null }], attributes: { type: 'submit' }, url: 'http://localhost:3000/contact', viewportSize: { width: 1440, height: 900 } },
         ]
       }
     ];
@@ -821,8 +818,9 @@ function renderTimeline() {
   let expiredCounts = {};
   let trimmedCounts = {};
 
-  for (const s of sessions) {
-    const beforeFilter = s.clicks.length;
+  const activeSessionIdx = sessions.length - 1;
+  for (let si = 0; si < sessions.length; si++) {
+    const s = sessions[si];
     const activeClicks = [];
     const expired = [];
     for (const c of s.clicks) {
@@ -835,10 +833,11 @@ function renderTimeline() {
     }
     expiredCounts[s.id] = expired.length;
 
-    // Apply slice(-maxEntries) trimming
+    // maxEntries trimming only applies to the active (last) session at write-time.
+    // Past sessions are never trimmed — they were written when they were active.
     let trimmed = 0;
     let finalClicks = activeClicks;
-    if (activeClicks.length > state.maxEntries) {
+    if (si === activeSessionIdx && activeClicks.length > state.maxEntries) {
       trimmed = activeClicks.length - state.maxEntries;
       finalClicks = activeClicks.slice(-state.maxEntries);
     }
@@ -912,12 +911,13 @@ function renderTimeline() {
   }
   store.sessions = store.sessions.<span class="hl">filter</span>(s => s.clicks.length > 0);
   <span style="color:#6c7086;">// ${removedSessions.length} empty sessions removed</span>
+}
 
-  <span style="color:#6c7086;">// Then per-session trimming:</span>
-  <span class="hl">if</span> (active.clicks.length > <span class="val">${state.maxEntries}</span>) {
-    active.clicks = active.clicks.<span class="hl">slice</span>(<span class="val">-${state.maxEntries}</span>);
-  } <span style="color:#6c7086;">// ${totalTrimmed} clicks trimmed</span>
-}`;
+<span style="color:#6c7086;">// maxEntries trimming runs at write-time, only on the ACTIVE (last) session:</span>
+<span class="hl">const</span> active = store.sessions[store.sessions.length - 1];
+<span class="hl">if</span> (active && active.clicks.length > <span class="val">${state.maxEntries}</span>) {
+  active.clicks = active.clicks.<span class="hl">slice</span>(<span class="val">-${state.maxEntries}</span>);
+} <span style="color:#6c7086;">// ${totalTrimmed} clicks trimmed from active session</span>`;
 }
 
 // ── Section C: AI Instruction Preview ──────────────────────────
@@ -967,53 +967,21 @@ function renderAIPreview() {
   // Step 4/5: Action-dependent
   if (hasComments) {
     html += `<span class="ai-step">Step 4:</span> Comments found. `;
-    if (action === 'suggest-fixes') {
-      html += `Suggest fixes grouped by component/page/concern:\n\n`;
-      // Group by component file
-      const groups = {};
-      for (const s of allSessions) {
-        for (const c of s.clicks) {
-          if (!c.comment) continue;
-          const key = c.component ? c.component.file : (c.url || 'unknown');
-          if (!groups[key]) groups[key] = [];
-          groups[key].push(c);
-        }
+    html += `Suggest fixes grouped by component/page/concern:\n\n`;
+    // Group by component file
+    const groups = {};
+    for (const s of allSessions) {
+      for (const c of s.clicks) {
+        if (!c.comment) continue;
+        const key = c.component ? c.component.file : (c.url || 'unknown');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(c);
       }
-      for (const [file, clicks] of Object.entries(groups)) {
-        html += `  <span class="ai-path">${escHtml(file)}</span>\n`;
-        for (const c of clicks) {
-          html += `    - <span class="ai-comment">${escHtml(c.comment)}</span> <span class="ai-muted">(&lt;${c.tagName}&gt;)</span>\n`;
-        }
-      }
-    } else if (action === 'taskmaster') {
-      html += `Create Task Master tasks for each issue:\n\n`;
-      let taskNum = 1;
-      for (const s of allSessions) {
-        for (const c of s.clicks) {
-          if (!c.comment) continue;
-          html += `  <span style="color:#fab387;">Task ${taskNum}:</span> ${escHtml(c.comment)}\n`;
-          html += `    <span class="ai-muted">File: ${c.component ? escHtml(c.component.file) : 'N/A'} | Element: &lt;${c.tagName}&gt;</span>\n`;
-          taskNum++;
-        }
-      }
-    } else if (action === 'github-issues') {
-      html += `Create GitHub issues:\n\n`;
-      let issueNum = 1;
-      for (const s of allSessions) {
-        for (const c of s.clicks) {
-          if (!c.comment) continue;
-          html += `  <span style="color:#fab387;">Issue #${issueNum}:</span> ${escHtml(c.comment)}\n`;
-          html += `    <span class="ai-muted">Labels: bug | File: ${c.component ? escHtml(c.component.file) : 'N/A'}</span>\n`;
-          issueNum++;
-        }
-      }
-    } else { // just-report
-      html += `Report findings:\n\n`;
-      for (const s of allSessions) {
-        for (const c of s.clicks) {
-          if (!c.comment) continue;
-          html += `  - <span class="ai-comment">${escHtml(c.comment)}</span> <span class="ai-muted">(${c.tagName}${c.component ? ' in ' + c.component.name : ''})</span>\n`;
-        }
+    }
+    for (const [file, clicks] of Object.entries(groups)) {
+      html += `  <span class="ai-path">${escHtml(file)}</span>\n`;
+      for (const c of clicks) {
+        html += `    - <span class="ai-comment">${escHtml(c.comment)}</span> <span class="ai-muted">(&lt;${c.tagName}&gt;)</span>\n`;
       }
     }
   } else {

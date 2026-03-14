@@ -819,6 +819,17 @@ function mockReactTree() {
             ],
             text: 'Page content here...',
             children: []
+          },
+          {
+            tag: 'div', id: '', classes: ['memo-wrapper'],
+            props: { '__reactFiber$abc123': true },
+            component: { framework: 'react', name: 'MemoizedSidebar', file: '/src/components/Sidebar.tsx' },
+            fiber: [
+              // React.memo wraps — node.type.name is null but displayName is set
+              { type: 'object', name: null, displayName: 'MemoizedSidebar', file: '/src/components/Sidebar.tsx' },
+            ],
+            text: 'Sidebar content',
+            children: []
           }
         ]
       }
@@ -1170,30 +1181,32 @@ function simulateReactDetection(node) {
     status: 'pass',
   });
 
-  // Fiber walk
+  // Fiber walk — mirrors: while (node) { if (function/object) name = displayName || name }
   const fiberNodes = node.fiber || [];
   const walkSteps = [];
   let matchedNode = null;
 
   for (const fn of fiberNodes) {
     if (fn.type === 'function' || fn.type === 'object') {
-      const name = fn.name || null;
+      // Real code: (node.type.displayName || node.type.name) || null
+      const name = fn.displayName || fn.name || null;
       if (name) {
-        walkSteps.push({ type: fn.type, name, file: fn.file || 'Unknown', match: true });
-        matchedNode = fn;
+        const resolvedBy = fn.displayName ? 'displayName' : 'name';
+        walkSteps.push({ type: fn.type, name, resolvedBy, file: fn.file || 'Unknown', match: true });
+        matchedNode = { ...fn, name };
         break;
       } else {
-        walkSteps.push({ type: fn.type, name: '(anonymous)', file: null, match: false });
+        walkSteps.push({ type: fn.type, name: '(anonymous)', resolvedBy: null, file: null, match: false });
       }
     } else {
-      walkSteps.push({ type: fn.type, name: `"${fn.type}"`, file: null, match: false });
+      walkSteps.push({ type: fn.type, name: `"${fn.type}"`, resolvedBy: null, file: null, match: false });
     }
   }
 
   if (matchedNode) {
     steps.push({
-      label: 'Walk node.return chain',
-      detail: `Found named component after ${walkSteps.length} node(s)`,
+      label: 'Walk node.return chain (check displayName || name)',
+      detail: `Found "${matchedNode.name}" via node.type.${walkSteps.find(s => s.match).resolvedBy} after ${walkSteps.length} node(s)`,
       status: 'pass',
       winner: true,
     });
@@ -1205,7 +1218,7 @@ function simulateReactDetection(node) {
   }
 
   steps.push({
-    label: 'Walk node.return chain',
+    label: 'Walk node.return chain (check displayName || name)',
     detail: 'No named component found in fiber tree',
     status: 'fail',
   });
@@ -1292,41 +1305,130 @@ function simulateGetFrameworkComponent(node) {
   return { triedFunctions, winner };
 }
 
+// Simulates getFrameworkComponentFromChain(el):
+// walks UP the ancestor chain calling getFrameworkComponent() at each level,
+// returning the first match. Real code: while (cur && cur !== document.body) { ... cur = cur.parentElement }
+function simulateGetFrameworkComponentFromChain(node, ancestorChain) {
+  // ancestorChain: array of ancestor nodes from closest to furthest (not including el itself)
+  const chainSteps = [];
+
+  // Try the element itself first
+  const selfDetection = simulateGetFrameworkComponent(node);
+  chainSteps.push({
+    el: node,
+    depth: 0,
+    label: 'el (clicked element)',
+    result: selfDetection.winner ? selfDetection.winner.result : null,
+  });
+
+  if (selfDetection.winner) {
+    return { chainSteps, result: selfDetection.winner.result };
+  }
+
+  // Walk ancestors
+  for (let i = 0; i < (ancestorChain || []).length; i++) {
+    const ancestor = ancestorChain[i];
+    const detection = simulateGetFrameworkComponent(ancestor);
+    chainSteps.push({
+      el: ancestor,
+      depth: i + 1,
+      label: `el.parentElement${i > 0 ? ` (×${i + 1})` : ''}`,
+      result: detection.winner ? detection.winner.result : null,
+    });
+    if (detection.winner) {
+      return { chainSteps, result: detection.winner.result };
+    }
+  }
+
+  return { chainSteps, result: null };
+}
+
+// Simulates verifyElement(el, data):
+// returns true if data.textContent is absent/empty, or if truncated el.innerText matches it.
+// Real code: truncateText(el.innerText || el.textContent || "", 100) === data.textContent
+function simulateVerifyElement(node, storedTextContent) {
+  if (!storedTextContent) {
+    return { pass: true, reason: 'No stored textContent — skips check (always passes)' };
+  }
+  const current = truncatePlaygroundText(node.text || '', 100);
+  if (!current) {
+    return { pass: true, reason: 'Element has no visible text — skips check (always passes)' };
+  }
+  const matches = current === storedTextContent;
+  return {
+    pass: matches,
+    reason: matches
+      ? `truncateText(el.innerText) === "${storedTextContent}" ✓`
+      : `truncateText(el.innerText) = "${current}" ≠ "${storedTextContent}" — mismatch, element rejected`,
+  };
+}
+
+function truncatePlaygroundText(text, max) {
+  const t = (text || '').trim().replace(/\s+/g, ' ');
+  if (!t) return null;
+  return t.length > max ? t.slice(0, max) + '...' : t;
+}
+
 function simulateFindElement(node, fw) {
   const steps = [];
-  const hasSelector = true;
   const selector = buildMockSelector(node);
   const hasSvelteClasses = (node.classes || []).some(c => c.startsWith('svelte-') || c.match(/^s-[A-Za-z0-9]/));
 
+  // verifyElement is called at EVERY findElement step that finds a candidate.
+  // It compares truncateText(el.innerText) with stored data.textContent.
+  // storedTextContent simulates what was recorded at click time.
+  const storedTextContent = truncatePlaygroundText(node.text || '', 100);
+  const verify = simulateVerifyElement(node, storedTextContent);
+
   // 1. Full selector
   const fullSelectorWorks = node.component !== null || fw === 'html';
-  steps.push({
-    num: 1,
-    label: 'Full selector',
-    detail: `document.querySelector("${selector}")`,
-    pass: fullSelectorWorks,
-    verify: fullSelectorWorks ? 'verifyElement: textContent matches' : 'No element found',
-  });
-
-  if (fullSelectorWorks) return steps;
+  if (fullSelectorWorks) {
+    steps.push({
+      num: 1,
+      label: 'Full selector',
+      detail: `document.querySelector("${selector}")`,
+      pass: verify.pass,
+      verify: `verifyElement: ${verify.reason}`,
+    });
+    if (verify.pass) return steps;
+    // verifyElement failed — continue to next fallback
+  } else {
+    steps.push({
+      num: 1,
+      label: 'Full selector',
+      detail: `document.querySelector("${selector}") → null`,
+      pass: false,
+      verify: 'No element found — verifyElement not called',
+    });
+  }
 
   // 2. Hash-stripped selector (only for Svelte)
   if (hasSvelteClasses) {
     const stripped = selector.replace(/\.(?:s-|svelte-)[A-Za-z0-9_-]+/g, '');
     const strippedWorks = stripped !== selector;
-    steps.push({
-      num: 2,
-      label: 'Hash-stripped selector',
-      detail: `Stripped: "${stripped}"`,
-      pass: strippedWorks && node.component !== null,
-      verify: strippedWorks ? 'Cleaned selector differs; trying...' : 'Same as original, skipped',
-    });
-    if (strippedWorks && node.component !== null) return steps;
+    if (strippedWorks && node.component !== null) {
+      steps.push({
+        num: 2,
+        label: 'Hash-stripped selector',
+        detail: `Stripped to "${stripped}"`,
+        pass: verify.pass,
+        verify: `verifyElement: ${verify.reason}`,
+      });
+      if (verify.pass) return steps;
+    } else {
+      steps.push({
+        num: 2,
+        label: 'Hash-stripped selector',
+        detail: strippedWorks ? `Stripped to "${stripped}" but no match` : 'Same as original after strip, skipped',
+        pass: false,
+        verify: 'No element found — verifyElement not called',
+      });
+    }
   } else {
     steps.push({
       num: 2,
       label: 'Hash-stripped selector',
-      detail: 'No .s-*/. svelte-* classes to strip',
+      detail: 'No .s-*/.svelte-* classes to strip',
       pass: false,
       verify: 'Skipped (no hash classes)',
     });
@@ -1340,18 +1442,19 @@ function simulateFindElement(node, fw) {
       num: 3,
       label: 'data-* attributes',
       detail: `${node.tag}[${attr}="${val}"]`,
-      pass: true,
-      verify: `verifyElement: matched via ${attr}`,
+      pass: verify.pass,
+      verify: `verifyElement: ${verify.reason}`,
     });
-    return steps;
+    if (verify.pass) return steps;
+  } else {
+    steps.push({
+      num: 3,
+      label: 'data-* attributes',
+      detail: 'No data-* attributes (except data-component)',
+      pass: false,
+      verify: 'No candidates — verifyElement not called',
+    });
   }
-  steps.push({
-    num: 3,
-    label: 'data-* attributes',
-    detail: 'No data-* attributes (except data-component)',
-    pass: false,
-    verify: 'No candidates',
-  });
 
   // 4. ID
   if (node.id) {
@@ -1359,36 +1462,37 @@ function simulateFindElement(node, fw) {
       num: 4,
       label: 'getElementById',
       detail: `document.getElementById("${node.id}")`,
-      pass: true,
-      verify: 'verifyElement: textContent matches',
+      pass: verify.pass,
+      verify: `verifyElement: ${verify.reason}`,
     });
-    return steps;
+    if (verify.pass) return steps;
+  } else {
+    steps.push({
+      num: 4,
+      label: 'getElementById',
+      detail: 'No ID on element',
+      pass: false,
+      verify: 'Skipped — verifyElement not called',
+    });
   }
-  steps.push({
-    num: 4,
-    label: 'getElementById',
-    detail: 'No ID on element',
-    pass: false,
-    verify: 'Skipped',
-  });
 
-  // 5. Component file + tag + text
+  // 5. Component file + tag + text (uses getFrameworkComponentFromChain internally)
   if (node.component && node.component.file && node.component.file !== 'Unknown') {
     steps.push({
       num: 5,
       label: 'Component file + tag + text',
-      detail: `querySelectorAll("${node.tag}") where comp.file === "${node.component.file}"`,
-      pass: true,
-      verify: 'verifyElement: textContent matches',
+      detail: `querySelectorAll("${node.tag}") → getFrameworkComponentFromChain(candidate) → comp.file === "${node.component.file}"`,
+      pass: verify.pass,
+      verify: `verifyElement: ${verify.reason}`,
     });
     return steps;
   }
   steps.push({
     num: 5,
     label: 'Component file + tag + text',
-    detail: node.component ? 'Component file is "Unknown"' : 'No component detected',
+    detail: node.component ? 'Component file is "Unknown"' : 'No component detected — cannot match by file',
     pass: false,
-    verify: 'No candidates',
+    verify: 'No candidates — verifyElement not called',
   });
 
   return steps;
@@ -1579,6 +1683,24 @@ function renderDetection() {
   const fw = state.activeFramework === 'mixed' ? 'mixed' : state.activeFramework;
   const findSteps = simulateFindElement(node, fw);
 
+  // Build ancestor chain for getFrameworkComponentFromChain simulation.
+  // We walk up through the tree by finding parents via nodeMap.
+  function getAncestorChain(targetNode) {
+    const allNodes = Array.from(nodeMap.values());
+    const chain = [];
+    let current = targetNode;
+    // Walk up: find who has current as a direct child
+    for (let depth = 0; depth < 10; depth++) {
+      const parent = allNodes.find(n => n.children && n.children.includes(current));
+      if (!parent) break;
+      chain.push(parent);
+      current = parent;
+    }
+    return chain;
+  }
+  const ancestorChain = getAncestorChain(node);
+  const chainResult = simulateGetFrameworkComponentFromChain(node, ancestorChain);
+
   let html = '';
 
   // getFrameworkComponent section
@@ -1616,13 +1738,14 @@ function renderDetection() {
 
     // Fiber walk for React
     if (tried.framework === 'react' && tried.fiberWalk && tried.fiberWalk.length > 0) {
-      html += `<div style="margin-top:6px;margin-bottom:2px;font-size:10px;color:var(--text-secondary);font-weight:600;">Fiber walk (node.return chain):</div>`;
+      html += `<div style="margin-top:6px;margin-bottom:2px;font-size:10px;color:var(--text-secondary);font-weight:600;">Fiber walk (node.return chain) — checks <code style="background:rgba(139,92,246,0.1);padding:1px 3px;border-radius:2px;color:var(--accent);">node.type.displayName || node.type.name</code>:</div>`;
       html += `<div class="fiber-walk">`;
       for (let i = 0; i < tried.fiberWalk.length; i++) {
         const fn = tried.fiberWalk[i];
         if (i > 0) html += `<span class="fiber-arrow" data-fdelay="${i}">&larr;</span>`;
+        const resolvedLabel = fn.resolvedBy ? `<span style="font-size:8px;color:var(--success);margin-left:2px;">via ${fn.resolvedBy}</span>` : '';
         html += `<span class="fiber-node ${fn.match ? 'match' : 'skip-node'}" data-fdelay="${i}">
-          ${fn.match ? fn.name : fn.name}
+          ${fn.name}${resolvedLabel}
           <span style="font-size:9px;opacity:0.6;">(${fn.type})</span>
         </span>`;
       }
@@ -1666,8 +1789,45 @@ function renderDetection() {
     </div>`;
   }
 
+  // getFrameworkComponentFromChain section
+  html += `<div class="detection-section animate-in" style="animation-delay:0.2s;">
+    <div class="detection-header">
+      <span class="fn-name">getFrameworkComponentFromChain(el)</span>
+      <span style="color:var(--text-secondary);font-size:11px;">walks UP parent elements</span>
+    </div>
+    <div class="detection-body">
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">
+        Real code: <code style="background:rgba(139,92,246,0.1);padding:1px 4px;border-radius:2px;color:var(--accent);">while (cur && cur !== document.body) { comp = getFrameworkComponent(cur); if (comp) return comp; cur = cur.parentElement; }</code>
+      </div>`;
+
+  for (let i = 0; i < chainResult.chainSteps.length; i++) {
+    const cs = chainResult.chainSteps[i];
+    const isMatch = cs.result !== null;
+    const isFinal = i === chainResult.chainSteps.length - 1;
+    const icon = isMatch ? '&#10004;' : (isFinal ? '&#10008;' : '&#8594;');
+    const iconClass = isMatch ? 'pass' : (isFinal ? 'fail' : 'skip');
+    const tagStr = cs.el ? `&lt;${cs.el.tag}${cs.el.id ? '#' + cs.el.id : ''}${(cs.el.classes || []).length ? '.' + cs.el.classes.slice(0, 2).join('.') : ''}&gt;` : '';
+    const resultStr = isMatch
+      ? `<span style="color:var(--success);font-weight:600;">${cs.result.framework}:${cs.result.name}</span>`
+      : `<span style="color:var(--text-secondary);">null</span>`;
+    html += `<div class="step" data-delay="${i}" style="transition-delay:${i * 100}ms;${isMatch ? '' : ''}">
+      <div class="step-icon ${iconClass}">${icon}</div>
+      <div class="step-content">
+        <div class="step-label">${cs.label} <span style="font-family:var(--mono);font-size:11px;color:var(--text-secondary);">${tagStr}</span></div>
+        <div class="step-detail">getFrameworkComponent(cur) → ${resultStr}${isMatch ? ' <span style="color:var(--success);font-size:10px;">&#10004; RETURN</span>' : ' → cur = cur.parentElement'}</div>
+      </div>
+    </div>`;
+    if (isMatch) break;
+  }
+
+  if (!chainResult.result) {
+    html += `<div style="font-size:11px;color:var(--fail);margin-top:6px;">Reached document.body with no component found → returns null</div>`;
+  }
+
+  html += `</div></div>`;
+
   // findElement fallback strategies
-  html += `<div class="detection-section animate-in" style="animation-delay:0.3s;">
+  html += `<div class="detection-section animate-in" style="animation-delay:0.35s;">
     <div class="detection-header">
       <span class="fn-name">findElement(data)</span>
       <span style="color:var(--text-secondary);font-size:11px;">fallback strategies (5 steps)</span>

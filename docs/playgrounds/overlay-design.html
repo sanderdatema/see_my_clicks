@@ -335,6 +335,24 @@
     background: rgba(139, 92, 246, 0.15);
   }
 
+  /* ── Checkbox toggle ─────────────────────────────────────── */
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--smc-text-primary);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-row input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--smc-purple);
+    cursor: pointer;
+  }
+
   /* ── Mock webpage ───────────────────────────────────────── */
 
   .mock-page {
@@ -481,13 +499,33 @@
 
       <div class="control-row">
         <label>Sessions <span class="val" id="val-sessions">2</span></label>
-        <input type="range" id="ctrl-sessions" min="1" max="5" value="2" step="1">
+        <input type="range" id="ctrl-sessions" min="0" max="5" value="2" step="1">
       </div>
 
       <div class="control-row">
         <label>Clicks per session <span class="val" id="val-clicks">3</span></label>
         <input type="range" id="ctrl-clicks" min="1" max="8" value="3" step="1">
       </div>
+
+      <label class="toggle-row">
+        <input type="checkbox" id="ctrl-has-hidden-session">
+        First session hidden
+      </label>
+
+      <label class="toggle-row">
+        <input type="checkbox" id="ctrl-off-route">
+        Some clicks off-route
+      </label>
+
+      <label class="toggle-row">
+        <input type="checkbox" id="ctrl-show-modal">
+        Show modal (edit mode)
+      </label>
+
+      <label class="toggle-row">
+        <input type="checkbox" id="ctrl-modal-new">
+        Modal in new-click mode
+      </label>
     </div>
 
     <div class="control-group">
@@ -654,6 +692,10 @@ const ctrlSessions = document.getElementById("ctrl-sessions");
 const ctrlClicks = document.getElementById("ctrl-clicks");
 const ctrlMarkerOpacity = document.getElementById("ctrl-marker-opacity");
 const ctrlFontScale = document.getElementById("ctrl-font-scale");
+const ctrlHasHiddenSession = document.getElementById("ctrl-has-hidden-session");
+const ctrlOffRoute = document.getElementById("ctrl-off-route");
+const ctrlShowModal = document.getElementById("ctrl-show-modal");
+const ctrlModalNew = document.getElementById("ctrl-modal-new");
 
 // Value displays
 const valPanelW = document.getElementById("val-panel-w");
@@ -678,27 +720,47 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+// SVG icons matching client-source.js exactly
+function eyeOpenSvg() {
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cdd6f4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>' +
+    '<circle cx="12" cy="12" r="3"/></svg>';
+}
+
+function eyeSlashSvg() {
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45475a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>' +
+    '<line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+
 // ── Fake data generation ───────────────────────────────────
 
 function generateSessions() {
   const sessions = [];
+  const hasHidden = ctrlHasHiddenSession.checked;
+  const hasOffRoute = ctrlOffRoute.checked;
+
   for (let i = 0; i < state.sessions; i++) {
     const clicks = [];
     for (let j = 0; j < state.clicks; j++) {
       const labelIdx = (i * state.clicks + j) % CLICK_LABELS.length;
       const label = CLICK_LABELS[labelIdx];
+      // Off-route: clicks in odd positions of session 0 are off-route
+      const onRoute = !(hasOffRoute && i === 0 && j % 2 === 1);
       clicks.push({
         clickId: `click-${i}-${j}`,
         tagName: label.tag,
         component: label.comp,
         text: label.text,
-        comment: j % 3 === 0 ? COMMENTS[(i * state.clicks + j) % COMMENTS.length] : null
+        comment: j % 3 === 0 ? COMMENTS[(i * state.clicks + j) % COMMENTS.length] : null,
+        onRoute
       });
     }
     sessions.push({
       id: `session-${i}`,
       name: SESSION_NAMES[i % SESSION_NAMES.length],
       color: SESSION_COLORS[i % SESSION_COLORS.length],
+      hidden: hasHidden && i === 0,
       clicks
     });
   }
@@ -714,6 +776,9 @@ function renderBadge(totalClicks) {
   const fs = state.fontScale;
   const badge = document.createElement("div");
   badge.className = "smc-badge";
+  badge.setAttribute("role", "button");
+  badge.setAttribute("tabindex", "0");
+  badge.setAttribute("aria-label", `See my clicks: ${totalClicks} unread capture${totalClicks !== 1 ? "s" : ""}`);
 
   let posStyles = "position:absolute;";
   switch (state.badgePos) {
@@ -797,17 +862,26 @@ function renderPanel(sessions) {
   html += `<button style="background:#8b5cf6;border:none;border-radius:6px;color:#fff;font-size:${Math.round(11 * fs)}px;padding:3px 10px;cursor:pointer;">+ New Session</button>`;
   html += '</div>';
 
+  if (sessions.length === 0) {
+    // Empty state: matches client-source.js line ~283
+    html += `<div style="color:#6c7086;font-size:${Math.round(12 * fs)}px;padding:8px 0;">No captures yet. Alt+Click an element.</div>`;
+  }
+
   let globalNum = 0;
   for (let i = sessions.length - 1; i >= 0; i--) {
     const s = sessions[i];
     const sColor = s.color;
+    const isHidden = s.hidden;
+    // Hidden sessions have opacity:0.4 (matches renderSessionHtml in client-source.js)
+    const rowOpacity = isHidden ? "opacity:0.4;" : "";
+    const eyeIcon = isHidden ? eyeSlashSvg() : eyeOpenSvg();
 
-    html += '<div style="border-top:1px solid #313244;padding:8px 0;">';
+    html += `<div style="border-top:1px solid #313244;padding:8px 0;${rowOpacity}">`;
     html += '<div style="display:flex;align-items:center;gap:6px;">';
-    html += `<div style="width:12px;height:12px;border-radius:50%;background:${escapeHtml(sColor)};cursor:pointer;flex-shrink:0;border:2px solid rgba(255,255,255,.15);" title="Change color"></div>`;
+    html += `<div style="width:14px;height:14px;border-radius:50%;background:${escapeHtml(sColor)};cursor:pointer;flex-shrink:0;border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;font-family:system-ui,sans-serif;" title="Change color">${escapeHtml(s.name.charAt(0).toUpperCase())}</div>`;
     html += `<span style="color:${escapeHtml(sColor)};font-size:${Math.round(11 * fs)}px;font-weight:600;flex:1;">${escapeHtml(s.name)} (${s.clicks.length})</span>`;
-    html += `<button style="background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;display:flex;align-items:center;" title="Hide markers">`;
-    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cdd6f4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    html += `<button style="background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;display:flex;align-items:center;" title="${isHidden ? "Show" : "Hide"} markers">`;
+    html += eyeIcon;
     html += '</button>';
     html += '</div>';
 
@@ -816,8 +890,12 @@ function renderPanel(sessions) {
       const c = s.clicks[j];
       const comment = c.comment ? ` \u2014 ${escapeHtml(c.comment.length > 40 ? c.comment.slice(0, 40) + "..." : c.comment)}` : "";
       const comp = c.component ? ` ${escapeHtml(c.component)}` : "";
-      html += `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;color:#cdd6f4;font-size:${Math.round(12 * fs)}px;cursor:pointer;border-radius:4px;" onmouseenter="this.style.background='#313244'" onmouseleave="this.style.background='none'">`;
-      html += `<span style="color:${escapeHtml(sColor)};font-size:${Math.round(11 * fs)}px;min-width:16px;">${globalNum}</span>`;
+      // Off-route dimming: color:#6c7086 for entries not on current route
+      const textColor = c.onRoute ? "color:#cdd6f4;" : "color:#6c7086;";
+      const numColor = c.onRoute ? `color:${escapeHtml(sColor)};` : "color:#45475a;";
+      const rowId = `panel-row-${i}-${j}`;
+      html += `<div id="${rowId}" style="display:flex;align-items:center;gap:6px;padding:4px 0;${textColor}font-size:${Math.round(12 * fs)}px;cursor:pointer;border-radius:4px;" data-click-idx="${i}-${j}">`;
+      html += `<span style="${numColor}font-size:${Math.round(11 * fs)}px;min-width:16px;">${globalNum}</span>`;
       html += `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">&lt;${escapeHtml(c.tagName)}&gt;${comp}${comment}</span>`;
       html += `<button style="background:none;border:none;color:#f38ba8;cursor:pointer;font-size:${Math.round(14 * fs)}px;padding:0 4px;line-height:1;" title="Delete">\u00d7</button>`;
       html += '</div>';
@@ -828,18 +906,60 @@ function renderPanel(sessions) {
 
   html += '</div>';
   panel.innerHTML = html;
+
+  // Row hover: highlights marker (scale 1.5 + glow) — matches client-source.js ~335
+  // Row click: opens edit modal — matches client-source.js ~321
+  const rows = panel.querySelectorAll("[data-click-idx]");
+  rows.forEach(row => {
+    const [si, ci] = row.getAttribute("data-click-idx").split("-").map(Number);
+    const sessionIdx = sessions.length - 1 - si; // reversed display order
+    const s = sessions[si];
+    if (!s) return;
+    const c = s.clicks[ci];
+    const markerSelector = `.smc-marker[data-click-id="click-${si}-${ci}"]`;
+
+    row.addEventListener("mouseenter", () => {
+      row.style.background = "#313244";
+      const marker = viewport.querySelector(markerSelector);
+      if (marker) {
+        marker.style.opacity = "1";
+        marker.style.transform = "scale(1.5)";
+        marker.style.boxShadow = `0 0 12px ${hexToRgba(s.color, 0.8)}`;
+      }
+    });
+    row.addEventListener("mouseleave", () => {
+      row.style.background = "none";
+      const marker = viewport.querySelector(markerSelector);
+      if (marker) {
+        marker.style.opacity = String(state.markerOpacity);
+        marker.style.transform = "";
+        marker.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
+      }
+    });
+    row.addEventListener("click", (e) => {
+      // Don't trigger on delete button click
+      if (e.target.tagName === "BUTTON") return;
+      panel.style.display = "none";
+      renderEditModal(c, s.color);
+    });
+  });
+
   viewport.appendChild(panel);
 }
 
 // ── Render: Modal ──────────────────────────────────────────
 
-function renderModal() {
+function renderModal(editMode) {
   let existing = viewport.querySelector(".smc-modal");
   if (existing) existing.remove();
 
   const fs = state.fontScale;
   const modal = document.createElement("div");
   modal.className = "smc-modal";
+  // ARIA attributes matching client-source.js createModal()
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-label", editMode ? "Edit comment for captured element" : "Add comment for captured element");
 
   // Position modal near the CTA button
   const ctaEl = document.getElementById("mock-cta");
@@ -848,28 +968,65 @@ function renderModal() {
   const relLeft = ctaRect.right - vpRect.left + 12;
   const relTop = ctaRect.top - vpRect.top - 20;
 
+  // max-height: calc(100vh - 32px) matches client-source.js createModal()
   modal.style.cssText =
     `position:absolute;left:${relLeft}px;top:${relTop}px;` +
     `z-index:1000000;background:#1e1e2e;border:1px solid #8b5cf6;` +
     `border-radius:10px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);` +
     `font-family:system-ui,-apple-system,sans-serif;width:${state.modalW}px;` +
-    `max-height:calc(100% - 32px);overflow-y:auto;`;
+    `max-height:calc(100vh - 32px);overflow-y:auto;`;
+
+  const headerLabel = editMode
+    ? '&lt;button&gt; "Get Started" \u2014 CTA'
+    : 'Add a comment';
+  const deleteDisplay = editMode ? "inline-block" : "none";
+  const inputValue = editMode ? "Needs more contrast with background" : "";
+  const inputPlaceholder = "What's wrong? What should change?";
 
   modal.innerHTML =
     '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
     '<div style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;flex-shrink:0;"></div>' +
-    `<span style="color:#cdd6f4;font-size:${Math.round(12 * fs)}px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">&lt;button&gt; "Get Started" \u2014 CTA</span>` +
+    `<span style="color:#cdd6f4;font-size:${Math.round(12 * fs)}px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${headerLabel}</span>` +
     `<span style="color:#6c7086;font-size:${Math.round(11 * fs)}px;flex-shrink:0;">Esc = cancel</span>` +
     '</div>' +
-    `<textarea rows="3" placeholder="What's wrong? What should change?" style="width:100%;box-sizing:border-box;background:#313244;border:1px solid #45475a;border-radius:6px;color:#cdd6f4;font-family:system-ui,-apple-system,sans-serif;font-size:${Math.round(13 * fs)}px;padding:8px;resize:vertical;outline:none;">Needs more contrast with background</textarea>` +
+    `<textarea rows="3" placeholder="${escapeHtml(inputPlaceholder)}" style="width:100%;box-sizing:border-box;background:#313244;border:1px solid #45475a;border-radius:6px;color:#cdd6f4;font-family:system-ui,-apple-system,sans-serif;font-size:${Math.round(13 * fs)}px;padding:8px;resize:vertical;outline:none;">${escapeHtml(inputValue)}</textarea>` +
     '<div style="display:flex;gap:6px;margin-top:8px;align-items:center;">' +
-    `<button style="background:none;border:1px solid #f38ba8;border-radius:6px;color:#f38ba8;font-size:${Math.round(12 * fs)}px;padding:4px 12px;cursor:pointer;">Delete</button>` +
+    // Delete button: only visible in edit mode (matches client-source.js showModal/showEditModal)
+    `<button id="smc-modal-delete" style="background:none;border:1px solid #f38ba8;border-radius:6px;color:#f38ba8;font-size:${Math.round(12 * fs)}px;padding:4px 12px;cursor:pointer;display:${deleteDisplay};" title="Delete capture">Delete</button>` +
     '<span style="flex:1;"></span>' +
-    `<button style="background:transparent;border:1px solid #45475a;border-radius:6px;color:#6c7086;font-size:${Math.round(12 * fs)}px;padding:4px 12px;cursor:pointer;">Skip</button>` +
-    `<button style="background:#8b5cf6;border:none;border-radius:6px;color:#fff;font-size:${Math.round(12 * fs)}px;font-weight:600;padding:4px 12px;cursor:pointer;">Save</button>` +
+    `<button id="smc-modal-skip" style="background:transparent;border:1px solid #45475a;border-radius:6px;color:#6c7086;font-size:${Math.round(12 * fs)}px;padding:4px 12px;cursor:pointer;">Skip</button>` +
+    `<button id="smc-modal-save" style="background:#8b5cf6;border:none;border-radius:6px;color:#fff;font-size:${Math.round(12 * fs)}px;font-weight:600;padding:4px 12px;cursor:pointer;">Save</button>` +
     '</div>';
 
+  // Focus trap: keyboard focus stays within modal — matches client-source.js createModal()
+  modal.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const focusable = modal.querySelectorAll("textarea, button:not([style*='display:none'])");
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+
   viewport.appendChild(modal);
+
+  // Auto-focus textarea (mimics real behavior)
+  const ta = modal.querySelector("textarea");
+  if (ta) setTimeout(() => ta.focus(), 50);
+}
+
+// Open edit modal from panel row click — simulates showEditModal()
+function renderEditModal(clickData, sessionColor) {
+  renderModal(true);
 }
 
 // ── Render: Highlight & Tooltip ────────────────────────────
@@ -917,8 +1074,13 @@ function renderMarkers(sessions) {
 
   for (let i = 0; i < sessions.length; i++) {
     const s = sessions[i];
+    if (s.hidden) continue; // Hidden sessions: no markers shown
+
     for (let j = 0; j < s.clicks.length; j++) {
       globalNum++;
+      const c = s.clicks[j];
+      if (!c.onRoute) continue; // Off-route: no marker placed
+
       const targetIdx = (i * s.clicks.length + j) % MARKER_TARGETS.length;
       const mt = MARKER_TARGETS[targetIdx];
       const el = document.getElementById(mt.elId);
@@ -931,12 +1093,21 @@ function renderMarkers(sessions) {
 
       const marker = document.createElement("div");
       marker.className = "smc-marker";
+      // data-click-id used for panel row hover → marker highlight
+      marker.setAttribute("data-click-id", `click-${i}-${j}`);
+      // ARIA attributes matching client-source.js addMarker()
+      marker.setAttribute("role", "button");
+      marker.setAttribute("tabindex", "0");
+      marker.setAttribute("aria-label", `Capture ${globalNum}: <${c.tagName}>${c.comment ? " — " + c.comment : ""} — click to edit`);
+      // z-index 999997 matches markerContainer in client-source.js (~line 129)
       marker.style.cssText =
         `position:absolute;left:${left}px;top:${top}px;` +
         `width:20px;height:20px;border-radius:50%;background:${s.color};color:#fff;` +
         `font-size:${Math.round(10 * fs)}px;font-weight:700;display:flex;align-items:center;justify-content:center;` +
         `font-family:system-ui,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.3);` +
-        `pointer-events:auto;cursor:pointer;opacity:${state.markerOpacity};transition:opacity .15s ease;`;
+        `outline:2px solid rgba(255,255,255,0.5);outline-offset:-2px;` +
+        `pointer-events:auto;cursor:pointer;opacity:${state.markerOpacity};transition:opacity .15s ease,transform .15s ease,box-shadow .15s ease;` +
+        `z-index:999997;`;
       marker.textContent = String(globalNum);
 
       marker.addEventListener("mouseenter", () => { marker.style.opacity = "1"; });
@@ -956,6 +1127,10 @@ function renderSessionPrompt() {
   const fs = state.fontScale;
   const prompt = document.createElement("div");
   prompt.className = "smc-session-prompt";
+  // ARIA attributes matching client-source.js createSessionPrompt()
+  prompt.setAttribute("role", "dialog");
+  prompt.setAttribute("aria-modal", "true");
+  prompt.setAttribute("aria-label", "Name your new session");
   prompt.style.cssText =
     `position:absolute;z-index:1000001;background:#1e1e2e;border:1px solid #8b5cf6;` +
     `border-radius:10px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);` +
@@ -1031,8 +1206,16 @@ function renderPreview() {
   renderMarkers(sessions);
   renderBadge(totalClicks);
   renderStatusFlash();
-  renderPanel(sessions);
-  renderModal();
+
+  if (state.sessions > 0) {
+    renderPanel(sessions);
+  }
+
+  if (ctrlShowModal.checked) {
+    const editMode = !ctrlModalNew.checked;
+    renderModal(editMode);
+  }
+
   renderSessionPrompt();
   renderColorPicker();
 }
@@ -1223,6 +1406,11 @@ ctrlFontScale.addEventListener("input", () => {
   clearActivePreset();
   updateAll();
 });
+
+ctrlHasHiddenSession.addEventListener("change", () => { clearActivePreset(); updateAll(); });
+ctrlOffRoute.addEventListener("change", () => { clearActivePreset(); updateAll(); });
+ctrlShowModal.addEventListener("change", () => { clearActivePreset(); updateAll(); });
+ctrlModalNew.addEventListener("change", () => { clearActivePreset(); updateAll(); });
 
 // ── Presets ────────────────────────────────────────────────
 
