@@ -199,6 +199,14 @@ function handlePurge() {
 
 const args = process.argv.slice(2);
 
+if (args[0] === "--version" || args[0] === "-v") {
+  const pkg = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8"),
+  );
+  console.log(pkg.version);
+  process.exit(0);
+}
+
 if (args[0] === "retrieve") {
   handleRetrieve();
   process.exit(0);
