@@ -1,6 +1,21 @@
+// Style: ES5-compatible — no const/let/template literals/arrow functions.
+// This file is injected raw into the browser via transformIndexHtml.
 (function () {
   if (window.__seeMyClicksInitialized) return;
   window.__seeMyClicksInitialized = true;
+
+  // ── Theme colors (Catppuccin Mocha) ─────────────────────────────
+  // Named references for the color palette used throughout the overlay UI.
+  // Most colors are embedded in cssText strings and cannot reference vars
+  // in ES5, so these serve as the canonical palette declaration and are
+  // used in standalone style assignments where possible.
+  var SMC_PURPLE = "#8b5cf6";
+  var SMC_BG = "#1e1e2e";
+  var SMC_TEXT = "#cdd6f4";
+  var SMC_SUBTEXT = "#6c7086";
+  var SMC_SURFACE = "#313244";
+  var SMC_BORDER = "#45475a";
+  var SMC_RED = "#f38ba8";
 
   // ── Modifier key ─────────────────────────────────────────────────
 
@@ -330,7 +345,7 @@
               }
             });
             row.addEventListener("mouseenter", function () {
-              row.style.background = "#313244";
+              row.style.background = SMC_SURFACE;
               var m = markers[clickId];
               if (m) {
                 m.el.style.opacity = "1";
@@ -358,7 +373,7 @@
               e.stopPropagation();
               showColorPicker(
                 dot.getAttribute("data-smc-color"),
-                dot.getAttribute("data-smc-current-color") || "#8b5cf6",
+                dot.getAttribute("data-smc-current-color") || SMC_PURPLE,
                 dot,
               );
             });
@@ -455,7 +470,7 @@
 
   function renderSessionHtml(session, clickNumbers) {
     var clicks = session.clicks || [];
-    var sessionColor = session.color || "#8b5cf6";
+    var sessionColor = session.color || SMC_PURPLE;
     var isHidden = hiddenSessions[session.id];
     var rowOpacity = isHidden ? "opacity:0.4;" : "";
     var eyeSvg = isHidden
@@ -758,7 +773,7 @@
   }
 
   function addMarker(data, color, number, seen) {
-    var markerColor = color || "#8b5cf6";
+    var markerColor = color || SMC_PURPLE;
     var displayNumber = number || ++markerNumber;
     var target = findElement(data);
     if (!target) return false;
@@ -1394,7 +1409,7 @@
         flash("Clicked: " + name + sessionLabel);
         updateBadge();
         // Track in allClickData so syncMarkers knows about it
-        var sColor = res.sessionColor || "#8b5cf6";
+        var sColor = res.sessionColor || SMC_PURPLE;
         var clickNumber = allClickData.length + 1;
         allClickData.push({
           data: data,
@@ -1603,7 +1618,7 @@
         if (store && store.sessions) {
           for (var i = 0; i < store.sessions.length; i++) {
             var session = store.sessions[i];
-            var sessionColor = session.color || "#8b5cf6";
+            var sessionColor = session.color || SMC_PURPLE;
             var clicks = session.clicks || [];
             for (var j = 0; j < clicks.length; j++) {
               clickIndex++;
