@@ -25,6 +25,7 @@ export function createMiddleware(opts = {}) {
   let writeQueue = Promise.resolve();
 
   const MAX_BODY_SIZE = 1024 * 1024; // 1 MB
+  const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
 
   function sendJson(res, status, body) {
     res.writeHead(status, { "Content-Type": "application/json" });
@@ -153,6 +154,10 @@ export function createMiddleware(opts = {}) {
   }
 
   function updateSessionColor(res, parsed) {
+    if (!HEX_COLOR_RE.test(parsed.color)) {
+      sendJson(res, 400, { error: "Invalid color value" });
+      return;
+    }
     const store = readData(outputFile);
     let found = false;
     for (const session of store.sessions) {
@@ -233,6 +238,26 @@ export function createMiddleware(opts = {}) {
       res.writeHead(200, { "Content-Type": "application/javascript" });
       res.end(getClientScript());
       return;
+    }
+
+    // CSRF protection: reject cross-origin requests
+    const origin = req.headers.origin;
+    if (origin) {
+      try {
+        const originHost = new URL(origin).hostname;
+        if (
+          originHost !== "localhost" &&
+          originHost !== "127.0.0.1" &&
+          originHost !== "[::1]" &&
+          originHost !== "::1"
+        ) {
+          sendJson(res, 403, { error: "Cross-origin requests not allowed" });
+          return;
+        }
+      } catch {
+        sendJson(res, 403, { error: "Cross-origin requests not allowed" });
+        return;
+      }
     }
 
     if (req.method === "POST") handlePost(req, res);
