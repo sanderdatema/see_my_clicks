@@ -205,15 +205,25 @@ export function createMiddleware(opts = {}) {
     collectBody(req, res, (body) => {
       try {
         const parsed = JSON.parse(body);
-        if (parsed.resetRead) {
+        const action = parsed.action;
+
+        if (action === "reset-read" || (!action && parsed.resetRead)) {
           const store = readData(outputFile);
           store.lastRetrievedAt = null;
           writeData(outputFile, store);
           sendJson(res, 200, { success: true });
-        } else if (parsed.sessionId && parsed.color && !parsed.clickId) {
+        } else if (
+          action === "update-color" ||
+          (!action && parsed.sessionId && parsed.color && !parsed.clickId)
+        ) {
           updateSessionColor(res, parsed);
-        } else {
+        } else if (
+          action === "update-comment" ||
+          (!action && parsed.clickId !== undefined)
+        ) {
           updateClickComment(res, parsed);
+        } else {
+          sendJson(res, 400, { error: "Unknown action" });
         }
       } catch (err) {
         console.error("[see-my-clicks] PUT error:", err);
@@ -265,8 +275,11 @@ export function createMiddleware(opts = {}) {
     else if (req.method === "DELETE") handleDelete(res, url);
     else if (req.method === "PUT") handlePut(req, res);
     else {
-      res.writeHead(405);
-      res.end();
+      res.writeHead(405, {
+        "Content-Type": "application/json",
+        Allow: "GET, POST, PUT, DELETE",
+      });
+      res.end(JSON.stringify({ error: "Method not allowed" }));
     }
   };
 }
