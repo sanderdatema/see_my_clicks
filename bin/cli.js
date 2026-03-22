@@ -3,6 +3,7 @@
 import fs from "fs";
 import path from "path";
 import * as sveltekitPatch from "./patches/sveltekit.js";
+import { readData, writeData, ensureOutputFile } from "../src/store.js";
 
 const __dirname = import.meta.dirname;
 const INSTRUCTIONS_DIR = path.resolve(__dirname, "..", "instructions");
@@ -166,26 +167,8 @@ function detectSSRFramework() {
 
 const OUTPUT_FILE = path.resolve(process.cwd(), ".see-my-clicks/clicked.json");
 
-function readStore() {
-  if (!fs.existsSync(OUTPUT_FILE)) return { sessions: [] };
-  try {
-    const raw = JSON.parse(fs.readFileSync(OUTPUT_FILE, "utf-8"));
-    return raw && raw.sessions ? raw : { sessions: [] };
-  } catch {
-    return { sessions: [] };
-  }
-}
-
-function writeStore(data) {
-  const dir = path.dirname(OUTPUT_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = `${OUTPUT_FILE}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
-  fs.renameSync(tmp, OUTPUT_FILE);
-}
-
 function handleRetrieve() {
-  const store = readStore();
+  const store = readData(OUTPUT_FILE);
   const marker = store.lastRetrievedAt || null;
 
   // Filter sessions to only include clicks after the marker
@@ -201,14 +184,14 @@ function handleRetrieve() {
 
   // Update the read marker
   store.lastRetrievedAt = new Date().toISOString();
-  writeStore(store);
+  writeData(OUTPUT_FILE, store);
 
   // Output filtered result to stdout
   process.stdout.write(JSON.stringify({ sessions: filtered }, null, 2) + "\n");
 }
 
 function handlePurge() {
-  writeStore({ sessions: [], lastRetrievedAt: null });
+  writeData(OUTPUT_FILE, { sessions: [], lastRetrievedAt: null });
   process.stderr.write("Purged all click data.\n");
 }
 

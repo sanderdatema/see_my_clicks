@@ -1,87 +1,15 @@
-import fs from "fs";
 import path from "path";
 import { getClientScript } from "./client.js";
-
-// Keep in sync with SESSION_COLORS in src/client-source.js
-// Enforced by tests/static/color-palette-sync.spec.mjs
-const COLOR_PALETTE = [
-  "#8b5cf6",
-  "#f38ba8",
-  "#fab387",
-  "#f9e2af",
-  "#a6e3a1",
-  "#89dceb",
-  "#74c7ec",
-  "#cba6f7",
-];
-
-const DEFAULTS = {
-  outputFile: ".see-my-clicks/clicked.json",
-};
-
-function resolveOptions(opts = {}) {
-  return { ...DEFAULTS, ...opts };
-}
-
-// Generates session IDs. Independent from click ID generation in src/client-source.js.
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
-function ensureOutputFile(outputFile) {
-  const dir = path.dirname(outputFile);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  if (!fs.existsSync(outputFile)) {
-    fs.writeFileSync(outputFile, JSON.stringify({ sessions: [] }));
-  }
-}
-
-function writeData(outputFile, data) {
-  const tmp = `${outputFile}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
-  fs.renameSync(tmp, outputFile);
-}
-
-function readData(outputFile) {
-  if (!fs.existsSync(outputFile)) return { sessions: [] };
-  try {
-    const raw = JSON.parse(fs.readFileSync(outputFile, "utf-8"));
-    // Migration: old flat array format → wrap in a session
-    if (Array.isArray(raw)) {
-      if (raw.length === 0) return { sessions: [] };
-      return {
-        sessions: [
-          {
-            id: generateId(),
-            name: "Migrated Session",
-            startedAt: raw[0]?.timestamp || new Date().toISOString(),
-            clicks: raw,
-          },
-        ],
-      };
-    }
-    return raw && raw.sessions ? raw : { sessions: [] };
-  } catch {
-    return { sessions: [] };
-  }
-}
-
-function countTotalClicks(store) {
-  let total = 0;
-  for (const session of store.sessions) {
-    total += session.clicks.length;
-  }
-  return total;
-}
-
-function validateClickData(data) {
-  if (!data || typeof data !== "object") return false;
-  if (!data.clickId || typeof data.clickId !== "string") return false;
-  if (!data.tagName || typeof data.tagName !== "string") return false;
-  return true;
-}
+import {
+  COLOR_PALETTE,
+  resolveOptions,
+  generateId,
+  ensureOutputFile,
+  writeData,
+  readData,
+  countTotalClicks,
+  validateClickData,
+} from "./store.js";
 
 /**
  * Connect-style middleware that handles the /__see-my-clicks endpoint.
@@ -96,21 +24,34 @@ export function createMiddleware(opts = {}) {
   // requests from clobbering each other (e.g. two rapid Alt+Clicks).
   let writeQueue = Promise.resolve();
 
+  const MAX_BODY_SIZE = 1024 * 1024; // 1 MB
+
   function sendJson(res, status, body) {
     res.writeHead(status, { "Content-Type": "application/json" });
     res.end(JSON.stringify(body));
   }
 
-  function collectBody(req, cb) {
+  function collectBody(req, res, cb) {
     let body = "";
-    req.on("data", (chunk) => (body += chunk.toString()));
+    let rejected = false;
+    req.on("data", (chunk) => {
+      if (rejected) return;
+      if (body.length + chunk.length > MAX_BODY_SIZE) {
+        rejected = true;
+        sendJson(res, 413, { error: "Request body too large" });
+        req.destroy();
+        return;
+      }
+      body += chunk.toString();
+    });
     req.on("end", () => {
+      if (rejected) return;
       writeQueue = writeQueue.then(() => cb(body));
     });
   }
 
   function handlePost(req, res) {
-    collectBody(req, (body) => {
+    collectBody(req, res, (body) => {
       try {
         const { data, newSession, sessionName } = JSON.parse(body);
 
@@ -256,7 +197,7 @@ export function createMiddleware(opts = {}) {
   }
 
   function handlePut(req, res) {
-    collectBody(req, (body) => {
+    collectBody(req, res, (body) => {
       try {
         const parsed = JSON.parse(body);
         if (parsed.resetRead) {
