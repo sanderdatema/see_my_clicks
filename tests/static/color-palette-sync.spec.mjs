@@ -35,9 +35,9 @@ function extractColorArray(source, varName) {
   return colors;
 }
 
-test("COLOR_PALETTE in server.js matches SESSION_COLORS in client-source.js", () => {
+test("COLOR_PALETTE in store.js matches SESSION_COLORS in client-source.js", () => {
   const serverSrc = fs.readFileSync(
-    path.join(ROOT, "src/server.js"),
+    path.join(ROOT, "src/store.js"),
     "utf-8"
   );
   const clientSrc = fs.readFileSync(
