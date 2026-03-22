@@ -1,6 +1,4 @@
 export interface SeeMyClicksOptions {
-  maxEntries?: number;
-  expiryMinutes?: number;
   outputFile?: string;
   /** Modifier key for capture clicks. Default: "alt". Use "ctrl" for Linux or "meta" for macOS Cmd. */
   modifier?: "alt" | "ctrl" | "meta";
