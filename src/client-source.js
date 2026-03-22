@@ -393,6 +393,9 @@
                 for (var k = 0; k < ids.length; k++) removeMarker(ids[k]);
                 updateBadge();
                 refreshPanel();
+              })
+              .catch(function (err) {
+                console.warn("[see-my-clicks] purge error:", err.message);
               });
           });
         }
@@ -405,7 +408,7 @@
             fetch("/__see-my-clicks", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ resetRead: true }),
+              body: JSON.stringify({ action: "reset-read", resetRead: true }),
             })
               .then(function (r) {
                 return r.json();
@@ -413,6 +416,9 @@
               .then(function () {
                 loadAndSync();
                 refreshPanel();
+              })
+              .catch(function (err) {
+                console.warn("[see-my-clicks] unread reset error:", err.message);
               });
           });
         }
@@ -441,6 +447,9 @@
             });
           });
         }
+      })
+      .catch(function (err) {
+        console.warn("[see-my-clicks] panel refresh error:", err.message);
       });
   }
 
@@ -556,6 +565,9 @@
         });
         updateBadge();
         if (panelOpen) refreshPanel();
+      })
+      .catch(function (err) {
+        console.warn("[see-my-clicks] delete error:", err.message);
       });
   }
 
@@ -645,7 +657,7 @@
     fetch("/__see-my-clicks", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId: sessionId, color: color }),
+      body: JSON.stringify({ action: "update-color", sessionId: sessionId, color: color }),
     }).catch(function (err) {
       console.error("[see-my-clicks] color update error:", err);
     });
@@ -1000,6 +1012,7 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "update-comment",
           clickId: editingClickId,
           comment: comment || null,
         }),
@@ -1103,6 +1116,26 @@
       'color:#fff;font-size:12px;font-weight:600;padding:4px 12px;cursor:pointer;">Start</button>' +
       "</div>";
     document.body.appendChild(p);
+
+    // Focus trap
+    p.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var focusable = p.querySelectorAll("input, button");
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
     return p;
   }
 
@@ -1594,7 +1627,9 @@
         updateBadge();
         syncMarkersForCurrentRoute();
       })
-      .catch(function () {});
+      .catch(function (err) {
+        console.warn("[see-my-clicks] sync error:", err.message);
+      });
   }
 
   var _pollLastRetrievedAt = lastRetrievedAt;
@@ -1682,6 +1717,8 @@
     if (localStorage.getItem("__smc-onboarded")) return;
     var tip = document.createElement("div");
     tip.id = "__smc-onboarding";
+    tip.setAttribute("role", "alertdialog");
+    tip.setAttribute("aria-label", "see-my-clicks onboarding tip");
     tip.style.cssText =
       "position:fixed;bottom:64px;right:16px;background:#1e1e2e;color:#cdd6f4;" +
       "border:1px solid #8b5cf6;border-radius:8px;padding:12px 16px;z-index:999999;" +
@@ -1720,6 +1757,13 @@
         detail.style.display =
           detail.style.display === "none" ? "block" : "none";
       });
+    document.addEventListener("keydown", function onEsc(e) {
+      if (e.key === "Escape" && document.getElementById("__smc-onboarding")) {
+        tip.remove();
+        localStorage.setItem("__smc-onboarded", "1");
+        document.removeEventListener("keydown", onEsc);
+      }
+    });
   }
 
   // ── Init ─────────────────────────────────────────────────────────
