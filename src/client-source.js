@@ -1,8 +1,17 @@
 // Style: ES5-compatible — no const/let/template literals/arrow functions.
 // This file is injected raw into the browser via transformIndexHtml.
+// AUTO-GENERATED from src/client/ — do not edit directly.
+// Run: npm run build:client
 (function () {
+  // ── 00-guard.js ─────────────────────────────────────────────────
+
+  // Style: ES5-compatible — no const/let/template literals/arrow functions.
+  // Guard: prevent double-initialization if the script is injected multiple times.
   if (window.__seeMyClicksInitialized) return;
   window.__seeMyClicksInitialized = true;
+
+
+  // ── 01-constants.js ─────────────────────────────────────────────
 
   // ── Theme colors (Catppuccin Mocha) ─────────────────────────────
   // Named references for the color palette used throughout the overlay UI.
@@ -41,6 +50,22 @@
     return key === "Alt";
   }
 
+  // Keep in sync with COLOR_PALETTE in src/server.js
+  // Enforced by tests/static/color-palette-sync.spec.mjs
+  var SESSION_COLORS = [
+    "#8b5cf6",
+    "#f38ba8",
+    "#fab387",
+    "#f9e2af",
+    "#a6e3a1",
+    "#89dceb",
+    "#74c7ec",
+    "#cba6f7",
+  ];
+
+
+  // ── 02-helpers.js ───────────────────────────────────────────────
+
   // ── Helpers ──────────────────────────────────────────────────────
 
   function truncateText(text, max) {
@@ -62,19 +87,6 @@
     return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
   }
 
-  // Keep in sync with COLOR_PALETTE in src/server.js
-  // Enforced by tests/static/color-palette-sync.spec.mjs
-  var SESSION_COLORS = [
-    "#8b5cf6",
-    "#f38ba8",
-    "#fab387",
-    "#f9e2af",
-    "#a6e3a1",
-    "#89dceb",
-    "#74c7ec",
-    "#cba6f7",
-  ];
-
   function isSmcElement(el) {
     var cur = el;
     while (cur) {
@@ -84,6 +96,21 @@
     }
     return false;
   }
+
+  function generateClickId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function countUnread() {
+    var n = 0;
+    for (var i = 0; i < allClickData.length; i++) {
+      if (!allClickData[i].seen) n++;
+    }
+    return n;
+  }
+
+
+  // ── 03-dom-setup.js ─────────────────────────────────────────────
 
   // ── DOM elements ─────────────────────────────────────────────────
 
@@ -144,6 +171,9 @@
     "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999997;";
   document.body.appendChild(markerContainer);
 
+
+  // ── 04-state.js ─────────────────────────────────────────────────
+
   // ── State: session ──────────────────────────────────────────────
   var forceNewSession = false;
   var forceSessionName = null;
@@ -174,6 +204,9 @@
   var previousFocus = null;
   var sessionPrompt = null;
 
+
+  // ── 05-url-matching.js ──────────────────────────────────────────
+
   // ── URL matching ─────────────────────────────────────────────────
 
   function getRoute() {
@@ -189,6 +222,9 @@
     }
   }
 
+
+  // ── 06-flash.js ─────────────────────────────────────────────────
+
   // ── Flash messages ───────────────────────────────────────────────
 
   function flash(msg, ms) {
@@ -203,15 +239,10 @@
     }, ms);
   }
 
-  // ── Badge ────────────────────────────────────────────────────────
 
-  function countUnread() {
-    var n = 0;
-    for (var i = 0; i < allClickData.length; i++) {
-      if (!allClickData[i].seen) n++;
-    }
-    return n;
-  }
+  // ── 07-badge.js ─────────────────────────────────────────────────
+
+  // ── Badge ────────────────────────────────────────────────────────
 
   function updateBadge() {
     var count = countUnread();
@@ -258,6 +289,9 @@
       panel.style.display = "none";
     }
   });
+
+
+  // ── 08-panel.js ─────────────────────────────────────────────────
 
   // ── Panel ────────────────────────────────────────────────────────
 
@@ -589,6 +623,9 @@
       });
   }
 
+
+  // ── 09-color-picker.js ──────────────────────────────────────────
+
   // ── Color picker ─────────────────────────────────────────────────
 
   function closeColorPicker() {
@@ -685,6 +722,9 @@
     });
   }
 
+
+  // ── 10-session-vis.js ───────────────────────────────────────────
+
   // ── Session visibility ──────────────────────────────────────────
 
   function toggleSessionVisibility(sessionId) {
@@ -697,6 +737,9 @@
     if (panelOpen) refreshPanel();
   }
 
+
+  // ── 11-markers.js ───────────────────────────────────────────────
+
   // ── Markers ──────────────────────────────────────────────────────
 
   function verifyElement(el, data) {
@@ -707,11 +750,6 @@
     var current = truncateText(el.innerText || el.textContent || "", 100);
     if (!current) return true;
     return current === data.textContent;
-  }
-
-  function stripHashClasses(selector) {
-    // Remove Svelte scoped class hashes (.s-XXXX, .svelte-XXXX) from selectors
-    return selector.replace(/\.(?:s-|svelte-)[A-Za-z0-9_-]+/g, "");
   }
 
   function findElement(data) {
@@ -896,6 +934,9 @@
 
   window.addEventListener("scroll", updateMarkerPositions, true);
   window.addEventListener("resize", updateMarkerPositions);
+
+
+  // ── 12-modal.js ─────────────────────────────────────────────────
 
   // ── Comment modal ────────────────────────────────────────────────
 
@@ -1109,6 +1150,9 @@
     return modal && modal.style.display !== "none";
   }
 
+
+  // ── 13-session-prompt.js ────────────────────────────────────────
+
   // ── Session prompt ───────────────────────────────────────────────
 
   function createSessionPrompt() {
@@ -1210,6 +1254,9 @@
     return sessionPrompt && sessionPrompt.style.display !== "none";
   }
 
+
+  // ── 14-selectors.js ─────────────────────────────────────────────
+
   // ── Selector helpers ─────────────────────────────────────────────
 
   function getSelector(el) {
@@ -1243,6 +1290,14 @@
     }
     return parts.join(" > ");
   }
+
+  function stripHashClasses(selector) {
+    // Remove Svelte scoped class hashes (.s-XXXX, .svelte-XXXX) from selectors
+    return selector.replace(/\.(?:s-|svelte-)[A-Za-z0-9_-]+/g, "");
+  }
+
+
+  // ── 15-framework.js ─────────────────────────────────────────────
 
   // ── Framework detection ──────────────────────────────────────────
 
@@ -1338,6 +1393,9 @@
     return null;
   }
 
+
+  // ── 16-parent-chain.js ──────────────────────────────────────────
+
   // ── Parent chain & attributes ────────────────────────────────────
 
   function getParentChain(el, maxDepth) {
@@ -1368,6 +1426,9 @@
     return attrs;
   }
 
+
+  // ── 17-capture.js ───────────────────────────────────────────────
+
   // ── Capture element ──────────────────────────────────────────────
 
   function captureElement(el) {
@@ -1394,6 +1455,9 @@
       viewportSize: { width: window.innerWidth, height: window.innerHeight },
     };
   }
+
+
+  // ── 18-server-comm.js ───────────────────────────────────────────
 
   // ── Save to server ───────────────────────────────────────────────
 
@@ -1433,6 +1497,101 @@
         flash("Error: " + err.message, 3000);
       });
   }
+
+  function loadAndSync() {
+    fetch("/__see-my-clicks?source=browser")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (store) {
+        lastRetrievedAt = (store && store.lastRetrievedAt) || null;
+        allClickData = [];
+        var clickIndex = 0;
+        if (store && store.sessions) {
+          for (var i = 0; i < store.sessions.length; i++) {
+            var session = store.sessions[i];
+            var sessionColor = session.color || SMC_PURPLE;
+            var clicks = session.clicks || [];
+            for (var j = 0; j < clicks.length; j++) {
+              clickIndex++;
+              var click = clicks[j];
+              var seen = !!(
+                lastRetrievedAt &&
+                click.timestamp &&
+                click.timestamp <= lastRetrievedAt
+              );
+              allClickData.push({
+                data: click,
+                index: clickIndex,
+                clickId: click.clickId,
+                sessionId: session.id,
+                sessionColor: sessionColor,
+                seen: seen,
+              });
+            }
+          }
+        }
+        updateBadge();
+        syncMarkersForCurrentRoute();
+      })
+      .catch(function (err) {
+        console.warn("[see-my-clicks] sync error:", err.message);
+      });
+  }
+
+  var _pollLastRetrievedAt = lastRetrievedAt;
+  var _pollTimer = null;
+
+  function pollOnce() {
+    fetch("/__see-my-clicks?source=browser")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (store) {
+        var retrieved = (store && store.lastRetrievedAt) || null;
+        if (retrieved !== _pollLastRetrievedAt) {
+          var wasNull = _pollLastRetrievedAt === null;
+          _pollLastRetrievedAt = retrieved;
+          loadAndSync();
+          if (!wasNull && retrieved) {
+            flash(
+              "Your AI retrieved clicks \u2014 next " +
+                MODIFIER_LABEL +
+                "+Click starts a new session",
+              4000
+            );
+            forceNewSession = true;
+          }
+        }
+      })
+      .catch(function () {});
+  }
+
+  function startPolling() {
+    if (_pollTimer) return;
+    _pollTimer = setInterval(pollOnce, 4000);
+  }
+
+  function stopPolling() {
+    if (_pollTimer) {
+      clearInterval(_pollTimer);
+      _pollTimer = null;
+    }
+  }
+
+  startPolling();
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      startPolling();
+      loadAndSync();
+    }
+  });
+
+
+  // ── 19-events.js ────────────────────────────────────────────────
 
   // ── Event listeners ──────────────────────────────────────────────
 
@@ -1565,6 +1724,9 @@
     }
   });
 
+
+  // ── 20-marker-sync.js ───────────────────────────────────────────
+
   // ── Marker sync ────────────────────────────────────────────────────
 
   function isTargetVisible(el) {
@@ -1613,97 +1775,8 @@
     }, 200);
   }
 
-  function loadAndSync() {
-    fetch("/__see-my-clicks?source=browser")
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (store) {
-        lastRetrievedAt = (store && store.lastRetrievedAt) || null;
-        allClickData = [];
-        var clickIndex = 0;
-        if (store && store.sessions) {
-          for (var i = 0; i < store.sessions.length; i++) {
-            var session = store.sessions[i];
-            var sessionColor = session.color || SMC_PURPLE;
-            var clicks = session.clicks || [];
-            for (var j = 0; j < clicks.length; j++) {
-              clickIndex++;
-              var click = clicks[j];
-              var seen = !!(
-                lastRetrievedAt &&
-                click.timestamp &&
-                click.timestamp <= lastRetrievedAt
-              );
-              allClickData.push({
-                data: click,
-                index: clickIndex,
-                clickId: click.clickId,
-                sessionId: session.id,
-                sessionColor: sessionColor,
-                seen: seen,
-              });
-            }
-          }
-        }
-        updateBadge();
-        syncMarkersForCurrentRoute();
-      })
-      .catch(function (err) {
-        console.warn("[see-my-clicks] sync error:", err.message);
-      });
-  }
 
-  var _pollLastRetrievedAt = lastRetrievedAt;
-  var _pollTimer = null;
-
-  function pollOnce() {
-    fetch("/__see-my-clicks?source=browser")
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (store) {
-        var retrieved = (store && store.lastRetrievedAt) || null;
-        if (retrieved !== _pollLastRetrievedAt) {
-          var wasNull = _pollLastRetrievedAt === null;
-          _pollLastRetrievedAt = retrieved;
-          loadAndSync();
-          if (!wasNull && retrieved) {
-            flash(
-              "Your AI retrieved clicks \u2014 next " +
-                MODIFIER_LABEL +
-                "+Click starts a new session",
-              4000
-            );
-            forceNewSession = true;
-          }
-        }
-      })
-      .catch(function () {});
-  }
-
-  function startPolling() {
-    if (_pollTimer) return;
-    _pollTimer = setInterval(pollOnce, 4000);
-  }
-
-  function stopPolling() {
-    if (_pollTimer) {
-      clearInterval(_pollTimer);
-      _pollTimer = null;
-    }
-  }
-
-  startPolling();
-
-  document.addEventListener("visibilitychange", function () {
-    if (document.hidden) {
-      stopPolling();
-    } else {
-      startPolling();
-      loadAndSync();
-    }
-  });
+  // ── 21-navigation.js ────────────────────────────────────────────
 
   // ── Navigation detection ───────────────────────────────────────────
 
@@ -1727,6 +1800,9 @@
   window.addEventListener("popstate", onNavigate);
   window.addEventListener("hashchange", onNavigate);
 
+
+  // ── 22-mutation.js ──────────────────────────────────────────────
+
   // ── MutationObserver ───────────────────────────────────────────────
 
   var observer = new MutationObserver(function (mutations) {
@@ -1743,6 +1819,9 @@
     subtree: true,
   });
 
+
+  // ── 23-reduced-motion.js ────────────────────────────────────────
+
   // ── Reduced motion ───────────────────────────────────────────────
 
   var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1757,6 +1836,9 @@
   if (reducedMotion.addEventListener) {
     reducedMotion.addEventListener("change", applyReducedMotion);
   }
+
+
+  // ── 24-onboarding.js ────────────────────────────────────────────
 
   // ── Onboarding ──────────────────────────────────────────────────
 
@@ -1813,6 +1895,9 @@
     });
   }
 
+
+  // ── 25-init.js ──────────────────────────────────────────────────
+
   // ── Init ─────────────────────────────────────────────────────────
 
   setTimeout(loadAndSync, 300);
@@ -1824,4 +1909,5 @@
       MODIFIER_LABEL +
       "+Click any element to capture it."
   );
+
 })();
