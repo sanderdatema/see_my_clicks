@@ -128,6 +128,26 @@ You can also edit the generated instruction file directly — the action is in a
 - After your AI retrieves clicks, markers **dim automatically** to show they've been seen — the next Alt+Click starts a fresh session
 - Use the **↺ button** in the review panel to mark all clicks as unread again
 
+## Data Capture Notice
+
+When you Alt+Click an element, the following data is captured and stored
+locally in `.see-my-clicks/clicked.json`:
+
+- Element tag name, ID, classes, and CSS selector
+- Up to 100 characters of visible text content
+- All HTML attributes (except Vue scoping attributes)
+- Component name and file path (React, Vue, Svelte)
+- Full page URL (including query parameters)
+- Bounding box and viewport dimensions
+
+**Important:** If your development environment uses realistic data (names,
+emails, phone numbers, financial data), this information may be captured in
+the text content and attributes. The data file is listed in `.gitignore`
+and never leaves your machine, but avoid using the tool against
+environments with real user data if this is a concern.
+
+To delete all captured data: `npx see-my-clicks purge`
+
 ## How it works
 
 - A small script is injected into your page during development (via Vite plugin or script tag)
