@@ -42,11 +42,12 @@ export function seeMyClicks(opts = {}) {
       return [
         {
           tag: "script",
-          children:
-            "window.__smcModifier=" +
-            JSON.stringify(modifier) +
-            ";" +
-            getClientScript(),
+          children: "window.__smcModifier=" + JSON.stringify(modifier) + ";",
+          injectTo: "body",
+        },
+        {
+          tag: "script",
+          attrs: { src: "/__see-my-clicks/client.js" },
           injectTo: "body",
         },
       ];
