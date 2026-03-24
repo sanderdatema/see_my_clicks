@@ -51,12 +51,15 @@ export interface CaptureSession {
 
 export interface CaptureStore {
   sessions: CaptureSession[];
+  lastRetrievedAt?: string | null;
 }
 
 export interface SeeMyClicksRequest {
   url?: string;
   method?: string;
+  headers: { origin?: string; [key: string]: string | string[] | undefined };
   on(event: string, listener: (...args: unknown[]) => void): void;
+  destroy(): void;
 }
 
 export interface SeeMyClicksResponse {
@@ -84,3 +87,20 @@ export function createMiddleware(
   opts?: SeeMyClicksOptions,
 ): SeeMyClicksMiddleware;
 export function getClientScript(): string;
+
+/**
+ * Read the capture store from disk. Handles missing files, corrupt JSON,
+ * and legacy flat-array format migration.
+ *
+ * WARNING: This bypasses the middleware's write queue. Do not call while
+ * the dev server is running unless you accept the risk of a race condition.
+ */
+export function readData(outputFile: string): CaptureStore;
+
+/**
+ * Atomically write the capture store to disk (tmp file + rename).
+ *
+ * WARNING: This bypasses the middleware's write queue. Do not call while
+ * the dev server is running unless you accept the risk of a race condition.
+ */
+export function writeData(outputFile: string, data: CaptureStore): void;

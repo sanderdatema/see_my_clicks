@@ -4,9 +4,9 @@
 
 DATAFORMAT_RULE_0=CaptureStore is { sessions: CaptureSession[] }. CaptureSession has id, name, color, startedAt, clicks[]. CapturedElementData has clickId, tagName, comment, component, and many optional fields.
 DATAFORMAT_RULE_1=clickId format: Date.now().toString(36) + Math.random().toString(36).slice(2, 7) - always a string
-DATAFORMAT_RULE_2=Server defaults: maxEntries=10, expiryMinutes=60, outputFile=".see-my-clicks/clicked.json"
-DATAFORMAT_RULE_3=filterExpiredSessions filters clicks where now - timestamp < expiryMs, then removes empty sessions
-DATAFORMAT_RULE_4=maxEntries trimming: active.clicks.slice(-maxEntries) keeps only the most recent entries per session
+DATAFORMAT_RULE_2=Server defaults: outputFile=".see-my-clicks/clicked.json" (the only configurable default via resolveOptions)
+DATAFORMAT_RULE_3=Sessions accumulate indefinitely. There is no automatic expiry, max-entries cap, or retention limit. Deletion is manual via the UI panel, DELETE API, or CLI purge command.
+DATAFORMAT_RULE_4=lastRetrievedAt (string|null) tracks when an external consumer last read the store. It drives auto-session creation: a new session starts automatically on the next POST after a retrieve.
 DATAFORMAT_RULE_5=All file writes are atomic (tmp file + rename) and serialized via Promise queue (writeQueue)
 DATAFORMAT_RULE_6=Session colors are assigned from COLOR_PALETTE[sessions.length % 8] on creation
 DATAFORMAT_RULE_7=The data file is the contract between browser and AI tools - changes to the schema affect both consumers
