@@ -47,7 +47,9 @@ export function createMiddleware(opts = {}) {
     });
     req.on("end", () => {
       if (rejected) return;
-      writeQueue = writeQueue.then(() => cb(body));
+      writeQueue = writeQueue.then(() => cb(body)).catch((err) => {
+        console.error("[see-my-clicks] queue error:", err);
+      });
     });
   }
 
@@ -120,6 +122,8 @@ export function createMiddleware(opts = {}) {
         console.error("[see-my-clicks] GET error:", err);
         sendJson(res, 500, { error: String(err) });
       }
+    }).catch((err) => {
+      console.error("[see-my-clicks] queue error:", err);
     });
   }
 
@@ -150,6 +154,8 @@ export function createMiddleware(opts = {}) {
         console.error("[see-my-clicks] DELETE error:", err);
         sendJson(res, 500, { error: String(err) });
       }
+    }).catch((err) => {
+      console.error("[see-my-clicks] queue error:", err);
     });
   }
 
