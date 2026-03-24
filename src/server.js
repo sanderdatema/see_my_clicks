@@ -187,11 +187,17 @@ export function createMiddleware(opts = {}) {
     sendJson(res, 200, { success: true });
   }
 
+  const MAX_COMMENT_LENGTH = 2000;
+
   function updateClickComment(res, parsed) {
-    const { clickId, comment } = parsed;
+    const { clickId } = parsed;
+    let { comment } = parsed;
     if (!clickId) {
       sendJson(res, 400, { error: "clickId required" });
       return;
+    }
+    if (comment && comment.length > MAX_COMMENT_LENGTH) {
+      comment = comment.slice(0, MAX_COMMENT_LENGTH);
     }
     const store = readData(outputFile);
     let found = false;

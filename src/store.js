@@ -18,6 +18,8 @@ export const DEFAULTS = {
   outputFile: ".see-my-clicks/clicked.json",
 };
 
+const MAX_TOTAL_CLICKS_SOFT = 500;
+
 export function resolveOptions(opts = {}) {
   return { ...DEFAULTS, ...opts };
 }
@@ -61,13 +63,29 @@ export function readData(outputFile) {
         ],
       };
     }
-    return raw && raw.sessions ? raw : { sessions: [] };
+    const data = raw && raw.sessions ? raw : { sessions: [] };
+    const total = countTotalClicks(data);
+    if (total > MAX_TOTAL_CLICKS_SOFT) {
+      console.warn(
+        `[see-my-clicks] Store has ${total} clicks across ${data.sessions.length} sessions. ` +
+          `Consider running "npx see-my-clicks purge" to reset.`
+      );
+    }
+    return data;
   } catch (err) {
     console.warn(
       "[see-my-clicks] Failed to read data file:",
       err.message,
       "— starting fresh"
     );
+    // Preserve corrupt file for manual recovery
+    try {
+      const backupPath = outputFile + ".corrupt." + Date.now();
+      fs.copyFileSync(outputFile, backupPath);
+      console.warn("[see-my-clicks] Corrupt file backed up to:", backupPath);
+    } catch (_backupErr) {
+      // Best-effort backup; if it fails, continue with fresh store
+    }
     return { sessions: [] };
   }
 }
