@@ -16,8 +16,7 @@ function getSelector(el) {
     var sibs = Array.from(parent.children).filter(function (c) {
       return c.tagName === el.tagName;
     });
-    if (sibs.length > 1)
-      sel += ":nth-of-type(" + (sibs.indexOf(el) + 1) + ")";
+    if (sibs.length > 1) sel += ":nth-of-type(" + (sibs.indexOf(el) + 1) + ")";
   }
   return sel;
 }

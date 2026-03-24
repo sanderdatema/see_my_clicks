@@ -28,8 +28,7 @@ function getSvelteComponent(el) {
 function getReactComponent(el) {
   var fiberKey = Object.keys(el).find(function (k) {
     return (
-      k.startsWith("__reactFiber$") ||
-      k.startsWith("__reactInternalInstance$")
+      k.startsWith("__reactFiber$") || k.startsWith("__reactInternalInstance$")
     );
   });
   if (!fiberKey) return null;
@@ -53,8 +52,7 @@ function getReactComponent(el) {
 function getVueComponent(el) {
   var vue3 = el.__vueParentComponent;
   if (vue3) {
-    var name =
-      (vue3.type && (vue3.type.name || vue3.type.__name)) || "Unknown";
+    var name = (vue3.type && (vue3.type.name || vue3.type.__name)) || "Unknown";
     var file = (vue3.type && vue3.type.__file) || "Unknown";
     return { framework: "vue", name: name, file: file };
   }
@@ -64,8 +62,7 @@ function getVueComponent(el) {
     // declarations from the Vue 3 branch (file avoids let/const for
     // transpilation-free delivery).
     var n =
-      (vue2.$options &&
-        (vue2.$options.name || vue2.$options._componentTag)) ||
+      (vue2.$options && (vue2.$options.name || vue2.$options._componentTag)) ||
       "Unknown";
     var f = (vue2.$options && vue2.$options.__file) || "Unknown";
     return { framework: "vue", name: n, file: f };

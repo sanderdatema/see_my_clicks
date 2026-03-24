@@ -70,12 +70,7 @@ document.addEventListener("mousemove", function (e) {
   rafId = requestAnimationFrame(function () {
     rafId = null;
     var ev = latestMouseEvent;
-    if (
-      !ev ||
-      !isModifierHeld(ev) ||
-      isModalOpen() ||
-      isSessionPromptOpen()
-    ) {
+    if (!ev || !isModifierHeld(ev) || isModalOpen() || isSessionPromptOpen()) {
       highlight.style.display = "none";
       tooltip.style.display = "none";
       return;

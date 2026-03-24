@@ -41,8 +41,7 @@ function showOnboarding() {
     .querySelector("#__smc-onboard-shortcuts")
     .addEventListener("click", function () {
       var detail = tip.querySelector("#__smc-shortcuts-detail");
-      detail.style.display =
-        detail.style.display === "none" ? "block" : "none";
+      detail.style.display = detail.style.display === "none" ? "block" : "none";
     });
   document.addEventListener("keydown", function onEsc(e) {
     if (e.key === "Escape" && document.getElementById("__smc-onboarding")) {
