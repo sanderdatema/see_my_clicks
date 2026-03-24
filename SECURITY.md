@@ -24,6 +24,26 @@ Security concerns specific to this tool include:
 - Data written to `.see-my-clicks/clicked.json`
 - CLI file operations during `init`
 
+## Known Limitations
+
+### CSRF Origin Check
+The middleware rejects cross-origin requests when an `Origin` header is
+present and does not resolve to localhost. Requests **without** an Origin
+header are permitted to support CLI tools (`curl`, `npx see-my-clicks
+retrieve`).
+
+This means:
+- Browser extensions with localhost access can make requests without CSRF
+  protection
+- Any process running on the developer's machine (Docker containers, other
+  dev servers, VS Code extensions) can access the API
+- Requests from other localhost ports (e.g., `http://localhost:4321`) are
+  permitted
+
+This is an accepted tradeoff. The tool handles only developer click
+annotations with no credentials or secrets. If stricter isolation is
+needed, stop the dev server when not in use.
+
 ## Response Timeline
 
 I aim to acknowledge reports within 7 days and provide a fix or mitigation

@@ -304,6 +304,29 @@ if (framework === "sveltekit") {
   sveltekitPatch.patch();
 }
 
+// Advisory: check if .see-my-clicks/ is in the consumer's .gitignore
+const gitignorePath = path.resolve(process.cwd(), ".gitignore");
+const smcPattern = ".see-my-clicks/";
+
+try {
+  if (fs.existsSync(gitignorePath)) {
+    const content = fs.readFileSync(gitignorePath, "utf-8");
+    if (!content.includes(smcPattern) && !content.includes(".see-my-clicks")) {
+      console.log(
+        "\nNote: Consider adding '.see-my-clicks/' to your .gitignore " +
+          "to prevent captured click data from being committed."
+      );
+    }
+  } else {
+    console.log(
+      "\nNote: No .gitignore found. Consider creating one with " +
+        "'.see-my-clicks/' to prevent captured click data from being committed."
+    );
+  }
+} catch (_err) {
+  // Best-effort check; don't fail init over gitignore
+}
+
 console.log(
   '\nDone! Alt+Click elements in the browser, then say "check my clicks".'
 );
