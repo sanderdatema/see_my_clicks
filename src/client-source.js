@@ -10,7 +10,6 @@
   if (window.__seeMyClicksInitialized) return;
   window.__seeMyClicksInitialized = true;
 
-
   // ── 01-constants.js ─────────────────────────────────────────────
 
   // ── Theme colors (Catppuccin Mocha) ─────────────────────────────
@@ -63,7 +62,6 @@
     "#cba6f7",
   ];
 
-
   // ── 02-helpers.js ───────────────────────────────────────────────
 
   // ── Helpers ──────────────────────────────────────────────────────
@@ -108,7 +106,6 @@
     }
     return n;
   }
-
 
   // ── 03-dom-setup.js ─────────────────────────────────────────────
 
@@ -171,7 +168,6 @@
     "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999997;";
   document.body.appendChild(markerContainer);
 
-
   // ── 04-state.js ─────────────────────────────────────────────────
 
   // ── State: session ──────────────────────────────────────────────
@@ -204,7 +200,6 @@
   var previousFocus = null;
   var sessionPrompt = null;
 
-
   // ── 05-url-matching.js ──────────────────────────────────────────
 
   // ── URL matching ─────────────────────────────────────────────────
@@ -222,7 +217,6 @@
     }
   }
 
-
   // ── 06-flash.js ─────────────────────────────────────────────────
 
   // ── Flash messages ───────────────────────────────────────────────
@@ -238,7 +232,6 @@
       status.style.display = "none";
     }, ms);
   }
-
 
   // ── 07-badge.js ─────────────────────────────────────────────────
 
@@ -289,7 +282,6 @@
       panel.style.display = "none";
     }
   });
-
 
   // ── 08-panel.js ─────────────────────────────────────────────────
 
@@ -623,7 +615,6 @@
       });
   }
 
-
   // ── 09-color-picker.js ──────────────────────────────────────────
 
   // ── Color picker ─────────────────────────────────────────────────
@@ -722,7 +713,6 @@
     });
   }
 
-
   // ── 10-session-vis.js ───────────────────────────────────────────
 
   // ── Session visibility ──────────────────────────────────────────
@@ -736,7 +726,6 @@
     syncMarkersForCurrentRoute();
     if (panelOpen) refreshPanel();
   }
-
 
   // ── 11-markers.js ───────────────────────────────────────────────
 
@@ -934,7 +923,6 @@
 
   window.addEventListener("scroll", updateMarkerPositions, true);
   window.addEventListener("resize", updateMarkerPositions);
-
 
   // ── 12-modal.js ─────────────────────────────────────────────────
 
@@ -1150,7 +1138,6 @@
     return modal && modal.style.display !== "none";
   }
 
-
   // ── 13-session-prompt.js ────────────────────────────────────────
 
   // ── Session prompt ───────────────────────────────────────────────
@@ -1254,7 +1241,6 @@
     return sessionPrompt && sessionPrompt.style.display !== "none";
   }
 
-
   // ── 14-selectors.js ─────────────────────────────────────────────
 
   // ── Selector helpers ─────────────────────────────────────────────
@@ -1295,7 +1281,6 @@
     // Remove Svelte scoped class hashes (.s-XXXX, .svelte-XXXX) from selectors
     return selector.replace(/\.(?:s-|svelte-)[A-Za-z0-9_-]+/g, "");
   }
-
 
   // ── 15-framework.js ─────────────────────────────────────────────
 
@@ -1393,7 +1378,6 @@
     return null;
   }
 
-
   // ── 16-parent-chain.js ──────────────────────────────────────────
 
   // ── Parent chain & attributes ────────────────────────────────────
@@ -1426,7 +1410,6 @@
     return attrs;
   }
 
-
   // ── 17-capture.js ───────────────────────────────────────────────
 
   // ── Capture element ──────────────────────────────────────────────
@@ -1455,7 +1438,6 @@
       viewportSize: { width: window.innerWidth, height: window.innerHeight },
     };
   }
-
 
   // ── 18-server-comm.js ───────────────────────────────────────────
 
@@ -1590,7 +1572,6 @@
     }
   });
 
-
   // ── 19-events.js ────────────────────────────────────────────────
 
   // ── Event listeners ──────────────────────────────────────────────
@@ -1724,7 +1705,6 @@
     }
   });
 
-
   // ── 20-marker-sync.js ───────────────────────────────────────────
 
   // ── Marker sync ────────────────────────────────────────────────────
@@ -1775,7 +1755,6 @@
     }, 200);
   }
 
-
   // ── 21-navigation.js ────────────────────────────────────────────
 
   // ── Navigation detection ───────────────────────────────────────────
@@ -1800,7 +1779,6 @@
   window.addEventListener("popstate", onNavigate);
   window.addEventListener("hashchange", onNavigate);
 
-
   // ── 22-mutation.js ──────────────────────────────────────────────
 
   // ── MutationObserver ───────────────────────────────────────────────
@@ -1819,7 +1797,6 @@
     subtree: true,
   });
 
-
   // ── 23-reduced-motion.js ────────────────────────────────────────
 
   // ── Reduced motion ───────────────────────────────────────────────
@@ -1836,7 +1813,6 @@
   if (reducedMotion.addEventListener) {
     reducedMotion.addEventListener("change", applyReducedMotion);
   }
-
 
   // ── 24-onboarding.js ────────────────────────────────────────────
 
@@ -1895,7 +1871,6 @@
     });
   }
 
-
   // ── 25-init.js ──────────────────────────────────────────────────
 
   // ── Init ─────────────────────────────────────────────────────────
@@ -1909,5 +1884,4 @@
       MODIFIER_LABEL +
       "+Click any element to capture it."
   );
-
 })();

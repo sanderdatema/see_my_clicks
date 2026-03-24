@@ -135,8 +135,7 @@ function refreshPanel() {
       if (purgeBtn) {
         purgeBtn.addEventListener("click", function (e) {
           e.stopPropagation();
-          if (!confirm("Purge all click data? This cannot be undone."))
-            return;
+          if (!confirm("Purge all click data? This cannot be undone.")) return;
           fetch("/__see-my-clicks", { method: "DELETE" })
             .then(function (r) {
               return r.json();
@@ -172,10 +171,7 @@ function refreshPanel() {
               refreshPanel();
             })
             .catch(function (err) {
-              console.warn(
-                "[see-my-clicks] unread reset error:",
-                err.message
-              );
+              console.warn("[see-my-clicks] unread reset error:", err.message);
             });
         });
       }
@@ -261,9 +257,7 @@ function renderSessionHtml(session, clickNumbers) {
     var c = clicks[j];
     var label = "&lt;" + escapeHtml(c.tagName) + "&gt;";
     var comp =
-      c.component && c.component.name
-        ? " " + escapeHtml(c.component.name)
-        : "";
+      c.component && c.component.name ? " " + escapeHtml(c.component.name) : "";
     var comment = c.comment
       ? " \u2014 " +
         escapeHtml(
