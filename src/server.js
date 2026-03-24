@@ -47,9 +47,11 @@ export function createMiddleware(opts = {}) {
     });
     req.on("end", () => {
       if (rejected) return;
-      writeQueue = writeQueue.then(() => cb(body)).catch((err) => {
-        console.error("[see-my-clicks] queue error:", err);
-      });
+      writeQueue = writeQueue
+        .then(() => cb(body))
+        .catch((err) => {
+          console.error("[see-my-clicks] queue error:", err);
+        });
     });
   }
 
@@ -91,7 +93,7 @@ export function createMiddleware(opts = {}) {
 
         const active = store.sessions[store.sessions.length - 1];
         console.log(
-          `[see-my-clicks] ${newSession ? "New session" : "Added"}: <${data.tagName}> in "${active.name}" (${active.clicks.length} clicks, ${countTotalClicks(store)} total)`,
+          `[see-my-clicks] ${newSession ? "New session" : "Added"}: <${data.tagName}> in "${active.name}" (${active.clicks.length} clicks, ${countTotalClicks(store)} total)`
         );
 
         sendJson(res, 200, {
@@ -109,54 +111,58 @@ export function createMiddleware(opts = {}) {
   }
 
   function handleGet(res, url) {
-    writeQueue = writeQueue.then(() => {
-      try {
-        const store = readData(outputFile);
-        const isExternalRead = url.searchParams.get("source") !== "browser";
-        if (isExternalRead) {
-          store.lastRetrievedAt = new Date().toISOString();
-          writeData(outputFile, store);
+    writeQueue = writeQueue
+      .then(() => {
+        try {
+          const store = readData(outputFile);
+          const isExternalRead = url.searchParams.get("source") !== "browser";
+          if (isExternalRead) {
+            store.lastRetrievedAt = new Date().toISOString();
+            writeData(outputFile, store);
+          }
+          sendJson(res, 200, store);
+        } catch (err) {
+          console.error("[see-my-clicks] GET error:", err);
+          sendJson(res, 500, { error: String(err) });
         }
-        sendJson(res, 200, store);
-      } catch (err) {
-        console.error("[see-my-clicks] GET error:", err);
-        sendJson(res, 500, { error: String(err) });
-      }
-    }).catch((err) => {
-      console.error("[see-my-clicks] queue error:", err);
-    });
+      })
+      .catch((err) => {
+        console.error("[see-my-clicks] queue error:", err);
+      });
   }
 
   function handleDelete(res, url) {
-    writeQueue = writeQueue.then(() => {
-      try {
-        const clickId = url.searchParams.get("clickId");
-        const store = readData(outputFile);
+    writeQueue = writeQueue
+      .then(() => {
+        try {
+          const clickId = url.searchParams.get("clickId");
+          const store = readData(outputFile);
 
-        if (clickId) {
-          for (const session of store.sessions) {
-            session.clicks = session.clicks.filter(
-              (c) => c.clickId !== clickId,
-            );
+          if (clickId) {
+            for (const session of store.sessions) {
+              session.clicks = session.clicks.filter(
+                (c) => c.clickId !== clickId
+              );
+            }
+            store.sessions = store.sessions.filter((s) => s.clicks.length > 0);
+            writeData(outputFile, store);
+            sendJson(res, 200, {
+              success: true,
+              totalClicks: countTotalClicks(store),
+              sessions: store.sessions,
+            });
+          } else {
+            writeData(outputFile, { sessions: [], lastRetrievedAt: null });
+            sendJson(res, 200, { success: true, totalClicks: 0 });
           }
-          store.sessions = store.sessions.filter((s) => s.clicks.length > 0);
-          writeData(outputFile, store);
-          sendJson(res, 200, {
-            success: true,
-            totalClicks: countTotalClicks(store),
-            sessions: store.sessions,
-          });
-        } else {
-          writeData(outputFile, { sessions: [], lastRetrievedAt: null });
-          sendJson(res, 200, { success: true, totalClicks: 0 });
+        } catch (err) {
+          console.error("[see-my-clicks] DELETE error:", err);
+          sendJson(res, 500, { error: String(err) });
         }
-      } catch (err) {
-        console.error("[see-my-clicks] DELETE error:", err);
-        sendJson(res, 500, { error: String(err) });
-      }
-    }).catch((err) => {
-      console.error("[see-my-clicks] queue error:", err);
-    });
+      })
+      .catch((err) => {
+        console.error("[see-my-clicks] queue error:", err);
+      });
   }
 
   function updateSessionColor(res, parsed) {

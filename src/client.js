@@ -12,7 +12,7 @@ export function getClientScript() {
   if (!cachedScript) {
     cachedScript = fs.readFileSync(
       path.join(__dirname, "client-source.js"),
-      "utf-8",
+      "utf-8"
     );
   }
   return cachedScript;

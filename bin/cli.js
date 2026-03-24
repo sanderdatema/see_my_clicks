@@ -79,11 +79,11 @@ function readTemplate(tool, actionKey) {
 
   if (actionKey && ACTIONS[actionKey]) {
     const re = new RegExp(
-      `${escapeRegex(ACTION_START)}[\\s\\S]*?${escapeRegex(ACTION_END)}`,
+      `${escapeRegex(ACTION_START)}[\\s\\S]*?${escapeRegex(ACTION_END)}`
     );
     content = content.replace(
       re,
-      `${ACTION_START}\n${ACTIONS[actionKey]}\n${ACTION_END}`,
+      `${ACTION_START}\n${ACTIONS[actionKey]}\n${ACTION_END}`
     );
   }
 
@@ -101,7 +101,7 @@ function installCopy(tool, actionKey) {
     if (existing.includes(ACTION_START)) {
       // Update just the action section in an existing file
       const re = new RegExp(
-        `${escapeRegex(ACTION_START)}[\\s\\S]*?${escapeRegex(ACTION_END)}`,
+        `${escapeRegex(ACTION_START)}[\\s\\S]*?${escapeRegex(ACTION_END)}`
       );
       const content = readTemplate(tool, actionKey);
       const actionMatch = content.match(re);
@@ -130,7 +130,7 @@ function installAppend(tool, actionKey) {
     const existing = fs.readFileSync(dest, "utf-8");
     if (existing.includes(START_MARKER)) {
       const re = new RegExp(
-        `${escapeRegex(START_MARKER)}[\\s\\S]*?${escapeRegex(END_MARKER)}`,
+        `${escapeRegex(START_MARKER)}[\\s\\S]*?${escapeRegex(END_MARKER)}`
       );
       fs.writeFileSync(dest, existing.replace(re, content.trim()));
       console.log(`  Updated see-my-clicks section in ${tool.dest}`);
@@ -201,7 +201,7 @@ const args = process.argv.slice(2);
 
 if (args[0] === "--version" || args[0] === "-v") {
   const pkg = JSON.parse(
-    fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8"),
+    fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8")
   );
   console.log(pkg.version);
   process.exit(0);
@@ -267,7 +267,7 @@ const toolArgs = args.slice(1).filter((a) => !a.startsWith("--"));
 if (toolArgs.length === 0) {
   console.error(
     "Specify which tools to install for, e.g.: npx see-my-clicks init claude\n" +
-      "Run `npx see-my-clicks` for the full list.",
+      "Run `npx see-my-clicks` for the full list."
   );
   process.exit(1);
 }
@@ -276,7 +276,7 @@ if (!ACTIONS[actionKey]) {
   console.error(
     `Unknown action: ${actionKey}\n` +
       "Available: " +
-      Object.keys(ACTIONS).join(", "),
+      Object.keys(ACTIONS).join(", ")
   );
   process.exit(1);
 }
@@ -305,5 +305,5 @@ if (framework === "sveltekit") {
 }
 
 console.log(
-  '\nDone! Alt+Click elements in the browser, then say "check my clicks".',
+  '\nDone! Alt+Click elements in the browser, then say "check my clicks".'
 );
