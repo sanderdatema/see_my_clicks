@@ -70,7 +70,7 @@ export interface SeeMyClicksResponse {
 export type SeeMyClicksMiddleware = (
   req: SeeMyClicksRequest,
   res: SeeMyClicksResponse,
-  next?: () => void,
+  next?: () => void
 ) => void;
 
 export interface SeeMyClicksPlugin {
@@ -84,7 +84,7 @@ export interface SeeMyClicksPlugin {
 
 export function seeMyClicks(opts?: SeeMyClicksOptions): SeeMyClicksPlugin;
 export function createMiddleware(
-  opts?: SeeMyClicksOptions,
+  opts?: SeeMyClicksOptions
 ): SeeMyClicksMiddleware;
 export function getClientScript(): string;
 

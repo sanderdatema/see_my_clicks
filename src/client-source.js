@@ -218,7 +218,7 @@
     badge.style.display = "flex";
     badge.setAttribute(
       "aria-label",
-      "See my clicks: " + count + " unread capture" + (count !== 1 ? "s" : ""),
+      "See my clicks: " + count + " unread capture" + (count !== 1 ? "s" : "")
     );
     if (count > 0) {
       badge.textContent = count > 99 ? "99+" : String(count);
@@ -249,7 +249,7 @@
     function (e) {
       if (e.key === "Enter" || e.key === " ") togglePanel(e);
     },
-    true,
+    true
   );
 
   document.addEventListener("click", function (e) {
@@ -280,7 +280,7 @@
         html +=
           '<button id="__smc-purge-btn" style="background:none;border:1px solid #f38ba8;border-radius:6px;' +
           'color:#f38ba8;font-size:11px;padding:3px 8px;cursor:pointer;" title="Purge all clicks">' +
-          "\u{1F5D1} Purge</button>";
+          "\uD83D\uDDD1 Purge</button>";
         if (store.lastRetrievedAt) {
           html +=
             '<button id="__smc-unread-btn" style="background:none;border:1px solid #6c7086;border-radius:6px;' +
@@ -374,7 +374,7 @@
               showColorPicker(
                 dot.getAttribute("data-smc-color"),
                 dot.getAttribute("data-smc-current-color") || SMC_PURPLE,
-                dot,
+                dot
               );
             });
           })(colorDots[j]);
@@ -433,7 +433,10 @@
                 refreshPanel();
               })
               .catch(function (err) {
-                console.warn("[see-my-clicks] unread reset error:", err.message);
+                console.warn(
+                  "[see-my-clicks] unread reset error:",
+                  err.message
+                );
               });
           });
         }
@@ -457,7 +460,7 @@
                   (name || "Unnamed") +
                   " \u2014 " +
                   MODIFIER_LABEL +
-                  "+Click to capture",
+                  "+Click to capture"
               );
             });
           });
@@ -525,7 +528,7 @@
       var comment = c.comment
         ? " \u2014 " +
           escapeHtml(
-            c.comment.length > 40 ? c.comment.slice(0, 40) + "..." : c.comment,
+            c.comment.length > 40 ? c.comment.slice(0, 40) + "..." : c.comment
           )
         : "";
       panelClickData[c.clickId] = c;
@@ -672,7 +675,11 @@
     fetch("/__see-my-clicks", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update-color", sessionId: sessionId, color: color }),
+      body: JSON.stringify({
+        action: "update-color",
+        sessionId: sessionId,
+        color: color,
+      }),
     }).catch(function (err) {
       console.error("[see-my-clicks] color update error:", err);
     });
@@ -719,8 +726,8 @@
       try {
         var loose = stripHashClasses(data.selector);
         if (loose !== data.selector) {
-          var el = document.querySelector(loose);
-          if (el && verifyElement(el, data)) return el;
+          var looseEl = document.querySelector(loose);
+          if (looseEl && verifyElement(looseEl, data)) return looseEl;
         }
       } catch (e) {}
     }
@@ -735,7 +742,7 @@
         var val = data.attributes[attr];
         try {
           var found = document.querySelector(
-            data.tagName + "[" + attr + "=" + JSON.stringify(val) + "]",
+            data.tagName + "[" + attr + "=" + JSON.stringify(val) + "]"
           );
           if (found && verifyElement(found, data)) return found;
         } catch (e) {}
@@ -793,7 +800,7 @@
         data.tagName +
         ">" +
         (data.comment ? " — " + data.comment : "") +
-        " — click to edit",
+        " — click to edit"
     );
     var baseOpacity = seen ? "0.4" : "0.7";
     var hoverOpacity = seen ? "0.7" : "1";
@@ -820,7 +827,7 @@
         e.stopImmediatePropagation();
         showEditModal(data, e.clientX, e.clientY);
       },
-      true,
+      true
     );
     dot.addEventListener(
       "keydown",
@@ -832,7 +839,7 @@
           showEditModal(data, r.left, r.bottom);
         }
       },
-      true,
+      true
     );
     dot.addEventListener("mouseenter", function () {
       dot.style.opacity = hoverOpacity;
@@ -1444,7 +1451,7 @@
       if (!isModalOpen() || !modal) return;
       modal.__smcMouseDownInside = modal.contains(e.target);
     },
-    true,
+    true
   );
 
   document.addEventListener(
@@ -1489,7 +1496,7 @@
 
       showModal(data, e.clientX, e.clientY);
     },
-    true,
+    true
   );
 
   // Mousemove with RAF throttle — store latest event to avoid stale closure
@@ -1664,7 +1671,7 @@
               "Your AI retrieved clicks \u2014 next " +
                 MODIFIER_LABEL +
                 "+Click starts a new session",
-              4000,
+              4000
             );
             forceNewSession = true;
           }
@@ -1790,6 +1797,6 @@
   console.log(
     "[see-my-clicks] Initialized. " +
       MODIFIER_LABEL +
-      "+Click any element to capture it.",
+      "+Click any element to capture it."
   );
 })();

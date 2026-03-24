@@ -25,7 +25,7 @@ export function detect() {
       if (allDeps["@sveltejs/kit"]) return "sveltekit";
     } catch (e) {
       console.warn(
-        `[see-my-clicks] Warning: could not read ${pkgPath}: ${e.message}`,
+        `[see-my-clicks] Warning: could not read ${pkgPath}: ${e.message}`
       );
     }
   }
@@ -42,7 +42,7 @@ export function patch() {
     console.warn(
       "  \u26a0 SvelteKit detected but src/app.html not found.\n" +
         "  Add this to your app.html manually:\n" +
-        `  ${SCRIPT_TAG}`,
+        `  ${SCRIPT_TAG}`
     );
     return;
   }
@@ -55,7 +55,7 @@ export function patch() {
   if (!html.includes("</body>")) {
     console.warn(
       `  \u26a0 ${rel} has no </body> tag — add the script tag manually:\n` +
-        `  ${SCRIPT_TAG}`,
+        `  ${SCRIPT_TAG}`
     );
     return;
   }
@@ -70,7 +70,7 @@ export function patch() {
     console.warn(
       `  \u26a0 Wrote to ${rel} but the script tag was not found after writing.\n` +
         `  Add it manually:\n` +
-        `  ${SCRIPT_TAG}`,
+        `  ${SCRIPT_TAG}`
     );
   }
 }

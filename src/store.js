@@ -66,7 +66,7 @@ export function readData(outputFile) {
     console.warn(
       "[see-my-clicks] Failed to read data file:",
       err.message,
-      "— starting fresh",
+      "— starting fresh"
     );
     return { sessions: [] };
   }
