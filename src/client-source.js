@@ -1655,7 +1655,9 @@
   }
 
   var _pollLastRetrievedAt = lastRetrievedAt;
-  setInterval(function () {
+  var _pollTimer = null;
+
+  function pollOnce() {
     fetch("/__see-my-clicks?source=browser")
       .then(function (r) {
         return r.json();
@@ -1678,7 +1680,30 @@
         }
       })
       .catch(function () {});
-  }, 4000);
+  }
+
+  function startPolling() {
+    if (_pollTimer) return;
+    _pollTimer = setInterval(pollOnce, 4000);
+  }
+
+  function stopPolling() {
+    if (_pollTimer) {
+      clearInterval(_pollTimer);
+      _pollTimer = null;
+    }
+  }
+
+  startPolling();
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      startPolling();
+      loadAndSync();
+    }
+  });
 
   // ── Navigation detection ───────────────────────────────────────────
 
