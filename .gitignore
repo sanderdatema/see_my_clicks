@@ -3,3 +3,6 @@ node_modules/
 *.log
 .see-my-clicks/clicked.json
 host_folders/
+
+# AEGIS audit state (generated)
+.aegis/

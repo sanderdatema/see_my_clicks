@@ -43,8 +43,12 @@
     "debugging",
     "click-capture"
   ],
-  "author": "",
+  "author": "Sander Datema",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sanderdatema/see_my_clicks/issues"
+  },
+  "homepage": "https://github.com/sanderdatema/see_my_clicks#readme",
   "peerDependencies": {
     "vite": ">=4.0.0"
   },

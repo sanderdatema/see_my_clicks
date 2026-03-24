@@ -25,6 +25,12 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm test
+
       - run: npm install -g npm@latest
 
       - name: Publish
