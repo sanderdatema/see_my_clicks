@@ -25,7 +25,8 @@
     "test:regression": "playwright test tests/regression/",
     "lint": "eslint src/ bin/",
     "format": "prettier --write src/ bin/",
-    "format:check": "prettier --check src/ bin/"
+    "format:check": "prettier --check src/ bin/",
+    "build:client": "node scripts/build-client.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",

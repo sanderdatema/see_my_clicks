@@ -2,6 +2,9 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
   {
+    ignores: ["src/client/**"],
+  },
+  {
     files: ["src/**/*.js", "bin/**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
