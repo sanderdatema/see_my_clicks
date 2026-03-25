@@ -17,8 +17,7 @@ function save(data, newSession, sessionName) {
       var name = (data.component && data.component.name) || data.tagName;
       var sessionLabel = res.sessionName ? " [" + res.sessionName + "]" : "";
       flash("Clicked: " + name + sessionLabel);
-      updateBadge();
-      // Track in allClickData so syncMarkers knows about it
+      // Track in allClickData so syncMarkers and updateBadge know about it
       var sColor = res.sessionColor || SMC_PURPLE;
       var clickNumber = allClickData.length + 1;
       allClickData.push({
@@ -28,6 +27,7 @@ function save(data, newSession, sessionName) {
         sessionId: res.sessionId,
         sessionColor: sColor,
       });
+      updateBadge();
       addMarker(data, sColor, clickNumber);
       lastClickId = data.clickId;
     })
