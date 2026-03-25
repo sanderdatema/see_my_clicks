@@ -22,6 +22,8 @@
   ],
   "scripts": {
     "test": "playwright test",
+    "test:unit": "playwright test --project=unit",
+    "test:e2e": "playwright test --project=e2e",
     "test:regression": "playwright test tests/regression/",
     "lint": "eslint src/ bin/",
     "format": "prettier --write src/ bin/",
@@ -32,7 +34,8 @@
     "@playwright/test": "^1.51.0",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "vite": "^8.0.2"
   },
   "keywords": [
     "vite",

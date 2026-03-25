@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>E2E Test Fixture</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 2rem;
+      }
+      .target {
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ccc;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="heading">E2E Test Fixture</h1>
+
+    <button id="btn-primary" class="target" data-testid="primary-btn">
+      Primary Button
+    </button>
+
+    <a id="link-about" class="target" href="/about">About Link</a>
+
+    <div id="card" class="target">
+      <span id="card-title">Card Title</span>
+      <p id="card-body">Card body text</p>
+    </div>
+
+    <input id="text-input" class="target" type="text" placeholder="Type here" />
+  </body>
+</html>
