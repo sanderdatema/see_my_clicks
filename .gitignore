@@ -3,6 +3,10 @@ node_modules/
 *.log
 .see-my-clicks/
 host_folders/
+.observer.lock
 
-# AEGIS audit state (generated)
+# Tool state (generated)
 .aegis/
+.carl/sessions/
+.paul/
+.serena/project.yml
