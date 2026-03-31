@@ -3,10 +3,17 @@ node_modules/
 *.log
 .see-my-clicks/
 host_folders/
-.observer.lock
 
 # Tool state (generated)
 .aegis/
-.carl/sessions/
+.carl/
+.npm-cache/
+.observer.lock
 .paul/
-.serena/project.yml
+.playwright-cli/
+.serena/
+.claude/clicked.json
+memory/
+test-results/
+docs/archive/
+docs/playgrounds/
