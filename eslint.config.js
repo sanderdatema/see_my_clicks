@@ -12,7 +12,10 @@ export default [
     },
     rules: {
       "no-redeclare": "error",
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
     },
   },
   {
@@ -40,7 +43,14 @@ export default [
     },
     rules: {
       "no-redeclare": "off",
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_", vars: "local" }],
+      "no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          vars: "local",
+        },
+      ],
       "no-var": "off",
     },
   },

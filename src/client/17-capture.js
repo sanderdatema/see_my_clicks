@@ -4,7 +4,7 @@ function captureElement(el) {
   var rect = el.getBoundingClientRect();
   return {
     // Generates click IDs. Independent from session ID generation in src/server.js.
-    clickId: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    clickId: generateClickId(),
     timestamp: new Date().toISOString(),
     tagName: el.tagName.toLowerCase(),
     elementId: el.id || null,

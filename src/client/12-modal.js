@@ -7,7 +7,13 @@ function createModal() {
   m.setAttribute("aria-modal", "true");
   m.setAttribute("aria-label", "Add comment for captured element");
   m.style.cssText =
-    "position:fixed;z-index:1000000;background:#1e1e2e;border:1px solid #8b5cf6;" +
+    "position:fixed;z-index:" +
+    Z_MODAL +
+    ";background:" +
+    SMC_BG +
+    ";border:1px solid " +
+    SMC_PURPLE +
+    ";" +
     "border-radius:10px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);" +
     "font-family:system-ui,-apple-system,sans-serif;display:none;width:360px;" +
     "max-height:calc(100vh - 32px);overflow-y:auto;";
@@ -57,24 +63,7 @@ function createModal() {
     }
   });
 
-  // Focus trap
-  m.addEventListener("keydown", function (e) {
-    if (e.key !== "Tab") return;
-    var focusable = m.querySelectorAll("textarea, button");
-    var first = focusable[0];
-    var last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  });
+  trapFocus(m, "textarea, button");
 
   return m;
 }

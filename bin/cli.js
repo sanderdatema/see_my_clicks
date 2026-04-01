@@ -168,6 +168,7 @@ function detectSSRFramework() {
 const OUTPUT_FILE = path.resolve(process.cwd(), ".see-my-clicks/clicked.json");
 
 function handleRetrieve() {
+  ensureOutputFile(OUTPUT_FILE);
   const store = readData(OUTPUT_FILE);
   const marker = store.lastRetrievedAt || null;
 
@@ -191,6 +192,7 @@ function handleRetrieve() {
 }
 
 function handlePurge() {
+  ensureOutputFile(OUTPUT_FILE);
   writeData(OUTPUT_FILE, { sessions: [], lastRetrievedAt: null });
   process.stderr.write("Purged all click data.\n");
 }

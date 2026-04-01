@@ -1,5 +1,4 @@
 import { createMiddleware } from "./server.js";
-import { getClientScript } from "./client.js";
 
 /**
  * Vite plugin factory.

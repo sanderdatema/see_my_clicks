@@ -308,7 +308,7 @@ function deleteClick(clickId) {
     .then(function (r) {
       return r.json();
     })
-    .then(function (res) {
+    .then(function () {
       removeMarker(clickId);
       // Remove from allClickData so syncMarkers won't re-create it
       allClickData = allClickData.filter(function (cd) {

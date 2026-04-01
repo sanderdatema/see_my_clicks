@@ -78,6 +78,7 @@ function loadAndSync() {
     });
 }
 
+var POLL_INTERVAL_MS = 4000;
 var _pollLastRetrievedAt = lastRetrievedAt;
 var _pollTimer = null;
 
@@ -108,7 +109,7 @@ function pollOnce() {
 
 function startPolling() {
   if (_pollTimer) return;
-  _pollTimer = setInterval(pollOnce, 4000);
+  _pollTimer = setInterval(pollOnce, POLL_INTERVAL_MS);
 }
 
 function stopPolling() {

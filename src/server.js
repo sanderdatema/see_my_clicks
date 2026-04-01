@@ -11,6 +11,10 @@ import {
   validateClickData,
 } from "./store.js";
 
+const MAX_BODY_SIZE = 1024 * 1024; // 1 MB
+const MAX_COMMENT_LENGTH = 2000;
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
+
 /**
  * Connect-style middleware that handles the /__see-my-clicks endpoint.
  */
@@ -24,8 +28,9 @@ export function createMiddleware(opts = {}) {
   // requests from clobbering each other (e.g. two rapid Alt+Clicks).
   let writeQueue = Promise.resolve();
 
-  const MAX_BODY_SIZE = 1024 * 1024; // 1 MB
-  const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
+  function logQueueError(err) {
+    console.error("[see-my-clicks] queue error:", err);
+  }
 
   function sendJson(res, status, body) {
     res.writeHead(status, { "Content-Type": "application/json" });
@@ -47,11 +52,7 @@ export function createMiddleware(opts = {}) {
     });
     req.on("end", () => {
       if (rejected) return;
-      writeQueue = writeQueue
-        .then(() => cb(body))
-        .catch((err) => {
-          console.error("[see-my-clicks] queue error:", err);
-        });
+      writeQueue = writeQueue.then(() => cb(body)).catch(logQueueError);
     });
   }
 
@@ -85,15 +86,15 @@ export function createMiddleware(opts = {}) {
             clicks: [data],
           });
         } else {
-          const active = store.sessions[store.sessions.length - 1];
-          active.clicks.push(data);
+          store.sessions[store.sessions.length - 1].clicks.push(data);
         }
 
         writeData(outputFile, store);
 
         const active = store.sessions[store.sessions.length - 1];
+        const total = countTotalClicks(store);
         console.log(
-          `[see-my-clicks] ${newSession ? "New session" : "Added"}: <${data.tagName}> in "${active.name}" (${active.clicks.length} clicks, ${countTotalClicks(store)} total)`
+          `[see-my-clicks] ${newSession ? "New session" : "Added"}: <${data.tagName}> in "${active.name}" (${active.clicks.length} clicks, ${total} total)`
         );
 
         sendJson(res, 200, {
@@ -101,7 +102,7 @@ export function createMiddleware(opts = {}) {
           sessionId: active.id,
           sessionName: active.name,
           sessionColor: active.color || COLOR_PALETTE[0],
-          totalClicks: countTotalClicks(store),
+          totalClicks: total,
         });
       } catch (err) {
         console.error("[see-my-clicks] POST error:", err);
@@ -126,9 +127,7 @@ export function createMiddleware(opts = {}) {
           sendJson(res, 500, { error: String(err) });
         }
       })
-      .catch((err) => {
-        console.error("[see-my-clicks] queue error:", err);
-      });
+      .catch(logQueueError);
   }
 
   function handleDelete(res, url) {
@@ -160,9 +159,7 @@ export function createMiddleware(opts = {}) {
           sendJson(res, 500, { error: String(err) });
         }
       })
-      .catch((err) => {
-        console.error("[see-my-clicks] queue error:", err);
-      });
+      .catch(logQueueError);
   }
 
   function updateSessionColor(res, parsed) {
@@ -186,8 +183,6 @@ export function createMiddleware(opts = {}) {
     writeData(outputFile, store);
     sendJson(res, 200, { success: true });
   }
-
-  const MAX_COMMENT_LENGTH = 2000;
 
   function updateClickComment(res, parsed) {
     const { clickId } = parsed;
@@ -225,20 +220,14 @@ export function createMiddleware(opts = {}) {
         const parsed = JSON.parse(body);
         const action = parsed.action;
 
-        if (action === "reset-read" || (!action && parsed.resetRead)) {
+        if (action === "reset-read") {
           const store = readData(outputFile);
           store.lastRetrievedAt = null;
           writeData(outputFile, store);
           sendJson(res, 200, { success: true });
-        } else if (
-          action === "update-color" ||
-          (!action && parsed.sessionId && parsed.color && !parsed.clickId)
-        ) {
+        } else if (action === "update-color") {
           updateSessionColor(res, parsed);
-        } else if (
-          action === "update-comment" ||
-          (!action && parsed.clickId !== undefined)
-        ) {
+        } else if (action === "update-comment") {
           updateClickComment(res, parsed);
         } else {
           sendJson(res, 400, { error: "Unknown action" });

@@ -22,8 +22,14 @@ function showColorPicker(sessionId, currentColor, anchorEl) {
   var picker = document.createElement("div");
   picker.id = "__smc-color-picker";
   picker.style.cssText =
-    "position:fixed;background:#1e1e2e;border:1px solid #45475a;border-radius:8px;" +
-    "padding:6px;z-index:1000001;display:flex;gap:4px;" +
+    "position:fixed;background:" +
+    SMC_BG +
+    ";border:1px solid " +
+    SMC_BORDER +
+    ";border-radius:8px;" +
+    "padding:6px;z-index:" +
+    Z_PICKER +
+    ";display:flex;gap:4px;" +
     "box-shadow:0 4px 12px rgba(0,0,0,.4);";
 
   for (var i = 0; i < SESSION_COLORS.length; i++) {

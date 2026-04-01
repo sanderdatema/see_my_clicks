@@ -15,7 +15,7 @@ function findElement(data) {
   try {
     var el = document.querySelector(data.selector);
     if (el && verifyElement(el, data)) return el;
-  } catch (e) {}
+  } catch (_e) {}
 
   // Fallback: selector without framework hash classes (Svelte/SvelteKit)
   if (data.selector) {
@@ -25,7 +25,7 @@ function findElement(data) {
         var looseEl = document.querySelector(loose);
         if (looseEl && verifyElement(looseEl, data)) return looseEl;
       }
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Fallback: match by data-* attributes
@@ -41,7 +41,7 @@ function findElement(data) {
           data.tagName + "[" + attr + "=" + JSON.stringify(val) + "]"
         );
         if (found && verifyElement(found, data)) return found;
-      } catch (e) {}
+      } catch (_e) {}
     }
   }
 
@@ -50,7 +50,7 @@ function findElement(data) {
     try {
       var byId = document.getElementById(data.elementId);
       if (byId && verifyElement(byId, data)) return byId;
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   // Fallback: match by component file + tag name + text content

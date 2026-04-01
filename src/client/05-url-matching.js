@@ -8,7 +8,7 @@ function routeMatches(storedUrl) {
   try {
     var parsed = new URL(storedUrl);
     return parsed.pathname + parsed.hash === getRoute();
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 }

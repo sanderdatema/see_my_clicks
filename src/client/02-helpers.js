@@ -40,3 +40,23 @@ function countUnread() {
   }
   return n;
 }
+
+function trapFocus(container, selector) {
+  container.addEventListener("keydown", function (e) {
+    if (e.key !== "Tab") return;
+    var focusable = container.querySelectorAll(selector);
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+}

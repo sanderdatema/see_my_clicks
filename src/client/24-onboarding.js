@@ -7,8 +7,16 @@ function showOnboarding() {
   tip.setAttribute("role", "alertdialog");
   tip.setAttribute("aria-label", "see-my-clicks onboarding tip");
   tip.style.cssText =
-    "position:fixed;bottom:64px;right:16px;background:#1e1e2e;color:#cdd6f4;" +
-    "border:1px solid #8b5cf6;border-radius:8px;padding:12px 16px;z-index:999999;" +
+    "position:fixed;bottom:64px;right:16px;background:" +
+    SMC_BG +
+    ";color:" +
+    SMC_TEXT +
+    ";" +
+    "border:1px solid " +
+    SMC_PURPLE +
+    ";border-radius:8px;padding:12px 16px;z-index:" +
+    Z_BASE +
+    ";" +
     "font-family:system-ui,-apple-system,sans-serif;font-size:13px;max-width:260px;" +
     "box-shadow:0 8px 24px rgba(0,0,0,.4);";
   tip.innerHTML =

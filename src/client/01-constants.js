@@ -35,6 +35,13 @@ function isModifierKey(key) {
   return key === "Alt";
 }
 
+// ── Z-index stacking order ──────────────────────────────────────
+var Z_MARKERS = 999997;
+var Z_HIGHLIGHT = 999998;
+var Z_BASE = 999999;
+var Z_MODAL = 1000000;
+var Z_PICKER = 1000001;
+
 // Keep in sync with COLOR_PALETTE in src/server.js
 // Enforced by tests/static/color-palette-sync.spec.mjs
 var SESSION_COLORS = [

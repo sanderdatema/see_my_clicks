@@ -49,6 +49,13 @@
     return key === "Alt";
   }
 
+  // ── Z-index stacking order ──────────────────────────────────────
+  var Z_MARKERS = 999997;
+  var Z_HIGHLIGHT = 999998;
+  var Z_BASE = 999999;
+  var Z_MODAL = 1000000;
+  var Z_PICKER = 1000001;
+
   // Keep in sync with COLOR_PALETTE in src/server.js
   // Enforced by tests/static/color-palette-sync.spec.mjs
   var SESSION_COLORS = [
@@ -107,6 +114,26 @@
     return n;
   }
 
+  function trapFocus(container, selector) {
+    container.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var focusable = container.querySelectorAll(selector);
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+  }
+
   // ── 03-dom-setup.js ─────────────────────────────────────────────
 
   // ── DOM elements ─────────────────────────────────────────────────
@@ -114,30 +141,48 @@
   var overlay = document.createElement("div");
   overlay.id = "__smc-overlay";
   overlay.style.cssText =
-    "position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:999999;";
+    "position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:" +
+    Z_BASE +
+    ";";
   document.body.appendChild(overlay);
 
   var highlight = document.createElement("div");
   highlight.id = "__smc-highlight";
   highlight.style.cssText =
-    "position:fixed;border:2px solid #8b5cf6;background:rgba(139,92,246,0.1);" +
-    "pointer-events:none;z-index:999998;transition:all .05s ease;display:none;";
+    "position:fixed;border:2px solid " +
+    SMC_PURPLE +
+    ";background:rgba(139,92,246,0.1);" +
+    "pointer-events:none;z-index:" +
+    Z_HIGHLIGHT +
+    ";transition:all .05s ease;display:none;";
   document.body.appendChild(highlight);
 
   var tooltip = document.createElement("div");
   tooltip.id = "__smc-tooltip";
   tooltip.style.cssText =
-    "position:fixed;background:#1e1e2e;color:#cdd6f4;font-family:system-ui,sans-serif;" +
-    "font-size:11px;padding:2px 6px;border-radius:4px;pointer-events:none;z-index:999999;" +
-    "display:none;white-space:nowrap;border:1px solid #8b5cf6;";
+    "position:fixed;background:" +
+    SMC_BG +
+    ";color:" +
+    SMC_TEXT +
+    ";font-family:system-ui,sans-serif;" +
+    "font-size:11px;padding:2px 6px;border-radius:4px;pointer-events:none;z-index:" +
+    Z_BASE +
+    ";" +
+    "display:none;white-space:nowrap;border:1px solid " +
+    SMC_PURPLE +
+    ";";
   document.body.appendChild(tooltip);
 
   var status = document.createElement("div");
   status.id = "__smc-status";
   status.style.cssText =
-    "position:fixed;bottom:68px;right:20px;background:#8b5cf6;color:#fff;" +
+    "position:fixed;bottom:68px;right:20px;background:" +
+    SMC_PURPLE +
+    ";color:#fff;" +
     "padding:8px 16px;border-radius:8px;font-family:system-ui,sans-serif;" +
-    "font-size:14px;z-index:999999;box-shadow:0 4px 12px rgba(0,0,0,.2);display:none;" +
+    "font-size:14px;z-index:" +
+    Z_BASE +
+    ";box-shadow:0 4px 12px rgba(0,0,0,.2);display:none;" +
     "pointer-events:none;";
   document.body.appendChild(status);
 
@@ -148,24 +193,36 @@
   badge.setAttribute("aria-label", "See my clicks: 0 captures");
   badge.style.cssText =
     "position:fixed;bottom:20px;right:20px;width:36px;height:36px;border-radius:50%;" +
-    "background:#8b5cf6;color:#fff;font-family:system-ui,sans-serif;font-size:14px;" +
+    "background:" +
+    SMC_PURPLE +
+    ";color:#fff;font-family:system-ui,sans-serif;font-size:14px;" +
     "font-weight:700;display:none;align-items:center;justify-content:center;cursor:pointer;" +
-    "z-index:999999;box-shadow:0 4px 12px rgba(0,0,0,.3);";
+    "z-index:" +
+    Z_BASE +
+    ";box-shadow:0 4px 12px rgba(0,0,0,.3);";
   document.body.appendChild(badge);
 
   var panel = document.createElement("div");
   panel.id = "__smc-panel";
   panel.style.cssText =
     "position:fixed;bottom:68px;right:20px;width:320px;max-height:400px;overflow-y:auto;" +
-    "background:#1e1e2e;border:1px solid #8b5cf6;border-radius:10px;" +
+    "background:" +
+    SMC_BG +
+    ";border:1px solid " +
+    SMC_PURPLE +
+    ";border-radius:10px;" +
     "box-shadow:0 8px 32px rgba(0,0,0,.4);font-family:system-ui,-apple-system,sans-serif;" +
-    "z-index:999999;display:none;";
+    "z-index:" +
+    Z_BASE +
+    ";display:none;";
   document.body.appendChild(panel);
 
   var markerContainer = document.createElement("div");
   markerContainer.id = "__smc-markers";
   markerContainer.style.cssText =
-    "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999997;";
+    "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:" +
+    Z_MARKERS +
+    ";";
   document.body.appendChild(markerContainer);
 
   // ── 04-state.js ─────────────────────────────────────────────────
@@ -212,7 +269,7 @@
     try {
       var parsed = new URL(storedUrl);
       return parsed.pathname + parsed.hash === getRoute();
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
   }
@@ -601,7 +658,7 @@
       .then(function (r) {
         return r.json();
       })
-      .then(function (res) {
+      .then(function () {
         removeMarker(clickId);
         // Remove from allClickData so syncMarkers won't re-create it
         allClickData = allClickData.filter(function (cd) {
@@ -641,8 +698,14 @@
     var picker = document.createElement("div");
     picker.id = "__smc-color-picker";
     picker.style.cssText =
-      "position:fixed;background:#1e1e2e;border:1px solid #45475a;border-radius:8px;" +
-      "padding:6px;z-index:1000001;display:flex;gap:4px;" +
+      "position:fixed;background:" +
+      SMC_BG +
+      ";border:1px solid " +
+      SMC_BORDER +
+      ";border-radius:8px;" +
+      "padding:6px;z-index:" +
+      Z_PICKER +
+      ";display:flex;gap:4px;" +
       "box-shadow:0 4px 12px rgba(0,0,0,.4);";
 
     for (var i = 0; i < SESSION_COLORS.length; i++) {
@@ -746,7 +809,7 @@
     try {
       var el = document.querySelector(data.selector);
       if (el && verifyElement(el, data)) return el;
-    } catch (e) {}
+    } catch (_e) {}
 
     // Fallback: selector without framework hash classes (Svelte/SvelteKit)
     if (data.selector) {
@@ -756,7 +819,7 @@
           var looseEl = document.querySelector(loose);
           if (looseEl && verifyElement(looseEl, data)) return looseEl;
         }
-      } catch (e) {}
+      } catch (_e) {}
     }
 
     // Fallback: match by data-* attributes
@@ -772,7 +835,7 @@
             data.tagName + "[" + attr + "=" + JSON.stringify(val) + "]"
           );
           if (found && verifyElement(found, data)) return found;
-        } catch (e) {}
+        } catch (_e) {}
       }
     }
 
@@ -781,7 +844,7 @@
       try {
         var byId = document.getElementById(data.elementId);
         if (byId && verifyElement(byId, data)) return byId;
-      } catch (e) {}
+      } catch (_e) {}
     }
 
     // Fallback: match by component file + tag name + text content
@@ -935,7 +998,13 @@
     m.setAttribute("aria-modal", "true");
     m.setAttribute("aria-label", "Add comment for captured element");
     m.style.cssText =
-      "position:fixed;z-index:1000000;background:#1e1e2e;border:1px solid #8b5cf6;" +
+      "position:fixed;z-index:" +
+      Z_MODAL +
+      ";background:" +
+      SMC_BG +
+      ";border:1px solid " +
+      SMC_PURPLE +
+      ";" +
       "border-radius:10px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);" +
       "font-family:system-ui,-apple-system,sans-serif;display:none;width:360px;" +
       "max-height:calc(100vh - 32px);overflow-y:auto;";
@@ -985,24 +1054,7 @@
       }
     });
 
-    // Focus trap
-    m.addEventListener("keydown", function (e) {
-      if (e.key !== "Tab") return;
-      var focusable = m.querySelectorAll("textarea, button");
-      var first = focusable[0];
-      var last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    });
+    trapFocus(m, "textarea, button");
 
     return m;
   }
@@ -1149,7 +1201,13 @@
     p.setAttribute("aria-modal", "true");
     p.setAttribute("aria-label", "Name your new session");
     p.style.cssText =
-      "position:fixed;z-index:1000001;background:#1e1e2e;border:1px solid #8b5cf6;" +
+      "position:fixed;z-index:" +
+      Z_PICKER +
+      ";background:" +
+      SMC_BG +
+      ";border:1px solid " +
+      SMC_PURPLE +
+      ";" +
       "border-radius:10px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);" +
       "font-family:system-ui,-apple-system,sans-serif;display:none;width:240px;" +
       "top:50%;left:50%;transform:translate(-50%,-50%);";
@@ -1170,24 +1228,7 @@
       "</div>";
     document.body.appendChild(p);
 
-    // Focus trap
-    p.addEventListener("keydown", function (e) {
-      if (e.key !== "Tab") return;
-      var focusable = p.querySelectorAll("input, button");
-      var first = focusable[0];
-      var last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    });
+    trapFocus(p, "input, button");
 
     return p;
   }
@@ -1225,7 +1266,7 @@
     function onKey(e) {
       if (e.key === "Enter") {
         e.preventDefault();
-        finish(input.value.trim() || null);
+        finish(input.value.trim() || defaultName);
       }
       if (e.key === "Escape") {
         e.preventDefault();
@@ -1418,7 +1459,7 @@
     var rect = el.getBoundingClientRect();
     return {
       // Generates click IDs. Independent from session ID generation in src/server.js.
-      clickId: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      clickId: generateClickId(),
       timestamp: new Date().toISOString(),
       tagName: el.tagName.toLowerCase(),
       elementId: el.id || null,
@@ -1521,6 +1562,7 @@
       });
   }
 
+  var POLL_INTERVAL_MS = 4000;
   var _pollLastRetrievedAt = lastRetrievedAt;
   var _pollTimer = null;
 
@@ -1551,7 +1593,7 @@
 
   function startPolling() {
     if (_pollTimer) return;
-    _pollTimer = setInterval(pollOnce, 4000);
+    _pollTimer = setInterval(pollOnce, POLL_INTERVAL_MS);
   }
 
   function stopPolling() {
@@ -1825,8 +1867,16 @@
     tip.setAttribute("role", "alertdialog");
     tip.setAttribute("aria-label", "see-my-clicks onboarding tip");
     tip.style.cssText =
-      "position:fixed;bottom:64px;right:16px;background:#1e1e2e;color:#cdd6f4;" +
-      "border:1px solid #8b5cf6;border-radius:8px;padding:12px 16px;z-index:999999;" +
+      "position:fixed;bottom:64px;right:16px;background:" +
+      SMC_BG +
+      ";color:" +
+      SMC_TEXT +
+      ";" +
+      "border:1px solid " +
+      SMC_PURPLE +
+      ";border-radius:8px;padding:12px 16px;z-index:" +
+      Z_BASE +
+      ";" +
       "font-family:system-ui,-apple-system,sans-serif;font-size:13px;max-width:260px;" +
       "box-shadow:0 8px 24px rgba(0,0,0,.4);";
     tip.innerHTML =
